@@ -108,6 +108,10 @@ fecha_alta DATE NOT NULL,
 
 activo BOOLEAN DEFAULT TRUE,
 
+apto_medico_vigente BOOLEAN DEFAULT FALSE,
+
+fecha_vencimiento_apto DATE,
+
 FOREIGN KEY (id_direccion) REFERENCES Direccion(id_direccion)
 
 );
@@ -203,6 +207,86 @@ FOREIGN KEY (id_rutina) REFERENCES Rutina(id_rutina),
 FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
 
 FOREIGN KEY (id_ejercicio) REFERENCES Ejercicio(id_ejercicio)
+
+);
+
+
+-- 7. Tabla para turnos de nutricionista
+
+CREATE TABLE Turno_Nutricional (
+
+id_turno INT PRIMARY KEY AUTO_INCREMENT,
+
+dni_cliente VARCHAR(20) NOT NULL,
+
+id_usuario_nutricionista INT NOT NULL,
+
+fecha_turno DATE NOT NULL,
+
+hora_turno TIME NOT NULL,
+
+estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente', -- Ej: Pendiente, Completado, Cancelado, Ausente
+
+observaciones TEXT,
+
+FOREIGN KEY (dni_cliente) REFERENCES Cliente(dni),
+
+FOREIGN KEY (id_usuario_nutricionista) REFERENCES Usuario(id_usuario)
+
+);
+
+
+-- 8. Tablas para Clases Grupales y reservas
+
+CREATE TABLE Clase (
+
+id_clase INT PRIMARY KEY AUTO_INCREMENT,
+
+nombre_clase VARCHAR(50) NOT NULL, -- Ej: Zumba, Funcional, Calistenia
+
+id_usuario_profesor INT NOT NULL, -- El entrenador a cargo de la clase
+
+cupo_maximo INT NOT NULL,
+
+activo BOOLEAN DEFAULT TRUE,
+
+FOREIGN KEY (id_usuario_profesor) REFERENCES Usuario(id_usuario)
+
+);
+
+
+CREATE TABLE Horario_Clase (
+
+id_horario INT PRIMARY KEY AUTO_INCREMENT,
+
+id_clase INT NOT NULL,
+
+dia_semana VARCHAR(15) NOT NULL, -- Ej: Lunes, Martes, Miércoles, etc.
+
+hora_inicio TIME NOT NULL,
+
+hora_fin TIME NOT NULL,
+
+FOREIGN KEY (id_clase) REFERENCES Clase(id_clase)
+
+);
+
+
+CREATE TABLE Inscripcion_Clase (
+
+id_inscripcion INT PRIMARY KEY AUTO_INCREMENT,
+
+dni_cliente VARCHAR(20) NOT NULL,
+
+id_horario INT NOT NULL,
+
+fecha DATE NOT NULL, -- Fecha específica para la que se reserva la clase
+
+asistio BOOLEAN DEFAULT FALSE,
+
+FOREIGN KEY (dni_cliente) REFERENCES Cliente(dni),
+
+FOREIGN KEY (id_horario) REFERENCES Horario_Clase(id_horario)
 
 );
 
