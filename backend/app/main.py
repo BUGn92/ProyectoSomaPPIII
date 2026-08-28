@@ -1,10 +1,14 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 # Cargar configuración del .env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
+
+# Importar rutas
+from app.routes import auth, usuario, cliente
 
 app = FastAPI(
     title="SOMA Gym API",
@@ -13,12 +17,6 @@ app = FastAPI(
 )
 
 # Configuración de CORS
-origins = [
-    "http://localhost",
-    "http://localhost:3000",  # React default
-    "http://localhost:5173",  # Vite default
-]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Cambiar en producción a los origins específicos
@@ -27,16 +25,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/", tags=["General"])
-async def root():
+# Registrar enrutadores de la API
+app.include_router(auth.router)
+app.include_router(usuario.router)
+app.include_router(cliente.router)
+
+# Ruta de chequeo de estado de la API
+@app.get("/api/health", tags=["General"])
+async def health():
     return {
         "status": "online",
-        "message": "Bienvenido a la API del Gimnasio SOMA",
-        "docs_url": "/docs"
+        "message": "La API del Gimnasio SOMA está en línea"
     }
+
+# Montar archivos estáticos para el frontend
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
+app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+    uvicorn.run("app.main:app", host=host, port=port, reload=True)
+
