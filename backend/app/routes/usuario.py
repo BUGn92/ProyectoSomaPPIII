@@ -24,7 +24,7 @@ def read_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(database.get_db),
-    current_user: models.Usuario = Depends(get_current_user)
+    admin_user: models.Usuario = Depends(require_admin)
 ):
     return crud.get_users(db, skip=skip, limit=limit)
 
@@ -32,7 +32,7 @@ def read_users(
 def read_user(
     user_id: int,
     db: Session = Depends(database.get_db),
-    current_user: models.Usuario = Depends(get_current_user)
+    admin_user: models.Usuario = Depends(require_admin)
 ):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:

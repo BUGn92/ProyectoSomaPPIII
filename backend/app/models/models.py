@@ -32,6 +32,7 @@ class Usuario(Base):
     usuario_login = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     rol = Column(String(50), nullable=False)
+    debe_cambiar_password = Column(Boolean, default=False)
 
 
 class Ejercicio(Base):
@@ -148,4 +149,18 @@ class RegistroEntrenamiento(Base):
 
     cliente = relationship("Cliente")
     ejercicio = relationship("Ejercicio")
+
+
+class Noticia(Base):
+    __tablename__ = "Noticia"
+
+    id_noticia = Column(Integer, primary_key=True, autoincrement=True)
+    titulo = Column(String(150), nullable=False)
+    contenido = Column(Text, nullable=False)
+    categoria = Column(String(50), default="General")
+    fecha_publicacion = Column(Date, nullable=False)
+    id_usuario_autor = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
+
+    autor = relationship("Usuario")
+
 

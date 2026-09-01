@@ -45,6 +45,7 @@ class UsuarioUpdate(BaseModel):
 
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
+    debe_cambiar_password: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -52,6 +53,10 @@ class UsuarioResponse(UsuarioBase):
 class UsuarioLogin(BaseModel):
     usuario_login: str
     password: str
+
+class CambioPasswordRequest(BaseModel):
+    password_actual: str
+    password_nueva: str
 
 # --- Cliente ---
 class ClienteBase(BaseModel):
@@ -144,4 +149,61 @@ class RegistroEntrenamientoResponse(RegistroEntrenamientoBase):
 
     class Config:
         from_attributes = True
+
+# --- Novedades / Noticias ---
+class NoticiaBase(BaseModel):
+    titulo: str
+    contenido: str
+    categoria: Optional[str] = "General"
+
+class NoticiaCreate(NoticiaBase):
+    pass
+
+class NoticiaResponse(NoticiaBase):
+    id_noticia: int
+    fecha_publicacion: date
+    id_usuario_autor: int
+    autor: Optional[UsuarioResponse] = None
+
+    class Config:
+        from_attributes = True
+
+# --- Rutina y Detalle de Rutina ---
+class DetalleRutinaBase(BaseModel):
+    id_ejercicio: int
+    series: int
+    repeticiones: int
+    carga: Optional[Decimal] = None
+    descanso: Optional[str] = None
+
+class DetalleRutinaCreate(DetalleRutinaBase):
+    pass
+
+class DetalleRutinaResponse(DetalleRutinaBase):
+    id_detalle: int
+    id_rutina: int
+    id_usuario: int
+    ejercicio: Optional[EjercicioResponse] = None
+
+    class Config:
+        from_attributes = True
+
+class RutinaBase(BaseModel):
+    fecha_inicio: date
+    periodo: Optional[int] = None
+    objetivo: Optional[str] = None
+    observaciones: Optional[str] = None
+    activa: Optional[bool] = True
+
+class RutinaCreate(RutinaBase):
+    detalles: List[DetalleRutinaCreate] = []
+
+class RutinaResponse(RutinaBase):
+    id_rutina: int
+    dni_cliente: str
+    detalles: List[DetalleRutinaResponse] = []
+
+    class Config:
+        from_attributes = True
+
 
