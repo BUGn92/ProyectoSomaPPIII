@@ -11,14 +11,14 @@
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Vanilla CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2.1">
 </head>
 <body>
 
     <!-- Contenedor del Toast de Notificaciones -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- PÁGINA DE ACCESO (LOGIN) -->
+    <!-- 1. PÁGINA DE ACCESO (LOGIN) -->
     <div id="login-page" class="login-wrapper">
         <div class="login-background">
             <div class="glow-orb orb-1"></div>
@@ -34,8 +34,8 @@
             </div>
             <form id="login-form" class="login-form">
                 <div class="form-group">
-                    <label for="username"><i class="fa-solid fa-user"></i> Usuario</label>
-                    <input type="text" id="username" placeholder="Ingresa tu usuario" required autocomplete="username">
+                    <label for="username"><i class="fa-solid fa-user"></i> Usuario o DNI</label>
+                    <input type="text" id="username" placeholder="Ingresa tu usuario o DNI" required autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="password"><i class="fa-solid fa-lock"></i> Contraseña</label>
@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    <!-- PANEL DE ADMINISTRACIÓN (DASHBOARD) -->
+    <!-- 2. PANEL DE ADMINISTRACIÓN / STAFF (DASHBOARD) -->
     <div id="dashboard-page" class="dashboard-wrapper hidden">
         <!-- Sidebar Izquierdo -->
         <aside class="sidebar">
@@ -77,10 +77,13 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="active" data-target="clientes-section">
-                        <a href="#"><i class="fa-solid fa-users"></i><span>Clientes</span></a>
+                        <a href="#"><i class="fa-solid fa-users"></i><span>Socios / Clientes</span></a>
+                    </li>
+                    <li data-target="noticias-section" id="nav-noticias-li">
+                        <a href="#"><i class="fa-solid fa-bullhorn"></i><span>Novedades del Gym</span></a>
                     </li>
                     <li data-target="usuarios-section" id="nav-usuarios-li">
-                        <a href="#"><i class="fa-solid fa-user-gear"></i><span>Usuarios del Sistema</span></a>
+                        <a href="#"><i class="fa-solid fa-user-gear"></i><span>Personal / Usuarios</span></a>
                     </li>
                 </ul>
             </nav>
@@ -92,13 +95,13 @@
             </div>
         </aside>
 
-        <!-- Contenedor Principal -->
+        <!-- Contenedor Principal Staff -->
         <main class="main-content">
             <!-- Header superior -->
             <header class="content-header">
                 <div class="title-section">
-                    <h1 id="section-title">Gestión de Clientes</h1>
-                    <p id="section-subtitle">Alta, baja y modificación de socios de SOMA.</p>
+                    <h1 id="section-title">Gestión de Socios</h1>
+                    <p id="section-subtitle">Alta, modificación, rutinas y evolución física.</p>
                 </div>
                 <div class="actions-section">
                     <button id="btn-action-add" class="btn-primary">
@@ -110,7 +113,6 @@
 
             <!-- Sección: Clientes CRUD -->
             <section id="clientes-section" class="crud-section active-section">
-                <!-- Tarjeta contenedora de la Tabla -->
                 <div class="table-card">
                     <div class="table-header-filters">
                         <div class="search-box">
@@ -134,14 +136,21 @@
                                 </tr>
                             </thead>
                             <tbody id="tbody-clientes">
-                                <!-- Filas dinámicas se insertan por JS -->
+                                <!-- Filas dinámicas -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- Sección: Usuarios CRUD -->
+            <!-- Sección: Muro de Novedades (Staff) -->
+            <section id="noticias-section" class="crud-section hidden">
+                <div class="feed-container" id="admin-noticias-feed">
+                    <!-- Tarjetas de noticias dinámicas -->
+                </div>
+            </section>
+
+            <!-- Sección: Usuarios CRUD (Solo Admin) -->
             <section id="usuarios-section" class="crud-section hidden">
                 <div class="table-card">
                     <div class="table-header-filters">
@@ -162,7 +171,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tbody-usuarios">
-                                <!-- Filas dinámicas se insertan por JS -->
+                                <!-- Filas dinámicas -->
                             </tbody>
                         </table>
                     </div>
@@ -171,17 +180,163 @@
         </main>
     </div>
 
-    <!-- MODAL FORMULARIO: CLIENTE (NUEVO / EDITAR) -->
-    <div id="modal-cliente" class="modal">
-        <div class="modal-content">
+    <!-- 3. PORTAL DEL SOCIO (VISTA CLIENTE) -->
+    <div id="portal-socio-page" class="portal-wrapper hidden">
+        <!-- Top Navbar del Socio -->
+        <header class="portal-navbar">
+            <div class="portal-brand">
+                <i class="fa-solid fa-dumbbell"></i>
+                <span>SOMA<b>GYM</b></span>
+                <span class="portal-tag">Portal Socio</span>
+            </div>
+            <div class="portal-user-info">
+                <div class="user-greeting">
+                    <span class="welcome-text">Hola,</span>
+                    <strong id="socio-header-name">Socio</strong>
+                </div>
+                <div id="socio-apto-badge" class="badge-apto-header">
+                    <i class="fa-solid fa-file-medical"></i>
+                    <span id="socio-apto-text">Apto al día</span>
+                </div>
+                <button id="btn-socio-logout" class="btn-logout-compact" title="Cerrar Sesión">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navegación de Pestañas del Socio -->
+        <div class="portal-nav-bar">
+            <div class="portal-tabs">
+                <button class="portal-tab-btn active" data-portal-tab="socio-tab-rutina">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Mi Rutina</span>
+                </button>
+                <button class="portal-tab-btn" data-portal-tab="socio-tab-novedades">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span>Novedades del Gym</span>
+                </button>
+                <button class="portal-tab-btn" data-portal-tab="socio-tab-evolucion">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Mi Progreso</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenido de Pestañas del Socio -->
+        <main class="portal-main-container">
+            
+            <!-- Pestaña Socio: Mi Rutina (Solo Lectura) -->
+            <section id="socio-tab-rutina" class="portal-panel active">
+                <div id="socio-rutina-container">
+                    <!-- Tarjeta de Rutina Dinámica -->
+                </div>
+            </section>
+
+            <!-- Pestaña Socio: Muro de Novedades -->
+            <section id="socio-tab-novedades" class="portal-panel">
+                <div class="portal-section-header">
+                    <h2><i class="fa-solid fa-bullhorn"></i> Comunicados y Novedades</h2>
+                    <p>Enterate de los avisos, horarios y noticias oficiales del gimnasio.</p>
+                </div>
+                <div class="feed-container" id="socio-noticias-feed">
+                    <!-- Tarjetas de noticias dinámicas -->
+                </div>
+            </section>
+
+            <!-- Pestaña Socio: Mi Progreso -->
+            <section id="socio-tab-evolucion" class="portal-panel">
+                <div class="portal-section-header">
+                    <h2><i class="fa-solid fa-chart-line"></i> Historial de Evolución</h2>
+                    <p>Seguimiento de mediciones físicas y cargas alcanzadas.</p>
+                </div>
+                <div class="portal-progress-grid">
+                    <div class="portal-card">
+                        <h3><i class="fa-solid fa-weight-scale"></i> Mediciones Físicas</h3>
+                        <div class="sub-table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Peso (kg)</th>
+                                        <th>% Grasa</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-socio-ev-fisica">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="portal-card">
+                        <h3><i class="fa-solid fa-dumbbell"></i> Historial de Cargas</h3>
+                        <div class="sub-table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Ejercicio</th>
+                                        <th>Carga (kg)</th>
+                                        <th>Reps</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-socio-ev-deportiva">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 4. MODAL OBLIGATORIO DE CAMBIO DE CONTRASEÑA -->
+    <div id="modal-cambiar-password" class="modal modal-forced">
+        <div class="modal-content small-modal">
             <div class="modal-header">
-                <h2 id="modal-cliente-title">Registrar Nuevo Cliente</h2>
+                <h2><i class="fa-solid fa-shield-halved"></i> Primer Ingreso al Sistema</h2>
+            </div>
+            <p class="modal-description">
+                Por motivos de seguridad, debes actualizar tu clave inicial generada (<code>clave1234</code>) por una contraseña personal para continuar.
+            </p>
+            <form id="form-cambiar-password">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="cp-actual">Contraseña Actual *</label>
+                        <input type="password" id="cp-actual" required placeholder="clave1234">
+                    </div>
+                    <div class="form-group">
+                        <label for="cp-nueva">Nueva Contraseña *</label>
+                        <input type="password" id="cp-nueva" required minlength="4" placeholder="Crea una contraseña segura">
+                    </div>
+                    <div class="form-group">
+                        <label for="cp-confirmar">Confirmar Nueva Contraseña *</label>
+                        <input type="password" id="cp-confirmar" required minlength="4" placeholder="Repite la nueva contraseña">
+                    </div>
+                </div>
+                <div class="modal-footer" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary btn-block">
+                        <i class="fa-solid fa-check"></i> Actualizar y Acceder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. MODAL FORMULARIO: CLIENTE (GENERAL / EV. FÍSICA / EV. DEPORTIVA / RUTINA) -->
+    <div id="modal-cliente" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="modal-cliente-title">Registrar Nuevo Socio</h2>
                 <button class="modal-close">&times;</button>
             </div>
             
             <!-- Barra de Pestañas -->
             <div class="modal-tabs" id="client-modal-tabs">
                 <button type="button" class="tab-link active" data-tab="tab-general">Datos Generales</button>
+                <button type="button" class="tab-link" data-tab="tab-rutina" id="tab-link-rutina">Rutina Asignada</button>
                 <button type="button" class="tab-link" data-tab="tab-evolucion-fisica" id="tab-link-ev-fisica">Evolución Física</button>
                 <button type="button" class="tab-link" data-tab="tab-evolucion-deportiva" id="tab-link-ev-deportiva">Evolución Deportiva</button>
             </div>
@@ -191,6 +346,10 @@
                 
                 <!-- Pestaña 1: Datos Generales -->
                 <div id="tab-general" class="tab-content-panel active">
+                    <div id="readonly-trainer-notice" class="modal-readonly-notice hidden">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span><strong>Modo solo lectura:</strong> Como entrenador puedes consultar los datos del socio, pero las modificaciones de la ficha general corresponden a Administración o Recepción.</span>
+                    </div>
                     <form id="form-cliente">
                         <div class="form-grid">
                             <!-- Datos Personales -->
@@ -250,14 +409,71 @@
                                 <input type="date" id="c-vencimiento">
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary modal-close">Cancelar</button>
-                            <button type="submit" class="btn-primary">Guardar Cliente</button>
+                        <div class="modal-footer" id="modal-cliente-footer">
+                            <button type="button" class="btn-secondary modal-close">Cerrar</button>
+                            <button type="submit" id="btn-guardar-cliente" class="btn-primary">Guardar Socio</button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Pestaña 2: Evolución Física -->
+                <!-- Pestaña 2: Editor de Rutina (Entrenador / Admin) -->
+                <div id="tab-rutina" class="tab-content-panel">
+                    <form id="form-rutina" class="evolution-subform">
+                        <div class="form-section-title">Parámetros de la Rutina</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="r-fecha">Fecha de Inicio *</label>
+                                <input type="date" id="r-fecha" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="r-periodo">Duración (Semanas)</label>
+                                <input type="number" min="1" max="52" id="r-periodo" placeholder="Ej: 4">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="r-objetivo">Objetivo Principal *</label>
+                                <input type="text" id="r-objetivo" required placeholder="Ej: Hipertrofia / Fuerza / Recomposición">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="r-obs">Indicaciones y Observaciones del Entrenador</label>
+                                <input type="text" id="r-obs" placeholder="Ej: Calentar 10 min antes, respetar tiempos de descanso.">
+                            </div>
+                        </div>
+
+                        <!-- Lista Dinámica de Ejercicios -->
+                        <div class="form-section-title" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <span>Ejercicios de la Rutina</span>
+                            <button type="button" id="btn-add-routine-row" class="btn-secondary btn-sm">
+                                <i class="fa-solid fa-plus"></i> Agregar Ejercicio
+                            </button>
+                        </div>
+
+                        <div class="routine-builder-container">
+                            <table class="routine-builder-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 35%;">Ejercicio</th>
+                                        <th style="width: 15%;">Series</th>
+                                        <th style="width: 15%;">Reps</th>
+                                        <th style="width: 15%;">Carga (kg)</th>
+                                        <th style="width: 15%;">Descanso</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="routine-builder-tbody">
+                                    <!-- Filas de ejercicios agregadas dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                            <button type="submit" class="btn-primary">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar Rutina Asignada
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Pestaña 3: Evolución Física -->
                 <div id="tab-evolucion-fisica" class="tab-content-panel">
                     <form id="form-ev-fisica" class="evolution-subform">
                         <div class="form-section-title">Registrar Medición Física</div>
@@ -304,10 +520,10 @@
                     </div>
                 </div>
 
-                <!-- Pestaña 3: Evolución Deportiva -->
+                <!-- Pestaña 4: Evolución Deportiva -->
                 <div id="tab-evolucion-deportiva" class="tab-content-panel">
                     <form id="form-ev-deportiva" class="evolution-subform">
-                        <div class="form-section-title">Registrar Carga de Entrenamiento (Rutina)</div>
+                        <div class="form-section-title">Registrar Carga Lograda</div>
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="ed-fecha">Fecha del Entrenamiento *</label>
@@ -317,7 +533,6 @@
                                 <label for="ed-ejercicio">Ejercicio *</label>
                                 <select id="ed-ejercicio" required>
                                     <option value="" disabled selected>Selecciona un ejercicio...</option>
-                                    <!-- Carga dinámica -->
                                 </select>
                             </div>
                             <div class="form-group">
@@ -359,7 +574,43 @@
         </div>
     </div>
 
-    <!-- MODAL FORMULARIO: USUARIO (NUEVO / EDITAR) -->
+    <!-- 6. MODAL FORMULARIO: PUBLICAR NOTICIA (ADMIN) -->
+    <div id="modal-noticia" class="modal">
+        <div class="modal-content small-modal">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-bullhorn"></i> Publicar Novedad</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="form-noticia">
+                <div class="form-vertical">
+                    <div class="form-group">
+                        <label for="n-titulo">Título del Comunicado *</label>
+                        <input type="text" id="n-titulo" required placeholder="Ej: Nuevos horarios de Clases Grupales">
+                    </div>
+                    <div class="form-group">
+                        <label for="n-categoria">Categoría *</label>
+                        <select id="n-categoria" required>
+                            <option value="Institucional">Institucional</option>
+                            <option value="Horarios">Horarios y Clases</option>
+                            <option value="Salud">Salud y Nutrición</option>
+                            <option value="Eventos">Eventos y Torneos</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="n-contenido">Mensaje / Contenido *</label>
+                        <textarea id="n-contenido" rows="5" required placeholder="Escribe el mensaje o comunicado oficial para los socios..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary modal-close">Cancelar</button>
+                    <button type="submit" class="btn-primary">Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 7. MODAL FORMULARIO: USUARIO (NUEVO / EDITAR) -->
     <div id="modal-usuario" class="modal">
         <div class="modal-content small-modal">
             <div class="modal-header">
@@ -399,6 +650,6 @@
     </div>
 
     <!-- Custom Vanilla JS -->
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=2.3"></script>
 </body>
 </html>
