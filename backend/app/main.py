@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # Importar rutas
-from app.routes import auth, usuario, cliente
+from app.routes import auth, usuario, cliente, noticia
 
 app = FastAPI(
     title="SOMA Gym API",
@@ -25,10 +25,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Middleware para evitar caché en el navegador durante el desarrollo
+@app.middleware("http")
+async def add_no_cache_header(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 # Registrar enrutadores de la API
 app.include_router(auth.router)
 app.include_router(usuario.router)
 app.include_router(cliente.router)
+app.include_router(noticia.router)
 
 # Ruta de chequeo de estado de la API
 @app.get("/api/health", tags=["General"])

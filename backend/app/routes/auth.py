@@ -50,6 +50,16 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise credentials_exception
     return user
 
+def require_roles(allowed_roles: list):
+    def role_checker(current_user: models.Usuario = Depends(get_current_user)):
+        if current_user.rol not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Acceso denegado. Se requiere uno de los siguientes roles: {', '.join(allowed_roles)}"
+            )
+        return current_user
+    return role_checker
+
 @router.post("/login", response_model=schemas.Token)
 def login(login_data: schemas.UsuarioLogin, db: Session = Depends(database.get_db)):
     user = crud.get_user_by_login(db, username=login_data.usuario_login)
@@ -70,3 +80,23 @@ def login(login_data: schemas.UsuarioLogin, db: Session = Depends(database.get_d
         "token_type": "bearer",
         "usuario": user
     }
+
+@router.post("/cambiar-password", response_model=schemas.UsuarioResponse)
+def cambiar_password(
+    data: schemas.CambioPasswordRequest,
+    current_user: models.Usuario = Depends(get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    if not crud.verify_password(data.password_actual, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contraseña actual ingresada es incorrecta"
+        )
+    if len(data.password_nueva.strip()) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe tener al menos 4 caracteres"
+        )
+    user_updated = crud.cambiar_password_usuario(db, current_user, data.password_nueva)
+    return user_updated
+
