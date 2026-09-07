@@ -50,9 +50,72 @@
                     <span>Ingresar</span>
                     <i class="fa-solid fa-arrow-right"></i>
                 </button>
+                <a href="#" id="forgot-password-link" class="forgot-password-link">¿Olvidaste tu contraseña?</a>
             </form>
             <div class="login-footer">
                 <p>Prácticas Profesionalizantes III - 2026</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: RECUPERACIÓN DE CONTRASEÑA -->
+    <div id="modal-recuperar-password" class="modal">
+        <div class="modal-content small-modal">
+            <div class="modal-header">
+                <h2 id="recuperar-modal-title"><i class="fa-solid fa-key"></i> Recuperar Contraseña</h2>
+                <button class="modal-close" id="btn-close-recuperar">&times;</button>
+            </div>
+
+            <!-- PASO 1: Solicitar token -->
+            <div id="recuperar-step-1">
+                <p class="modal-description">
+                    Ingresá tu usuario, DNI o email registrado para generar un código de recuperación.
+                </p>
+                <form id="form-solicitar-reset">
+                    <div class="form-vertical">
+                        <div class="form-group">
+                            <label for="reset-identificador">
+                                <i class="fa-solid fa-id-card"></i> Usuario / DNI / Email
+                            </label>
+                            <input type="text" id="reset-identificador" placeholder="Ej: 35111222 o tu email" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn-primary btn-block">
+                            <i class="fa-solid fa-paper-plane"></i> Enviar Código de Recuperación
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- PASO 2: Confirmar nueva contraseña -->
+            <div id="recuperar-step-2" class="hidden">
+                <p class="modal-description">
+                    Código verificado. Ingresá tu nueva contraseña (mínimo 6 caracteres).
+                </p>
+                <form id="form-confirmar-reset">
+                    <div class="form-vertical">
+                        <div class="form-group">
+                            <label for="reset-nueva-password">
+                                <i class="fa-solid fa-lock"></i> Nueva Contraseña
+                            </label>
+                            <input type="password" id="reset-nueva-password"
+                                   placeholder="Mínimo 6 caracteres" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="reset-confirmar-password">
+                                <i class="fa-solid fa-lock"></i> Confirmar Contraseña
+                            </label>
+                            <input type="password" id="reset-confirmar-password"
+                                   placeholder="Repetí tu nueva contraseña" required minlength="6">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn-primary btn-block">
+                            <i class="fa-solid fa-check"></i> Restablecer Contraseña
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

@@ -1488,6 +1488,101 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (activeSection === "usuarios-section") fetchUsuarios();
     }
 
+    // --- RECUPERACIÓN DE CONTRASEÑA ---
+    const forgotPasswordLink = document.getElementById("forgot-password-link");
+    const modalRecuperar = document.getElementById("modal-recuperar-password");
+    const btnCloseRecuperar = document.getElementById("btn-close-recuperar");
+    const formSolicitarReset = document.getElementById("form-solicitar-reset");
+    const formConfirmarReset = document.getElementById("form-confirmar-reset");
+    const recuperarStep1 = document.getElementById("recuperar-step-1");
+    const recuperarStep2 = document.getElementById("recuperar-step-2");
+
+    let resetTokenTemp = null;
+
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            // Resetear al paso 1
+            recuperarStep1.classList.remove("hidden");
+            recuperarStep2.classList.add("hidden");
+            document.getElementById("reset-identificador").value = "";
+            resetTokenTemp = null;
+            modalRecuperar.classList.add("active");
+        });
+    }
+
+    if (btnCloseRecuperar) {
+        btnCloseRecuperar.addEventListener("click", () => {
+            modalRecuperar.classList.remove("active");
+            resetTokenTemp = null;
+        });
+    }
+
+    if (formSolicitarReset) {
+        formSolicitarReset.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const identificador = document.getElementById("reset-identificador").value.trim();
+            if (!identificador) return;
+
+            try {
+                const resp = await fetch("/api/auth/recuperar-password/solicitar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identificador })
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Error al solicitar recuperación");
+
+                resetTokenTemp = data.reset_token;
+                recuperarStep1.classList.add("hidden");
+                recuperarStep2.classList.remove("hidden");
+                showToast("Código Generado", "Ingresá tu nueva contraseña para completar el proceso.", "success");
+            } catch (err) {
+                showToast("Error", err.message, "error");
+            }
+        });
+    }
+
+    if (formConfirmarReset) {
+        formConfirmarReset.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nueva = document.getElementById("reset-nueva-password").value;
+            const confirmar = document.getElementById("reset-confirmar-password").value;
+
+            if (nueva !== confirmar) {
+                showToast("Error", "Las contraseñas no coinciden", "error");
+                return;
+            }
+            if (nueva.trim().length < 6) {
+                showToast("Error", "La contraseña debe tener al menos 6 caracteres", "error");
+                return;
+            }
+
+            try {
+                const resp = await fetch("/api/auth/recuperar-password/confirmar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: resetTokenTemp,
+                        nueva_password: nueva,
+                        confirmar_password: confirmar
+                    })
+                });
+                const data = await resp.json();
+                if (!resp.ok) throw new Error(data.detail || "Error al restablecer contraseña");
+
+                showToast("¡Listo!", data.message, "success");
+                modalRecuperar.classList.remove("active");
+                resetTokenTemp = null;
+                // Limpiar campos
+                document.getElementById("reset-nueva-password").value = "";
+                document.getElementById("reset-confirmar-password").value = "";
+            } catch (err) {
+                showToast("Error", err.message, "error");
+            }
+        });
+    }
+
     // --- INICIALIZACIÓN INMEDIATA ---
     initAuth();
 });

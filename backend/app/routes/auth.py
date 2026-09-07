@@ -100,3 +100,88 @@ def cambiar_password(
     user_updated = crud.cambiar_password_usuario(db, current_user, data.password_nueva)
     return user_updated
 
+
+# --- Recuperación de Contraseña ---
+RESET_TOKEN_EXPIRE_MINUTES = 15
+
+@router.post("/recuperar-password/solicitar", response_model=schemas.SolicitudRecuperacionResponse)
+def solicitar_recuperacion_password(
+    data: schemas.SolicitudRecuperacionRequest,
+    db: Session = Depends(database.get_db)
+):
+    user = crud.get_user_by_identifier(db, identificador=data.identificador)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se encontró un usuario con ese identificador"
+        )
+
+    reset_token = jwt.encode(
+        {
+            "sub": user.usuario_login,
+            "purpose": "password_reset",
+            "exp": datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return {
+        "message": f"Token de recuperación generado para '{user.usuario_login}'. Válido por {RESET_TOKEN_EXPIRE_MINUTES} minutos.",
+        "reset_token": reset_token
+    }
+
+
+@router.post("/recuperar-password/confirmar")
+def confirmar_reseteo_password(
+    data: schemas.ConfirmarReseteoRequest,
+    db: Session = Depends(database.get_db)
+):
+    # 1. Validar coincidencia de contraseñas
+    if data.nueva_password != data.confirmar_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña y su confirmación no coinciden"
+        )
+
+    # 2. Validar longitud mínima
+    if len(data.nueva_password.strip()) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe tener al menos 6 caracteres"
+        )
+
+    # 3. Decodificar y validar el token
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El enlace de recuperación ha expirado. Solicitá uno nuevo."
+        )
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de recuperación inválido o alterado"
+        )
+
+    # 4. Validar purpose
+    if payload.get("purpose") != "password_reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de recuperación inválido (propósito incorrecto)"
+        )
+
+    # 5. Obtener usuario y actualizar clave
+    usuario_login = payload.get("sub")
+    user = crud.get_user_by_login(db, username=usuario_login)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+
+    crud.cambiar_password_usuario(db, user, data.nueva_password)
+
+    return {"message": "Contraseña restablecida exitosamente. Ya podés iniciar sesión con tu nueva clave."}
+

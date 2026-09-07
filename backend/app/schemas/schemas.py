@@ -105,6 +105,22 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     usuario_login: Optional[str] = None
 
+# --- Recuperación de Contraseña ---
+class SolicitudRecuperacionRequest(BaseModel):
+    """Recibe el identificador del usuario (usuario_login, DNI o email)."""
+    identificador: str
+
+class SolicitudRecuperacionResponse(BaseModel):
+    """Devuelve el token de reseteo generado (modo desarrollo)."""
+    message: str
+    reset_token: str  # Solo en modo dev; en producción se enviaría por email
+
+class ConfirmarReseteoRequest(BaseModel):
+    """Recibe el token de reseteo y la nueva contraseña."""
+    token: str
+    nueva_password: str
+    confirmar_password: str
+
 # --- Ejercicio ---
 class EjercicioResponse(BaseModel):
     id_ejercicio: int
