@@ -69,6 +69,20 @@ def get_user_by_identifier(db: Session, identificador: str):
 
     return None
 
+def get_email_for_user(db: Session, user: models.Usuario) -> str:
+    """
+    Obtiene el email registrado del cliente asociado al usuario.
+    Si no tiene cliente o email cargado, devuelve un email sintético de fallback.
+    """
+    cliente = db.query(models.Cliente).filter(models.Cliente.dni == user.usuario_login).first()
+    if cliente and cliente.email:
+        return cliente.email
+
+    if "@" in user.usuario_login:
+        return user.usuario_login
+
+    return f"{user.usuario_login}@somagym.com"
+
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Usuario).offset(skip).limit(limit).all()
 

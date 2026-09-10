@@ -11,6 +11,9 @@ from app.crud import crud
 from app.schemas import schemas
 from app.models import models
 
+import random
+from app.utils.email import send_otp_email, mask_email
+
 # Configuración JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "8f39b1a511394c8b746864d36ef55fa87955fa980a373b98457c12658db4121e")
 ALGORITHM = "HS256"
@@ -18,6 +21,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
 security = HTTPBearer()
+
+# Almacén temporal de OTPs en memoria { usuario_login: { "otp": str, "expires_at": datetime } }
+otp_storage: dict[str, dict] = {}
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -116,9 +122,68 @@ def solicitar_recuperacion_password(
             detail="No se encontró un usuario con ese identificador"
         )
 
+    # 1. Obtener email del usuario
+    user_email = crud.get_email_for_user(db, user)
+
+    # 2. Generar código OTP de 6 dígitos
+    otp_code = f"{random.randint(100000, 999999):06d}"
+    expires_at = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+
+    # 3. Guardar OTP en almacén en memoria
+    otp_storage[user.usuario_login] = {
+        "otp": otp_code,
+        "expires_at": expires_at
+    }
+
+    # 4. Enviar correo SMTP (o log fallback)
+    send_otp_email(user_email, otp_code, user.nombre)
+
+    # 5. Generar token de reseteo para retrocompatibilidad
     reset_token = jwt.encode(
         {
             "sub": user.usuario_login,
+            "purpose": "password_reset",
+            "exp": expires_at
+        },
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    masked = mask_email(user_email)
+
+    return {
+        "message": f"Código de verificación OTP enviado a '{masked}'. Válido por {RESET_TOKEN_EXPIRE_MINUTES} minutos.",
+        "usuario_login": user.usuario_login,
+        "email_enviado": masked,
+        "reset_token": reset_token
+    }
+
+
+@router.post("/recuperar-password/verificar-otp", response_model=schemas.VerificarOTPResponse)
+def verificar_otp(
+    data: schemas.VerificarOTPRequest,
+    db: Session = Depends(database.get_db)
+):
+    record = otp_storage.get(data.usuario_login)
+    if not record or record["expires_at"] < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El código OTP ha expirado o no ha sido solicitado. Solicitá uno nuevo."
+        )
+
+    if record["otp"] != data.otp.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El código OTP ingresado es incorrecto."
+        )
+
+    # OTP válido -> Eliminarlo para que no se reingrese
+    del otp_storage[data.usuario_login]
+
+    # Generar token JWT de reseteo
+    token_recuperacion = jwt.encode(
+        {
+            "sub": data.usuario_login,
             "purpose": "password_reset",
             "exp": datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
         },
@@ -127,9 +192,10 @@ def solicitar_recuperacion_password(
     )
 
     return {
-        "message": f"Token de recuperación generado para '{user.usuario_login}'. Válido por {RESET_TOKEN_EXPIRE_MINUTES} minutos.",
-        "reset_token": reset_token
+        "message": "Código OTP verificado correctamente.",
+        "token_recuperacion": token_recuperacion
     }
+
 
 
 @router.post("/recuperar-password/confirmar")

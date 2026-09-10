@@ -10,6 +10,8 @@ venv/
 ENV/
 
 # Environment variables (sensitive data)
+.env
+*.env
 backend/.env
 
 # IDEs and Editors
