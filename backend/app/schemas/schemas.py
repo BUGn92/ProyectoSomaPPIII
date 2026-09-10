@@ -127,6 +127,7 @@ class VerificarOTPResponse(BaseModel):
     message: str
     token_recuperacion: str
 
+
 class ConfirmarReseteoRequest(BaseModel):
     """Recibe el token de reseteo y la nueva contraseña."""
     token: str

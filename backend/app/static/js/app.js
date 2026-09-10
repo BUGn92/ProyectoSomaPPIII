@@ -1675,3 +1675,4 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- INICIALIZACIÓN INMEDIATA ---
     initAuth();
 });
+

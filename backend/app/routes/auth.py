@@ -197,6 +197,7 @@ def verificar_otp(
     }
 
 
+
 @router.post("/recuperar-password/confirmar")
 def confirmar_reseteo_password(
     data: schemas.ConfirmarReseteoRequest,
