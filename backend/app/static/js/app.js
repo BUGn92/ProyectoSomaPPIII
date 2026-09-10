@@ -1488,6 +1488,190 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (activeSection === "usuarios-section") fetchUsuarios();
     }
 
+    // --- RECUPERACIÓN DE CONTRASEÑA POR EMAIL (OTP) ---
+    const forgotPasswordLink = document.getElementById("forgot-password-link");
+    const modalRecuperar = document.getElementById("modal-recuperar-password");
+    const btnCloseRecuperar = document.getElementById("btn-close-recuperar");
+    const formSolicitarReset = document.getElementById("form-solicitar-reset");
+    const formVerificarOtp = document.getElementById("form-verificar-otp");
+    const formConfirmarReset = document.getElementById("form-confirmar-reset");
+    const recuperarStep1 = document.getElementById("recuperar-step-1");
+    const recuperarStep2 = document.getElementById("recuperar-step-2");
+    const recuperarStep3 = document.getElementById("recuperar-step-3");
+    const btnVolverStep1 = document.getElementById("btn-volver-step1");
+
+    let usuarioLoginTemp = null;
+    let resetTokenTemp = null;
+
+    function resetRecuperarModalState() {
+        if (recuperarStep1) recuperarStep1.classList.remove("hidden");
+        if (recuperarStep2) recuperarStep2.classList.add("hidden");
+        if (recuperarStep3) recuperarStep3.classList.add("hidden");
+        
+        const elIdent = document.getElementById("reset-identificador");
+        const elOtp = document.getElementById("reset-otp-code");
+        const elPass = document.getElementById("reset-nueva-password");
+        const elConf = document.getElementById("reset-confirmar-password");
+
+        if (elIdent) elIdent.value = "";
+        if (elOtp) elOtp.value = "";
+        if (elPass) elPass.value = "";
+        if (elConf) elConf.value = "";
+
+        usuarioLoginTemp = null;
+        resetTokenTemp = null;
+    }
+
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            resetRecuperarModalState();
+            modalRecuperar.classList.add("active");
+        });
+    }
+
+    if (btnCloseRecuperar) {
+        btnCloseRecuperar.addEventListener("click", () => {
+            modalRecuperar.classList.remove("active");
+            resetRecuperarModalState();
+        });
+    }
+
+    if (btnVolverStep1) {
+        btnVolverStep1.addEventListener("click", () => {
+            recuperarStep2.classList.add("hidden");
+            recuperarStep1.classList.remove("hidden");
+        });
+    }
+
+    // Paso 1: Enviar código OTP por Email
+    if (formSolicitarReset) {
+        formSolicitarReset.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const identificador = document.getElementById("reset-identificador").value.trim();
+            if (!identificador) return;
+
+            try {
+                const btnSubmit = document.getElementById("btn-solicitar-otp");
+                if (btnSubmit) btnSubmit.disabled = true;
+
+                const resp = await fetch("/api/auth/recuperar-password/solicitar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ identificador })
+                });
+                const data = await resp.json();
+                if (btnSubmit) btnSubmit.disabled = false;
+
+                if (!resp.ok) throw new Error(data.detail || "Error al solicitar recuperación");
+
+                usuarioLoginTemp = data.usuario_login;
+                const elDest = document.getElementById("reset-email-dest");
+                if (elDest) elDest.textContent = data.email_enviado || data.usuario_login;
+
+                recuperarStep1.classList.add("hidden");
+                recuperarStep2.classList.remove("hidden");
+                
+                const elOtp = document.getElementById("reset-otp-code");
+                if (elOtp) elOtp.focus();
+
+                showToast("Código OTP Enviado", data.message, "success");
+            } catch (err) {
+                const btnSubmit = document.getElementById("btn-solicitar-otp");
+                if (btnSubmit) btnSubmit.disabled = false;
+                showToast("Error", err.message, "error");
+            }
+        });
+    }
+
+    // Paso 2: Verificar Código OTP
+    if (formVerificarOtp) {
+        formVerificarOtp.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const otp = document.getElementById("reset-otp-code").value.trim();
+            if (!otp || otp.length !== 6) {
+                showToast("Error", "El código OTP debe ser numérico de 6 dígitos", "error");
+                return;
+            }
+
+            try {
+                const btnVerify = document.getElementById("btn-verificar-otp");
+                if (btnVerify) btnVerify.disabled = true;
+
+                const resp = await fetch("/api/auth/recuperar-password/verificar-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        usuario_login: usuarioLoginTemp,
+                        otp: otp
+                    })
+                });
+                const data = await resp.json();
+                if (btnVerify) btnVerify.disabled = false;
+
+                if (!resp.ok) throw new Error(data.detail || "Error al verificar OTP");
+
+                resetTokenTemp = data.token_recuperacion;
+                recuperarStep2.classList.add("hidden");
+                recuperarStep3.classList.remove("hidden");
+
+                const elPass = document.getElementById("reset-nueva-password");
+                if (elPass) elPass.focus();
+
+                showToast("Código Verificado", "Identidad verificada. Ingresá tu nueva clave.", "success");
+            } catch (err) {
+                const btnVerify = document.getElementById("btn-verificar-otp");
+                if (btnVerify) btnVerify.disabled = false;
+                showToast("Error", err.message, "error");
+            }
+        });
+    }
+
+    // Paso 3: Confirmar Nueva Contraseña
+    if (formConfirmarReset) {
+        formConfirmarReset.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const nueva = document.getElementById("reset-nueva-password").value;
+            const confirmar = document.getElementById("reset-confirmar-password").value;
+
+            if (nueva !== confirmar) {
+                showToast("Error", "Las contraseñas no coinciden", "error");
+                return;
+            }
+            if (nueva.trim().length < 6) {
+                showToast("Error", "La contraseña debe tener al menos 6 caracteres", "error");
+                return;
+            }
+
+            try {
+                const btnConfirm = document.getElementById("btn-confirmar-reset");
+                if (btnConfirm) btnConfirm.disabled = true;
+
+                const resp = await fetch("/api/auth/recuperar-password/confirmar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        token: resetTokenTemp,
+                        nueva_password: nueva,
+                        confirmar_password: confirmar
+                    })
+                });
+                const data = await resp.json();
+                if (btnConfirm) btnConfirm.disabled = false;
+
+                if (!resp.ok) throw new Error(data.detail || "Error al restablecer contraseña");
+
+                showToast("¡Restablecida!", data.message, "success");
+                modalRecuperar.classList.remove("active");
+                resetRecuperarModalState();
+            } catch (err) {
+                const btnConfirm = document.getElementById("btn-confirmar-reset");
+                if (btnConfirm) btnConfirm.disabled = false;
+                showToast("Error", err.message, "error");
+            }
+        });
+    }
+
     // --- INICIALIZACIÓN INMEDIATA ---
     initAuth();
 });

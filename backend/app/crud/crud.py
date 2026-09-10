@@ -45,6 +45,44 @@ def get_user(db: Session, user_id: int):
 def get_user_by_login(db: Session, username: str):
     return db.query(models.Usuario).filter(models.Usuario.usuario_login == username).first()
 
+def get_user_by_identifier(db: Session, identificador: str):
+    """
+    Busca un usuario por su usuario_login.
+    Si no lo encuentra, busca un Cliente por email y retorna su usuario asociado.
+    """
+    # 1. Buscar directamente por usuario_login (cubre DNI para clientes y username para staff)
+    user = db.query(models.Usuario).filter(
+        models.Usuario.usuario_login == identificador
+    ).first()
+    if user:
+        return user
+
+    # 2. Buscar por email del cliente, luego obtener su usuario (login = dni)
+    cliente = db.query(models.Cliente).filter(
+        models.Cliente.email == identificador
+    ).first()
+    if cliente:
+        user = db.query(models.Usuario).filter(
+            models.Usuario.usuario_login == cliente.dni
+        ).first()
+        return user
+
+    return None
+
+def get_email_for_user(db: Session, user: models.Usuario) -> str:
+    """
+    Obtiene el email registrado del cliente asociado al usuario.
+    Si no tiene cliente o email cargado, devuelve un email sintético de fallback.
+    """
+    cliente = db.query(models.Cliente).filter(models.Cliente.dni == user.usuario_login).first()
+    if cliente and cliente.email:
+        return cliente.email
+
+    if "@" in user.usuario_login:
+        return user.usuario_login
+
+    return f"{user.usuario_login}@somagym.com"
+
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Usuario).offset(skip).limit(limit).all()
 

@@ -105,6 +105,34 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     usuario_login: Optional[str] = None
 
+# --- Recuperación de Contraseña ---
+class SolicitudRecuperacionRequest(BaseModel):
+    """Recibe el identificador del usuario (usuario_login, DNI o email)."""
+    identificador: str
+
+class SolicitudRecuperacionResponse(BaseModel):
+    """Respuesta a la solicitud de recuperación por OTP."""
+    message: str
+    usuario_login: str
+    email_enviado: str
+    reset_token: Optional[str] = None  # Mantenido para retrocompatibilidad/pruebas
+
+class VerificarOTPRequest(BaseModel):
+    """Recibe el usuario_login y el código OTP de 6 dígitos."""
+    usuario_login: str
+    otp: str
+
+class VerificarOTPResponse(BaseModel):
+    """Respuesta tras verificar correctamente el código OTP."""
+    message: str
+    token_recuperacion: str
+
+class ConfirmarReseteoRequest(BaseModel):
+    """Recibe el token de reseteo y la nueva contraseña."""
+    token: str
+    nueva_password: str
+    confirmar_password: str
+
 # --- Ejercicio ---
 class EjercicioResponse(BaseModel):
     id_ejercicio: int
