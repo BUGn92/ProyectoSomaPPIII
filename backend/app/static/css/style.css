@@ -1432,6 +1432,11 @@ tr:hover td {
     gap: 0.35rem;
 }
 
+.routine-trainer {
+    color: var(--accent);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
 .routine-obs-box {
     background-color: rgba(0, 0, 0, 0.25);
     border-left: 4px solid var(--primary);
@@ -1443,76 +1448,74 @@ tr:hover td {
     line-height: 1.5;
 }
 
-.routine-exercise-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.25rem;
-}
-
-.routine-exercise-card {
-    background: var(--bg-dark);
+.routine-sheet-container {
+    overflow-x: auto;
     border: 1px solid var(--border-light);
-    border-radius: 16px;
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: var(--transition-smooth);
+    border-radius: 12px;
+    background: var(--bg-dark);
 }
 
-.routine-exercise-card:hover {
-    border-color: rgba(16, 185, 129, 0.4);
-    transform: translateY(-2px);
+.routine-sheet {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
 }
 
-.ex-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-}
-
-.ex-name {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #fff;
-}
-
-.ex-muscle {
+.routine-sheet th {
+    padding: 0.85rem 1rem;
+    background: rgba(16, 185, 129, 0.12);
+    border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--accent);
     font-size: 0.75rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 12px;
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-.ex-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.6rem;
-    background-color: rgba(255, 255, 255, 0.02);
-    border-radius: 12px;
-    padding: 0.75rem;
-}
-
-.metric-chip {
-    display: flex;
-    flex-direction: column;
-}
-
-.metric-label {
-    font-size: 0.7rem;
-    color: var(--text-secondary);
+    text-align: left;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
-.metric-val {
-    font-size: 1rem;
+.routine-sheet td {
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+.routine-sheet tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.routine-sheet tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.routine-order,
+.routine-number {
+    width: 4rem;
+    color: var(--accent) !important;
+    font-size: 1.05rem;
     font-weight: 700;
-    color: var(--accent);
+    text-align: center;
+}
+
+.routine-exercise-name,
+.routine-muscle-group {
+    display: block;
+}
+
+.routine-exercise-name {
+    font-size: 0.98rem;
+}
+
+.routine-muscle-group {
+    margin-top: 0.2rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.routine-value {
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .portal-progress-grid {

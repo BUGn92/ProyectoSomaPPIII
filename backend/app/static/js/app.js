@@ -1201,36 +1201,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
+                const entrenador = rutina.detalles.find(det => det.usuario)?.usuario;
+                const entrenadorNombre = entrenador ? entrenador.nombre : 'No informado';
                 let exercisesHtml = "";
-                rutina.detalles.forEach(det => {
+                rutina.detalles.forEach((det, index) => {
                     const ejNombre = det.ejercicio ? det.ejercicio.nombre_ejercicio : 'Ejercicio #' + det.id_ejercicio;
                     const ejGrupo = det.ejercicio ? det.ejercicio.grupo_muscular : 'General';
                     
                     exercisesHtml += `
-                        <div class="routine-exercise-card">
-                            <div class="ex-top">
-                                <div class="ex-name">${ejNombre}</div>
-                                <span class="ex-muscle">${ejGrupo}</span>
-                            </div>
-                            <div class="ex-metrics-grid">
-                                <div class="metric-chip">
-                                    <span class="metric-label">Series</span>
-                                    <span class="metric-val">${det.series}</span>
-                                </div>
-                                <div class="metric-chip">
-                                    <span class="metric-label">Repeticiones</span>
-                                    <span class="metric-val">${det.repeticiones}</span>
-                                </div>
-                                <div class="metric-chip">
-                                    <span class="metric-label">Carga Sugerida</span>
-                                    <span class="metric-val">${det.carga ? det.carga + ' kg' : 'A criterio'}</span>
-                                </div>
-                                <div class="metric-chip">
-                                    <span class="metric-label">Descanso</span>
-                                    <span class="metric-val">${det.descanso || '90 seg'}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <tr>
+                            <td class="routine-order">${index + 1}</td>
+                            <td>
+                                <strong class="routine-exercise-name">${ejNombre}</strong>
+                                <span class="routine-muscle-group">${ejGrupo}</span>
+                            </td>
+                            <td class="routine-number">${det.series}</td>
+                            <td class="routine-number">${det.repeticiones}</td>
+                            <td class="routine-value">${det.carga ? det.carga + ' kg' : 'A criterio'}</td>
+                            <td class="routine-value">${det.descanso || '90 seg'}</td>
+                        </tr>
                     `;
                 });
 
@@ -1253,12 +1242,27 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <span class="meta-pill"><i class="fa-regular fa-calendar"></i> Inicio: ${rutina.fecha_inicio}</span>
                                     <span class="meta-pill"><i class="fa-solid fa-clock"></i> Duración: ${rutina.periodo ? rutina.periodo + ' semanas' : 'Mensual'}</span>
                                     <span class="meta-pill"><i class="fa-solid fa-dumbbell"></i> ${rutina.detalles.length} ejercicios</span>
+                                    <span class="meta-pill routine-trainer"><i class="fa-solid fa-user-tie"></i> Entrenador: ${entrenadorNombre}</span>
                                 </div>
                             </div>
                         </div>
                         ${obsBox}
-                        <div class="routine-exercise-grid">
-                            ${exercisesHtml}
+                        <div class="routine-sheet-container">
+                            <table class="routine-sheet">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Ejercicio</th>
+                                        <th>Series</th>
+                                        <th>Repeticiones</th>
+                                        <th>Carga</th>
+                                        <th>Descanso</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${exercisesHtml}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 `;
