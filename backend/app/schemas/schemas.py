@@ -213,6 +213,7 @@ class DetalleRutinaResponse(DetalleRutinaBase):
     id_rutina: int
     id_usuario: int
     ejercicio: Optional[EjercicioResponse] = None
+    usuario: Optional[UsuarioResponse] = None
 
     class Config:
         from_attributes = True
