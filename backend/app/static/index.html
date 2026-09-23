@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <!-- MODAL: RECUPERACIÓN DE CONTRASEÑA -->
+    <!-- MODAL: RECUPERACIÓN DE CONTRASEÑA POR EMAIL (OTP) -->
     <div id="modal-recuperar-password" class="modal">
         <div class="modal-content small-modal">
             <div class="modal-header">
@@ -66,10 +66,10 @@
                 <button class="modal-close" id="btn-close-recuperar">&times;</button>
             </div>
 
-            <!-- PASO 1: Solicitar token -->
+            <!-- PASO 1: Solicitar Código OTP -->
             <div id="recuperar-step-1">
                 <p class="modal-description">
-                    Ingresá tu usuario, DNI o email registrado para generar un código de recuperación.
+                    Ingresá tu usuario, DNI o email registrado. Te enviaremos un código OTP de 6 dígitos a tu correo electrónico.
                 </p>
                 <form id="form-solicitar-reset">
                     <div class="form-vertical">
@@ -81,17 +81,42 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="margin-top: 1.5rem;">
-                        <button type="submit" class="btn-primary btn-block">
-                            <i class="fa-solid fa-paper-plane"></i> Enviar Código de Recuperación
+                        <button type="submit" class="btn-primary btn-block" id="btn-solicitar-otp">
+                            <i class="fa-solid fa-paper-plane"></i> Enviar Código OTP por Email
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- PASO 2: Confirmar nueva contraseña -->
+            <!-- PASO 2: Verificar Código OTP -->
             <div id="recuperar-step-2" class="hidden">
                 <p class="modal-description">
-                    Código verificado. Ingresá tu nueva contraseña (mínimo 6 caracteres).
+                    Enviamos un código de 6 dígitos a <strong id="reset-email-dest" style="color: var(--color-primary, #ff3b30);"></strong>. Revisa tu casilla de entrada (y la carpeta de spam).
+                </p>
+                <form id="form-verificar-otp">
+                    <div class="form-vertical">
+                        <div class="form-group">
+                            <label for="reset-otp-code">
+                                <i class="fa-solid fa-envelope-open-text"></i> Código OTP (6 dígitos)
+                            </label>
+                            <input type="text" id="reset-otp-code" placeholder="123456" maxlength="6" pattern="[0-9]{6}" style="letter-spacing: 4px; font-size: 1.2rem; text-align: center; font-weight: bold;" required autocomplete="one-time-code">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button type="submit" class="btn-primary btn-block" id="btn-verificar-otp">
+                            <i class="fa-solid fa-shield-halved"></i> Verificar Código OTP
+                        </button>
+                        <button type="button" class="btn-secondary btn-block" id="btn-volver-step1" style="margin-top: 0.25rem;">
+                            <i class="fa-solid fa-arrow-left"></i> Cambiar Usuario / Email
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- PASO 3: Definir nueva contraseña -->
+            <div id="recuperar-step-3" class="hidden">
+                <p class="modal-description">
+                    ¡Código OTP verificado con éxito! Definí tu nueva contraseña a continuación (mínimo 6 caracteres).
                 </p>
                 <form id="form-confirmar-reset">
                     <div class="form-vertical">
@@ -111,7 +136,8 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="margin-top: 1.5rem;">
-                        <button type="submit" class="btn-primary btn-block">
+                        <button type="submit" class="btn-primary btn-block" id="btn-confirmar-reset">
+
                             <i class="fa-solid fa-check"></i> Restablecer Contraseña
                         </button>
                     </div>

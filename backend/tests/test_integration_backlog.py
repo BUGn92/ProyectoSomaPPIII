@@ -154,6 +154,84 @@ def test_tarea_01_recuperacion_contrasena_flujo_completo(client, db):
     assert old_login_resp.status_code == 401
 
 
+def test_tarea_01_otp_email_recuperacion_flujo_completo(client, db):
+    """
+    Valida el nuevo flujo seguro de reseteo con OTP por Email:
+    1. Solicitar OTP por DNI o Email.
+    2. Generación del OTP y envío por correo (o fallback).
+    3. Rechazo de OTP erróneo.
+    4. Verificación de OTP correcto y obtención de token de reseteo.
+    5. Cambio efectivo de contraseña e inicio de sesión exitoso.
+    """
+    from app.routes.auth import otp_storage
+
+    # 1. Crear usuario y cliente con email
+    cliente = models.Cliente(
+        dni="35999888",
+        nombre="Carlos",
+        apellido="Prueba",
+        email="carlos@test.com",
+        fecha_alta=date.today(),
+        activo=True
+    )
+    usuario = models.Usuario(
+        id_usuario=11,
+        nombre="Carlos Prueba",
+        usuario_login="35999888",
+        password=crud.hash_password("clave_original_123"),
+        rol="Cliente",
+        debe_cambiar_password=False
+    )
+    db.add_all([cliente, usuario])
+    db.commit()
+
+    # 2. Solicitar OTP
+    solicitud_resp = client.post("/api/auth/recuperar-password/solicitar", json={
+        "identificador": "35999888"
+    })
+    assert solicitud_resp.status_code == 200
+    data_solicitud = solicitud_resp.json()
+    assert data_solicitud["usuario_login"] == "35999888"
+    assert "@test.com" in data_solicitud["email_enviado"]
+
+    # 3. Obtener el OTP generado del almacén
+    assert "35999888" in otp_storage
+    otp_code = otp_storage["35999888"]["otp"]
+    assert len(otp_code) == 6
+
+    # 4. Probar OTP incorrecto
+    verify_bad = client.post("/api/auth/recuperar-password/verificar-otp", json={
+        "usuario_login": "35999888",
+        "otp": "000000"
+    })
+    assert verify_bad.status_code == 400
+
+    # 5. Probar OTP correcto
+    verify_good = client.post("/api/auth/recuperar-password/verificar-otp", json={
+        "usuario_login": "35999888",
+        "otp": otp_code
+    })
+    assert verify_good.status_code == 200
+    data_verify = verify_good.json()
+    assert "token_recuperacion" in data_verify
+
+    # 6. Confirmar reseteo con token obtenido
+    nueva_clave = "ClaveSeguraOTP2026!"
+    confirm_resp = client.post("/api/auth/recuperar-password/confirmar", json={
+        "token": data_verify["token_recuperacion"],
+        "nueva_password": nueva_clave,
+        "confirmar_password": nueva_clave
+    })
+    assert confirm_resp.status_code == 200
+
+    # 7. Loguearse con la nueva contraseña
+    login_resp = client.post("/api/auth/login", json={
+        "usuario_login": "35999888",
+        "password": nueva_clave
+    })
+    assert login_resp.status_code == 200
+
+
 # ==============================================================================
 # TEST 2: SOMA-02 - Rediseño de Vista de Rutina en Formato "Planilla" (Portal Socio)
 # ==============================================================================
@@ -170,7 +248,15 @@ def test_tarea_02_vista_rutina_planilla_socio(client, db):
         fecha_alta=date.today(),
         activo=True
     )
-    db.add(cliente_db)
+    usuario_db = models.Usuario(
+        id_usuario=20,
+        nombre="Esteban Quito",
+        usuario_login="40123456",
+        password=crud.hash_password("clave123"),
+        rol="Cliente",
+        debe_cambiar_password=False
+    )
+    db.add_all([cliente_db, usuario_db])
     
     # 2. Crear Rutina con múltiples ejercicios
     rutina = models.Rutina(

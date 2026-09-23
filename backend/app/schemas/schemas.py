@@ -111,9 +111,22 @@ class SolicitudRecuperacionRequest(BaseModel):
     identificador: str
 
 class SolicitudRecuperacionResponse(BaseModel):
-    """Devuelve el token de reseteo generado (modo desarrollo)."""
+    """Respuesta a la solicitud de recuperación por OTP."""
     message: str
-    reset_token: str  # Solo en modo dev; en producción se enviaría por email
+    usuario_login: str
+    email_enviado: str
+    reset_token: Optional[str] = None  # Mantenido para retrocompatibilidad/pruebas
+
+class VerificarOTPRequest(BaseModel):
+    """Recibe el usuario_login y el código OTP de 6 dígitos."""
+    usuario_login: str
+    otp: str
+
+class VerificarOTPResponse(BaseModel):
+    """Respuesta tras verificar correctamente el código OTP."""
+    message: str
+    token_recuperacion: str
+
 
 class ConfirmarReseteoRequest(BaseModel):
     """Recibe el token de reseteo y la nueva contraseña."""
