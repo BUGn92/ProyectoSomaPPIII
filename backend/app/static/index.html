@@ -529,7 +529,7 @@
                         </div>
 
                         <!-- Lista Dinámica de Ejercicios -->
-                        <div class="form-section-title" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="form-section-title routine-builder-heading">
                             <span>Ejercicios de la Rutina</span>
                             <button type="button" id="btn-add-routine-row" class="btn-secondary btn-sm">
                                 <i class="fa-solid fa-plus"></i> Agregar Ejercicio
@@ -540,12 +540,13 @@
                             <table class="routine-builder-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 35%;">Ejercicio</th>
-                                        <th style="width: 15%;">Series</th>
-                                        <th style="width: 15%;">Reps</th>
-                                        <th style="width: 15%;">Carga (kg)</th>
-                                        <th style="width: 15%;">Descanso</th>
-                                        <th style="width: 5%;"></th>
+                                        <th class="routine-order-column">Orden</th>
+                                        <th>Ejercicio</th>
+                                        <th>Series</th>
+                                        <th>Reps</th>
+                                        <th>Carga (kg)</th>
+                                        <th>Descanso</th>
+                                        <th class="routine-actions-column">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="routine-builder-tbody">
