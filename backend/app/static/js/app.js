@@ -4,8 +4,11 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- ESTADO GLOBAL ---
-    let token = localStorage.getItem("soma_token") || null;
-    let currentUser = JSON.parse(localStorage.getItem("soma_user")) || null;
+    // Siempre arrancar desde el login al abrir/recargar la app
+    localStorage.removeItem("soma_token");
+    localStorage.removeItem("soma_user");
+    let token = null;
+    let currentUser = null;
     
     let activeSection = "clientes-section";
     let activePortalTab = "socio-tab-rutina";
