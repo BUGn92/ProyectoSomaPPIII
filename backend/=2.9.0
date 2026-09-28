@@ -1,0 +1,3 @@
+
+[notice] A new release of pip is available: 24.0 -> 26.2.1
+[notice] To update, run: /home/agustin/Practicas profesionalizantes III/2_ Zarate, Bugnoni Agustin-20260824T221128Z-1-001/Soma/backend/.venv/bin/python3 -m pip install --upgrade pip

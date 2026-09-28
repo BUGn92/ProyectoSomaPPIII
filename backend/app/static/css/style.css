@@ -1658,6 +1658,13 @@ tr:hover td {
     margin-right: 0.25rem;
 }
 
+.portal-badges-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
 .badge-apto-header {
     display: inline-flex;
     align-items: center;

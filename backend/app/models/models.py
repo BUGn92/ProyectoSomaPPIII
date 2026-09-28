@@ -88,8 +88,11 @@ class Pago(Base):
     monto = Column(Numeric(10, 2), nullable=False)
     metodo_pago = Column(String(50))
     descripcion = Column(String(255))
+    meses_abonados = Column(Integer, default=1, nullable=False)
+    fecha_vencimiento_cuota = Column(Date, nullable=True)
 
     cliente = relationship("Cliente", back_populates="pagos")
+
 
 
 class Rutina(Base):

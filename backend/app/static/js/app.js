@@ -94,7 +94,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabLinkRutina = document.getElementById("tab-link-rutina");
     const tabLinkEvFisica = document.getElementById("tab-link-ev-fisica");
     const tabLinkEvDeportiva = document.getElementById("tab-link-ev-deportiva");
-    
+    const tabLinkPagos = document.getElementById("tab-link-pagos");
+
+    // Referencias DOM - Modulo de Pagos (pestaña de ficha del socio)
+    const formPago = document.getElementById("form-pago");
+    const tbodyHistorialPagos = document.getElementById("tbody-historial-pagos");
+    const pMonto = document.getElementById("p-monto");
+    const pMetodo = document.getElementById("p-metodo");
+    const pMeses = document.getElementById("p-meses");
+    const pDescripcion = document.getElementById("p-descripcion");
+    const pNuevoVencimientoPreview = document.getElementById("p-nuevo-vencimiento-preview");
+
+    // Referencias DOM - Pago Inicial en Alta de Socio
+    const piMonto = document.getElementById("pi-monto");
+    const piMetodo = document.getElementById("pi-metodo");
+    const piMeses = document.getElementById("pi-meses");
+    const piDescripcion = document.getElementById("pi-descripcion");
+    const groupPagoInicialTitle = document.getElementById("group-pago-inicial-title");
+    const groupPagoMonto = document.getElementById("group-pago-monto");
+    const groupPagoMetodo = document.getElementById("group-pago-metodo");
+    const groupPagoMeses = document.getElementById("group-pago-meses");
+    const groupPagoDescripcion = document.getElementById("group-pago-descripcion");
+
+    // Estado de membresia activa del socio abierto (para preview de vencimiento)
+    let membresiaActivaActual = null;
+
     // Formulario de Rutina (Entrenador)
     const formRutina = document.getElementById("form-rutina");
     const rFecha = document.getElementById("r-fecha");
@@ -133,6 +157,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const socioHeaderName = document.getElementById("socio-header-name");
     const socioAptoBadge = document.getElementById("socio-apto-badge");
     const socioAptoText = document.getElementById("socio-apto-text");
+    const socioCuotaBadge = document.getElementById("socio-cuota-badge");
+    const socioCuotaText = document.getElementById("socio-cuota-text");
+    const socioMembresiaEstado = document.getElementById("socio-membresia-estado");
+    const socioMembresiaVencimiento = document.getElementById("socio-membresia-vencimiento");
+    const tbodySocioPagos = document.getElementById("tbody-socio-pagos");
     const btnSocioLogout = document.getElementById("btn-socio-logout");
     const portalTabBtns = document.querySelectorAll(".portal-tab-btn");
     const portalPanels = document.querySelectorAll(".portal-panel");
@@ -216,7 +245,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         switchSection("clientes-section");
                     }
                 }
-                
+
+                // Bug fix: ocultar boton "Nuevo Socio" para Entrenador desde initAuth
+                if (role === "entrenador") {
+                    btnActionAdd.classList.add("hidden");
+                }
+
                 fetchEjerciciosAux();
                 fetchStaffData();
             }
@@ -612,15 +646,33 @@ document.addEventListener("DOMContentLoaded", () => {
             tabLinkRutina.style.display = "none";
             tabLinkEvFisica.style.display = "none";
             tabLinkEvDeportiva.style.display = "none";
+            if (tabLinkPagos) tabLinkPagos.style.display = "none";
+
+            // Mostrar campos de pago inicial
+            if (groupPagoInicialTitle) groupPagoInicialTitle.style.display = "block";
+            if (groupPagoMonto) groupPagoMonto.style.display = "block";
+            if (groupPagoMetodo) groupPagoMetodo.style.display = "block";
+            if (groupPagoMeses) groupPagoMeses.style.display = "block";
+            if (groupPagoDescripcion) groupPagoDescripcion.style.display = "block";
+            if (piMonto) piMonto.required = true;
         } else {
             document.getElementById("modal-cliente-title").textContent = `Ficha del Socio: DNI ${dni}`;
             cDni.setAttribute("disabled", "true");
             cDni.disabled = true;
             
-            // Mostrar pestañas de rutina y evolución
+            // Mostrar pestañas de rutina, evolución y pagos
             tabLinkRutina.style.display = "block";
             tabLinkEvFisica.style.display = "block";
             tabLinkEvDeportiva.style.display = "block";
+            if (tabLinkPagos) tabLinkPagos.style.display = "block";
+
+            // Ocultar campos de pago inicial (solo en modo Alta)
+            if (groupPagoInicialTitle) groupPagoInicialTitle.style.display = "none";
+            if (groupPagoMonto) groupPagoMonto.style.display = "none";
+            if (groupPagoMetodo) groupPagoMetodo.style.display = "none";
+            if (groupPagoMeses) groupPagoMeses.style.display = "none";
+            if (groupPagoDescripcion) groupPagoDescripcion.style.display = "none";
+            if (piMonto) piMonto.required = false;
 
             // Permisos por rol en la ficha general
             if (isTrainer) {
@@ -687,10 +739,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 await fetchEjerciciosAux();
             }
 
-            // Cargar Rutina y Evolución
+            // Cargar Rutina, Evolución y Pagos
             fetchClientRutina(dni);
             fetchClientEvFisica(dni);
             fetchClientEvDeportiva(dni);
+            fetchClientPagos(dni);
+            membresiaActivaActual = null;
+            fetchClientMembresia(dni);
         }
         
         modalCliente.classList.add("active", "open");
@@ -718,6 +773,21 @@ document.addEventListener("DOMContentLoaded", () => {
             apto_medico_vigente: cApto.checked,
             fecha_vencimiento_apto: cApto.checked && cVencimiento.value ? cVencimiento.value : null
         };
+
+        // En modo Alta (POST), agregar pago inicial obligatorio
+        if (!editingDni) {
+            const montoVal = parseFloat(piMonto ? piMonto.value : 0);
+            if (!montoVal || montoVal <= 0) {
+                showToast("Error", "Debes ingresar el monto del pago inicial para registrar el socio.", "error");
+                return;
+            }
+            payload.primer_pago = {
+                monto: montoVal,
+                metodo_pago: piMetodo ? piMetodo.value : "Efectivo",
+                meses_abonados: piMeses ? parseInt(piMeses.value) || 1 : 1,
+                descripcion: piDescripcion ? piDescripcion.value.trim() || null : null,
+            };
+        }
 
         try {
             let url = "/api/clientes/";
@@ -768,6 +838,126 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (err) {
             showToast("Error", "Error al eliminar el socio", "error");
         }
+    }
+
+    // --- MODULO DE PAGOS ---
+
+    async function fetchClientMembresia(dni) {
+        try {
+            const res = await fetch(`/api/clientes/${dni}/membresia`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                membresiaActivaActual = await res.json();
+            } else {
+                membresiaActivaActual = null;
+            }
+            actualizarPreviewVencimiento();
+        } catch {
+            membresiaActivaActual = null;
+        }
+    }
+
+    async function fetchClientPagos(dni) {
+        try {
+            const res = await fetch(`/api/pagos/cliente/${dni}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const pagos = await res.json();
+                renderHistorialPagos(pagos);
+            } else {
+                tbodyHistorialPagos.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Sin pagos registrados</td></tr>`;
+            }
+        } catch {
+            tbodyHistorialPagos.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Error al cargar el historial</td></tr>`;
+        }
+    }
+
+    function renderHistorialPagos(pagos) {
+        tbodyHistorialPagos.innerHTML = "";
+        if (!pagos || pagos.length === 0) {
+            tbodyHistorialPagos.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Sin pagos registrados</td></tr>`;
+            return;
+        }
+        pagos.forEach(p => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${p.fecha_pago}</td>
+                <td><strong>$${parseFloat(p.monto).toLocaleString("es-AR", { minimumFractionDigits: 2 })}</strong></td>
+                <td>${p.metodo_pago || "-"}</td>
+                <td>${p.meses_abonados} mes${p.meses_abonados !== 1 ? "es" : ""}</td>
+                <td>${p.fecha_vencimiento_cuota ? `<span class="badge badge-success">${p.fecha_vencimiento_cuota}</span>` : "-"}</td>
+                <td>${p.descripcion || "-"}</td>
+            `;
+            tbodyHistorialPagos.appendChild(tr);
+        });
+    }
+
+    function calcularPreviewFecha(fechaFinActual, meses) {
+        const hoy = new Date();
+        let base;
+        if (fechaFinActual) {
+            const fin = new Date(fechaFinActual + "T00:00:00");
+            base = fin >= hoy ? fin : hoy;
+        } else {
+            base = hoy;
+        }
+        const resultado = new Date(base);
+        resultado.setMonth(resultado.getMonth() + meses);
+        return resultado.toISOString().split("T")[0];
+    }
+
+    function actualizarPreviewVencimiento() {
+        if (!pNuevoVencimientoPreview) return;
+        const meses = parseInt(pMeses ? pMeses.value : 1) || 1;
+        const fechaFin = membresiaActivaActual ? membresiaActivaActual.fecha_fin : null;
+        const nuevaFecha = calcularPreviewFecha(fechaFin, meses);
+        const base = (fechaFin && new Date(fechaFin + "T00:00:00") >= new Date())
+            ? `Acumula desde ${fechaFin}`
+            : "El socio esta vencido, el vencimiento se calcula desde hoy";
+        pNuevoVencimientoPreview.textContent = `Nuevo vencimiento estimado: ${nuevaFecha} (${base})`;
+    }
+
+    if (pMeses) {
+        pMeses.addEventListener("input", actualizarPreviewVencimiento);
+    }
+
+    if (formPago) {
+        formPago.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!editingDni) return;
+            const payload = {
+                dni_cliente: editingDni,
+                monto: parseFloat(pMonto.value),
+                metodo_pago: pMetodo.value,
+                meses_abonados: parseInt(pMeses.value) || 1,
+                descripcion: pDescripcion.value.trim() || null,
+            };
+            try {
+                const res = await fetch("/api/pagos/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast("Exito", `Pago registrado. Nuevo vencimiento: ${data.fecha_vencimiento_cuota}`);
+                    formPago.reset();
+                    pMeses.value = 1;
+                    fetchClientPagos(editingDni);
+                    fetchClientMembresia(editingDni);
+                    fetchClientes();
+                } else {
+                    showToast("Error", data.detail || "No se pudo registrar el pago", "error");
+                }
+            } catch {
+                showToast("Error", "Error de comunicacion con el servidor", "error");
+            }
+        });
     }
 
     // --- CONSTRUCTOR Y GESTOR DE RUTINAS (ADMIN / ENTRENADOR) ---
@@ -1206,6 +1396,9 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error al obtener datos de perfil del socio:", e);
         }
 
+        // 1.b. Obtener estado de cuota y membresía activa
+        await fetchSocioMembresia(dni);
+
         // 2. Cargar Rutina del Socio
         fetchSocioRutina(dni);
 
@@ -1214,6 +1407,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 4. Cargar Progreso Físico y Cargas
         fetchSocioProgreso(dni);
+
+        // 5. Cargar Historial de Pagos del Socio
+        fetchSocioPagos(dni);
     }
 
     async function fetchSocioRutina(dni) {
@@ -1371,6 +1567,85 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } catch (err) {
             console.error("Error al cargar progreso del socio:", err);
+        }
+    }
+
+    async function fetchSocioMembresia(dni) {
+        if (!socioCuotaBadge) return;
+        try {
+            const resMem = await fetch(`/api/clientes/${dni}/membresia`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resMem.ok) {
+                const membresia = await resMem.json();
+                if (membresia && membresia.fecha_fin) {
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    const partes = membresia.fecha_fin.split("-");
+                    const fechaFin = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+
+                    if (fechaFin >= hoy && membresia.estado === "Activo") {
+                        socioCuotaBadge.className = "badge-apto-header vigente";
+                        if (socioCuotaText) socioCuotaText.textContent = `Cuota al día (Vence: ${membresia.fecha_fin})`;
+                        if (socioMembresiaEstado) socioMembresiaEstado.innerHTML = `<span class="badge badge-success"><i class="fa-solid fa-check"></i> Al Día</span>`;
+                        if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = membresia.fecha_fin;
+                    } else {
+                        socioCuotaBadge.className = "badge-apto-header vencido";
+                        if (socioCuotaText) socioCuotaText.textContent = `Cuota Vencida (${membresia.fecha_fin})`;
+                        if (socioMembresiaEstado) socioMembresiaEstado.innerHTML = `<span class="badge badge-danger"><i class="fa-solid fa-circle-exclamation"></i> Vencida</span>`;
+                        if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = membresia.fecha_fin;
+                    }
+                } else {
+                    socioCuotaBadge.className = "badge-apto-header vencido";
+                    if (socioCuotaText) socioCuotaText.textContent = "Cuota Impaga / Sin Registro";
+                    if (socioMembresiaEstado) socioMembresiaEstado.innerHTML = `<span class="badge badge-danger">Sin Membresía</span>`;
+                    if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = "Sin fecha registrada";
+                }
+            } else {
+                socioCuotaBadge.className = "badge-apto-header vencido";
+                if (socioCuotaText) socioCuotaText.textContent = "Cuota Impaga / Sin Registro";
+                if (socioMembresiaEstado) socioMembresiaEstado.innerHTML = `<span class="badge badge-danger">Sin Membresía</span>`;
+                if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = "Sin fecha registrada";
+            }
+        } catch (err) {
+            console.error("Error al obtener membresía del socio:", err);
+            socioCuotaBadge.className = "badge-apto-header vencido";
+            if (socioCuotaText) socioCuotaText.textContent = "Cuota Pendiente";
+        }
+    }
+
+    async function fetchSocioPagos(dni) {
+        if (!tbodySocioPagos) return;
+        tbodySocioPagos.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-secondary);">Cargando pagos...</td></tr>`;
+        try {
+            const res = await fetch(`/api/pagos/cliente/${dni}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const pagos = await res.json();
+                if (!pagos || pagos.length === 0) {
+                    tbodySocioPagos.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-secondary);">No tienes pagos registrados aún.</td></tr>`;
+                    return;
+                }
+                tbodySocioPagos.innerHTML = "";
+                pagos.forEach(p => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>${p.fecha_pago}</strong></td>
+                        <td>${p.descripcion || 'Cuota mensual'}</td>
+                        <td style="text-align:center;">${p.meses_abonados || 1}</td>
+                        <td><span class="badge badge-info">${p.fecha_vencimiento_cuota || '-'}</span></td>
+                        <td>${p.metodo_pago || '-'}</td>
+                        <td><strong style="color: var(--accent);">$${Number(p.monto).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong></td>
+                    `;
+                    tbodySocioPagos.appendChild(tr);
+                });
+            } else {
+                tbodySocioPagos.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-secondary);">No se pudo cargar el historial de pagos.</td></tr>`;
+            }
+        } catch (err) {
+            console.error("Error al cargar historial de pagos del socio:", err);
+            tbodySocioPagos.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-secondary);">Error al conectar con el servidor.</td></tr>`;
         }
     }
 

@@ -1,7 +1,9 @@
 import hashlib
 from datetime import date
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from dateutil.relativedelta import relativedelta
 from app.models import models
 from app.schemas import schemas
 
@@ -36,6 +38,14 @@ def get_next_rutina_id(db: Session) -> int:
 
 def get_next_detalle_rutina_id(db: Session) -> int:
     max_id = db.query(func.max(models.DetalleRutina.id_detalle)).scalar()
+    return (max_id or 0) + 1
+
+def get_next_pago_id(db: Session) -> int:
+    max_id = db.query(func.max(models.Pago.id_pago)).scalar()
+    return (max_id or 0) + 1
+
+def get_next_cliente_membresia_id(db: Session) -> int:
+    max_id = db.query(func.max(models.ClienteMembresia.id_cliente_membresia)).scalar()
     return (max_id or 0) + 1
 
 # --- CRUD de Usuario ---
@@ -139,7 +149,110 @@ def get_client(db: Session, dni: str):
 def get_clients(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Cliente).offset(skip).limit(limit).all()
 
-def create_client(db: Session, client: schemas.ClienteCreate):
+# --- Lógica de Pagos y Vigencia de Membresía ---
+def calcular_nuevo_vencimiento(fecha_fin_actual: date | None, fecha_pago: date, meses: int) -> date:
+    """
+    Calcula la nueva fecha de vencimiento de la membresía tras un pago.
+    - Si el socio está al día (fecha_fin_actual >= fecha_pago): acumula desde fecha_fin_actual.
+    - Si está vencido o sin membresía: calcula desde la fecha del pago.
+    """
+    if fecha_fin_actual and fecha_fin_actual >= fecha_pago:
+        base = fecha_fin_actual
+    else:
+        base = fecha_pago
+    return base + relativedelta(months=meses)
+
+def get_membresia_activa_cliente(db: Session, dni_cliente: str):
+    """Retorna el registro activo de ClienteMembresia o None si no existe."""
+    return (
+        db.query(models.ClienteMembresia)
+        .filter(models.ClienteMembresia.dni_cliente == dni_cliente)
+        .order_by(models.ClienteMembresia.fecha_fin.desc())
+        .first()
+    )
+
+def registrar_pago(db: Session, pago_data: schemas.PagoCreate, flush_only: bool = False):
+    """
+    Registra un pago y actualiza (o crea) el registro de ClienteMembresia.
+    Si flush_only=True, hace flush pero no commit (para usar dentro de otra transacción).
+    """
+    fecha_hoy = date.today()
+
+    # Obtener la membresía activa actual del socio
+    membresia = get_membresia_activa_cliente(db, pago_data.dni_cliente)
+    fecha_fin_actual = membresia.fecha_fin if membresia else None
+
+    # Calcular la nueva fecha de vencimiento
+    nueva_fecha_fin = calcular_nuevo_vencimiento(fecha_fin_actual, fecha_hoy, pago_data.meses_abonados)
+
+    # Crear el registro inmutable de pago
+    next_pago_id = get_next_pago_id(db)
+    db_pago = models.Pago(
+        id_pago=next_pago_id,
+        dni_cliente=pago_data.dni_cliente,
+        fecha_pago=fecha_hoy,
+        monto=pago_data.monto,
+        metodo_pago=pago_data.metodo_pago,
+        descripcion=pago_data.descripcion,
+        meses_abonados=pago_data.meses_abonados,
+        fecha_vencimiento_cuota=nueva_fecha_fin,
+    )
+    db.add(db_pago)
+
+    # Upsert de ClienteMembresia
+    if membresia:
+        membresia.fecha_fin = nueva_fecha_fin
+        membresia.estado = "Activo"
+    else:
+        next_cm_id = get_next_cliente_membresia_id(db)
+        db_membresia = models.ClienteMembresia(
+            id_cliente_membresia=next_cm_id,
+            dni_cliente=pago_data.dni_cliente,
+            id_membresia=1,  # Membresía genérica; ajustar si hay catálogo
+            fecha_inicio=fecha_hoy,
+            fecha_fin=nueva_fecha_fin,
+            estado="Activo",
+        )
+        db.add(db_membresia)
+
+    if flush_only:
+        db.flush()
+    else:
+        db.commit()
+        db.refresh(db_pago)
+
+    return db_pago
+
+def get_pagos_cliente(db: Session, dni_cliente: str):
+    """Retorna el historial cronológico de pagos del socio."""
+    return (
+        db.query(models.Pago)
+        .filter(models.Pago.dni_cliente == dni_cliente)
+        .order_by(models.Pago.fecha_pago.desc())
+        .all()
+    )
+
+def get_resumen_mensual_pagos(db: Session, anio: int, mes: int) -> dict:
+    """Retorna el total recaudado y cantidad de cuotas cobradas en el mes indicado."""
+    resultado = (
+        db.query(
+            func.sum(models.Pago.monto).label("total_recaudado"),
+            func.count(models.Pago.id_pago).label("cantidad_cuotas"),
+        )
+        .filter(
+            func.year(models.Pago.fecha_pago) == anio,
+            func.month(models.Pago.fecha_pago) == mes,
+        )
+        .first()
+    )
+    return {
+        "anio": anio,
+        "mes": mes,
+        "total_recaudado": resultado.total_recaudado or Decimal("0.00"),
+        "cantidad_cuotas": resultado.cantidad_cuotas or 0,
+    }
+
+def create_client(db: Session, client: schemas.ClienteConPagoCreate):
     # 1. Crear direccion si se especificaron datos de la misma
     direccion_id = None
     if client.calle or client.numero or client.ciudad:
@@ -184,6 +297,17 @@ def create_client(db: Session, client: schemas.ClienteCreate):
             debe_cambiar_password=True
         )
         db.add(db_user)
+        db.flush()
+
+    # 4. Registrar el primer pago (crea también el ClienteMembresia)
+    pago_inicial = schemas.PagoCreate(
+        dni_cliente=client.dni,
+        monto=client.primer_pago.monto,
+        metodo_pago=client.primer_pago.metodo_pago,
+        meses_abonados=client.primer_pago.meses_abonados,
+        descripcion=client.primer_pago.descripcion or "Pago inicial al dar de alta el socio",
+    )
+    registrar_pago(db=db, pago_data=pago_inicial, flush_only=True)
 
     db.commit()
     db.refresh(db_client)

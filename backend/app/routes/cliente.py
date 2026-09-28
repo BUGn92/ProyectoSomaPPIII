@@ -44,7 +44,7 @@ def read_client(
 
 @router.post("/", response_model=schemas.ClienteResponse, status_code=status.HTTP_201_CREATED)
 def create_new_client(
-    client: schemas.ClienteCreate,
+    client: schemas.ClienteConPagoCreate,
     db: Session = Depends(database.get_db),
     current_user: models.Usuario = Depends(require_roles(["Admin", "Recepcionista"]))
 ):
@@ -175,3 +175,21 @@ def read_ejercicios(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     return crud.get_ejercicios(db)
+
+# --- Endpoint de Membresía Activa (para preview de vencimiento y portal del socio) ---
+@router.get("/{dni}/membresia", response_model=Optional[schemas.ClienteMembresiaResponse])
+def read_cliente_membresia_activa(
+    dni: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(get_current_user),
+):
+    """
+    Retorna el registro activo de ClienteMembresia del socio.
+    Permite el acceso a staff (Admin, Recepcionista, Entrenador) y al propio socio.
+    Devuelve null si el socio nunca tuvo membresía registrada.
+    """
+    check_client_data_access(dni, current_user)
+    db_client = crud.get_client(db, dni=dni)
+    if db_client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return crud.get_membresia_activa_cliente(db, dni_cliente=dni)
