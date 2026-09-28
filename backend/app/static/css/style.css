@@ -1274,14 +1274,23 @@ tr:hover td {
 .routine-builder-container {
     margin-top: 1rem;
     border: 1px solid var(--border-light);
-    border-radius: 12px;
+    border-radius: 8px;
     overflow-x: auto;
     background-color: rgba(0, 0, 0, 0.2);
+}
+
+.routine-builder-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.5rem;
 }
 
 .routine-builder-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .routine-builder-table th {
@@ -1289,9 +1298,21 @@ tr:hover td {
     font-size: 0.8rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0;
     background-color: rgba(255, 255, 255, 0.02);
     border-bottom: 1px solid var(--border-light);
+    text-align: left;
+}
+
+.routine-builder-table th:first-child,
+.routine-builder-table td:first-child {
+    width: 3.5rem;
+    text-align: center;
+}
+
+.routine-builder-table th:last-child,
+.routine-builder-table td:last-child {
+    width: 8.5rem;
 }
 
 .routine-builder-table td {
@@ -1301,6 +1322,7 @@ tr:hover td {
 
 .routine-builder-table select,
 .routine-builder-table input {
+    min-width: 0;
     width: 100%;
     padding: 0.5rem;
     background-color: var(--bg-dark);
@@ -1311,19 +1333,159 @@ tr:hover td {
     font-family: var(--font-main);
 }
 
+.routine-row-number {
+    display: inline-grid;
+    width: 1.75rem;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.routine-row-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.2rem;
+}
+
+.btn-move-row,
 .btn-remove-row {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
     background: none;
     border: none;
-    color: var(--danger);
     cursor: pointer;
     font-size: 1rem;
-    padding: 0.4rem;
-    border-radius: 6px;
+    border-radius: 4px;
     transition: var(--transition-smooth);
+}
+
+.btn-move-row {
+    color: var(--text-secondary);
+}
+
+.btn-move-row:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.btn-move-row:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.btn-remove-row {
+    color: var(--danger);
 }
 
 .btn-remove-row:hover {
     background-color: rgba(239, 68, 68, 0.15);
+}
+
+@media (max-width: 700px) {
+    .routine-builder-heading {
+        align-items: flex-start;
+    }
+
+    .routine-builder-heading .btn-secondary {
+        flex: 0 0 auto;
+        width: auto;
+    }
+
+    .routine-builder-container {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+    }
+
+    .routine-builder-table,
+    .routine-builder-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .routine-builder-table thead {
+        display: none;
+    }
+
+    .routine-builder-table tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .routine-builder-table tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(5rem, 0.55fr);
+        gap: 0.65rem;
+        padding: 0.85rem;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-card);
+    }
+
+    .routine-builder-table td {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 0.35rem;
+        padding: 0;
+        border: 0;
+    }
+
+    .routine-builder-table td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .routine-builder-table .routine-order-cell {
+        width: auto;
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .routine-builder-table td:first-child {
+        width: auto;
+    }
+
+    .routine-builder-table .routine-order-cell::before {
+        content: "Orden";
+    }
+
+    .routine-builder-table .routine-order-cell .routine-row-number {
+        width: 1.5rem;
+    }
+
+    .routine-builder-table td:last-child {
+        width: auto;
+    }
+
+    .routine-builder-table td:nth-child(2),
+    .routine-builder-table td:nth-child(7) {
+        grid-column: 1 / -1;
+    }
+
+    .routine-builder-table .routine-actions-cell {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .routine-builder-table .routine-actions-cell::before {
+        content: "Reordenar / quitar";
+    }
+
+    .routine-row-actions {
+        justify-content: flex-end;
+        gap: 0.35rem;
+    }
 }
 
 /* ==========================================================================
@@ -1680,16 +1842,18 @@ tr:hover td {
 }
 
 .routine-sheet-container {
-    overflow-x: auto;
+    min-width: 0;
+    overflow: hidden;
     border: 1px solid var(--border-light);
-    border-radius: 12px;
+    border-radius: 8px;
     background: var(--bg-dark);
 }
 
 .routine-sheet {
     width: 100%;
-    min-width: 680px;
+    min-width: 0;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .routine-sheet th {
@@ -1700,8 +1864,9 @@ tr:hover td {
     font-size: 0.75rem;
     text-align: left;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+    letter-spacing: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .routine-sheet td {
@@ -1709,6 +1874,11 @@ tr:hover td {
     border-bottom: 1px solid var(--border-light);
     color: var(--text-primary);
     vertical-align: middle;
+    overflow-wrap: anywhere;
+}
+
+.routine-sheet td::before {
+    display: none;
 }
 
 .routine-sheet tbody tr:last-child td {
@@ -1747,6 +1917,75 @@ tr:hover td {
 .routine-value {
     font-weight: 600;
     white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .routine-sheet,
+    .routine-sheet tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .routine-sheet thead {
+        display: none;
+    }
+
+    .routine-sheet tbody {
+        display: grid;
+        gap: 0.65rem;
+        padding: 0.65rem;
+    }
+
+    .routine-sheet tr {
+        display: grid;
+        grid-template-columns: minmax(3.25rem, 0.35fr) minmax(0, 1fr);
+        gap: 0.6rem;
+        padding: 0.75rem;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-card);
+    }
+
+    .routine-sheet td {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0;
+        border: 0;
+        white-space: normal;
+    }
+
+    .routine-sheet td::before {
+        display: block;
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .routine-sheet .routine-order {
+        width: auto;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent) !important;
+        font-size: 1rem;
+    }
+
+    .routine-sheet .routine-number {
+        width: auto;
+        align-items: flex-start;
+        font-size: 0.95rem;
+    }
+
+    .routine-sheet .routine-value {
+        white-space: normal;
+    }
+
+    .routine-sheet .routine-exercise-name {
+        font-size: 0.9rem;
+    }
 }
 
 .portal-progress-grid {
