@@ -781,29 +781,61 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         tr.innerHTML = `
-            <td>
+            <td class="routine-order-cell" data-label="Orden">
+                <span class="routine-row-number"></span>
+            </td>
+            <td data-label="Ejercicio">
                 <select class="rb-ejercicio" required>${optionsHtml}</select>
             </td>
-            <td>
+            <td data-label="Series">
                 <input type="number" min="1" max="20" class="rb-series" required value="${detail ? detail.series : 3}" placeholder="Series">
             </td>
-            <td>
+            <td data-label="Repeticiones">
                 <input type="number" min="1" max="100" class="rb-reps" required value="${detail ? detail.repeticiones : 10}" placeholder="Reps">
             </td>
-            <td>
+            <td data-label="Carga (kg)">
                 <input type="number" step="0.5" min="0" max="500" class="rb-carga" value="${detail && detail.carga ? detail.carga : ''}" placeholder="Ej: 50.0">
             </td>
-            <td>
+            <td data-label="Descanso">
                 <input type="text" class="rb-descanso" value="${detail && detail.descanso ? detail.descanso : '90 seg'}" placeholder="Ej: 90 seg">
             </td>
-            <td style="text-align: center;">
-                <button type="button" class="btn-remove-row" title="Quitar Ejercicio"><i class="fa-solid fa-trash"></i></button>
+            <td class="routine-actions-cell" data-label="Acciones">
+                <div class="routine-row-actions">
+                    <button type="button" class="btn-move-row" data-direction="up" title="Mover ejercicio hacia arriba" aria-label="Mover ejercicio hacia arriba"><i class="fa-solid fa-arrow-up"></i></button>
+                    <button type="button" class="btn-move-row" data-direction="down" title="Mover ejercicio hacia abajo" aria-label="Mover ejercicio hacia abajo"><i class="fa-solid fa-arrow-down"></i></button>
+                    <button type="button" class="btn-remove-row" title="Quitar ejercicio" aria-label="Quitar ejercicio"><i class="fa-solid fa-trash"></i></button>
+                </div>
             </td>
         `;
 
-        tr.querySelector(".btn-remove-row").addEventListener("click", () => tr.remove());
         routineBuilderTbody.appendChild(tr);
+        updateRoutineRowNumbers();
     }
+
+    function updateRoutineRowNumbers() {
+        routineBuilderTbody.querySelectorAll("tr").forEach((row, index) => {
+            row.querySelector(".routine-row-number").textContent = index + 1;
+            row.querySelector('[data-direction="up"]').disabled = index === 0;
+            row.querySelector('[data-direction="down"]').disabled = index === routineBuilderTbody.rows.length - 1;
+        });
+    }
+
+    routineBuilderTbody.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        const row = button.closest("tr");
+        if (button.classList.contains("btn-remove-row")) {
+            row.remove();
+        } else if (button.classList.contains("btn-move-row")) {
+            if (button.dataset.direction === "up" && row.previousElementSibling) {
+                routineBuilderTbody.insertBefore(row, row.previousElementSibling);
+            } else if (button.dataset.direction === "down" && row.nextElementSibling) {
+                routineBuilderTbody.insertBefore(row.nextElementSibling, row);
+            }
+        }
+        updateRoutineRowNumbers();
+    });
 
     btnAddRoutineRow.addEventListener("click", () => addRoutineBuilderRow());
 
@@ -1213,15 +1245,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     exercisesHtml += `
                         <tr>
-                            <td class="routine-order">${index + 1}</td>
-                            <td>
+                            <td class="routine-order" data-label="N°">${index + 1}</td>
+                            <td data-label="Ejercicio">
                                 <strong class="routine-exercise-name">${ejNombre}</strong>
                                 <span class="routine-muscle-group">${ejGrupo}</span>
                             </td>
-                            <td class="routine-number">${det.series}</td>
-                            <td class="routine-number">${det.repeticiones}</td>
-                            <td class="routine-value">${det.carga ? det.carga + ' kg' : 'A criterio'}</td>
-                            <td class="routine-value">${det.descanso || '90 seg'}</td>
+                            <td class="routine-number" data-label="Series">${det.series}</td>
+                            <td class="routine-number" data-label="Repeticiones">${det.repeticiones}</td>
+                            <td class="routine-value" data-label="Carga">${det.carga ? det.carga + ' kg' : 'A criterio'}</td>
+                            <td class="routine-value" data-label="Descanso">${det.descanso || '90 seg'}</td>
                         </tr>
                     `;
                 });
