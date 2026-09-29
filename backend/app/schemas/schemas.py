@@ -237,3 +237,52 @@ class RutinaResponse(RutinaBase):
         from_attributes = True
 
 
+# --- Pagos ---
+class PagoInicialCreate(BaseModel):
+    """Datos del primer pago a registrar al dar de alta un socio."""
+    monto: Decimal
+    metodo_pago: str  # Efectivo, Transferencia, Débito, Crédito
+    meses_abonados: int = 1
+    descripcion: Optional[str] = None
+
+class PagoCreate(BaseModel):
+    dni_cliente: str
+    monto: Decimal
+    metodo_pago: str  # Efectivo, Transferencia, Débito, Crédito
+    meses_abonados: int = 1
+    descripcion: Optional[str] = None
+
+class PagoResponse(BaseModel):
+    id_pago: int
+    dni_cliente: str
+    fecha_pago: date
+    monto: Decimal
+    metodo_pago: Optional[str]
+    meses_abonados: int
+    fecha_vencimiento_cuota: Optional[date]
+    descripcion: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+class ResumenMensualResponse(BaseModel):
+    anio: int
+    mes: int
+    total_recaudado: Decimal
+    cantidad_cuotas: int
+
+# --- Schema compuesto: Alta de Socio con Pago Inicial obligatorio ---
+class ClienteConPagoCreate(ClienteCreate):
+    """Extiende ClienteCreate con el pago inicial obligatorio."""
+    primer_pago: PagoInicialCreate
+
+# --- Membresía activa (para preview de vencimiento en frontend) ---
+class ClienteMembresiaResponse(BaseModel):
+    id_cliente_membresia: int
+    dni_cliente: str
+    fecha_inicio: date
+    fecha_fin: date
+    estado: str
+
+    class Config:
+        from_attributes = True
