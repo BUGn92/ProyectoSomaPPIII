@@ -975,10 +975,15 @@ tr:hover td {
     .modal {
         align-items: flex-start;
         overflow-y: auto;
-        padding: 1rem 0;
+        overflow-x: hidden;
+        width: 100%;
+        padding: 0.75rem;
     }
     .modal-content {
+        width: 100%;
+        max-width: 100%;
         max-height: calc(100vh - 2rem);
+        margin: 0;
         padding: 1.25rem;
         border-radius: 16px;
     }
@@ -1001,17 +1006,31 @@ tr:hover td {
         justify-content: center;
     }
     .modal-tabs {
-        overflow-x: auto;
-        scrollbar-width: none;
-        margin-right: -0.25rem;
-    }
-    .modal-tabs::-webkit-scrollbar {
-        display: none;
+        flex-wrap: wrap;
+        overflow: visible;
+        margin-right: 0;
     }
     .tab-link {
-        flex: 0 0 auto;
+        flex: 1 1 calc(50% - 0.5rem);
+        min-width: 0;
         padding: 0.55rem 0.85rem;
         font-size: 0.85rem;
+        white-space: normal;
+    }
+    .modal .sub-table-container {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    .modal .sub-table-container table {
+        width: 100%;
+        table-layout: fixed;
+    }
+    .modal .sub-table-container th,
+    .modal .sub-table-container td {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        padding: 0.5rem 0.3rem;
+        font-size: 0.72rem;
     }
     .routine-builder-container,
     .sub-table-container {
@@ -1249,7 +1268,8 @@ tr:hover td {
 }
 
 .modal-large {
-    max-width: 850px;
+    width: min(1180px, calc(100vw - 3rem));
+    max-width: none;
 }
 
 .modal-description {
@@ -1386,7 +1406,7 @@ tr:hover td {
     background-color: rgba(239, 68, 68, 0.15);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
     .routine-builder-heading {
         align-items: flex-start;
     }
@@ -1856,6 +1876,12 @@ tr:hover td {
     background: var(--bg-dark);
 }
 
+.staff-routine-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
 .routine-sheet {
     width: 100%;
     min-width: 0;
@@ -1926,7 +1952,7 @@ tr:hover td {
     white-space: nowrap;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
     .routine-sheet,
     .routine-sheet tbody {
         display: block;
@@ -2042,6 +2068,88 @@ tr:hover td {
     font-size: 0.9rem;
     max-width: 450px;
     margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .table-container,
+    .sub-table-container {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .table-container table,
+    .sub-table-container table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    .table-container thead,
+    .sub-table-container thead {
+        display: none;
+    }
+
+    .table-container tbody,
+    .sub-table-container tbody {
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .table-container tbody tr,
+    .sub-table-container tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+        min-width: 0;
+        padding: 0.75rem;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-card);
+    }
+
+    .table-container tbody td,
+    .sub-table-container tbody td {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        border: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .table-container tbody td::before,
+    .sub-table-container tbody td::before {
+        content: attr(data-label);
+        color: var(--text-secondary);
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .table-container tbody td[colspan],
+    .sub-table-container tbody td[colspan] {
+        display: block;
+        grid-column: 1 / -1;
+    }
+
+    .table-container tbody td[colspan]::before,
+    .sub-table-container tbody td[colspan]::before {
+        content: none;
+    }
+
+    .table-container tbody td.actions-col {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .table-container .table-actions {
+        justify-content: flex-end;
+    }
 }
 
 

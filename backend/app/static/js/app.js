@@ -127,6 +127,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const rObs = document.getElementById("r-obs");
     const btnAddRoutineRow = document.getElementById("btn-add-routine-row");
     const routineBuilderTbody = document.getElementById("routine-builder-tbody");
+    const staffRoutinePreview = document.getElementById("staff-rutina-preview");
+    const staffRoutineEditor = document.getElementById("staff-rutina-editor");
+    const staffRoutineSheet = document.getElementById("staff-rutina-sheet");
+    const btnEditRoutine = document.getElementById("btn-edit-routine");
+    const btnViewRoutine = document.getElementById("btn-view-routine");
     
     // Formularios de Evolución (Admin/Entrenador)
     const formEvFisica = document.getElementById("form-ev-fisica");
@@ -170,6 +175,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const tbodySocioEvFisica = document.getElementById("tbody-socio-ev-fisica");
     const tbodySocioEvDeportiva = document.getElementById("tbody-socio-ev-deportiva");
 
+    function addResponsiveTableLabels(table) {
+        const headers = Array.from(table.querySelectorAll("thead th"), header => header.textContent.trim());
+        table.querySelectorAll("tbody tr").forEach(row => {
+            Array.from(row.cells).forEach((cell, index) => {
+                if (!cell.hasAttribute("colspan") && headers[index]) {
+                    cell.dataset.label = headers[index];
+                }
+            });
+        });
+    }
+
+    document.querySelectorAll(".table-container table, .sub-table-container table").forEach(table => {
+        const tbody = table.tBodies[0];
+        if (!tbody) return;
+
+        addResponsiveTableLabels(table);
+        new MutationObserver(() => addResponsiveTableLabels(table)).observe(tbody, {
+            childList: true,
+            subtree: true
+        });
+    });
+
     // --- NOTIFICACIONES TOAST ---
     function showToast(title, message, type = "success") {
         const container = document.getElementById("toast-container");
@@ -190,7 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         
         container.appendChild(toast);
-        
         toast.querySelector(".toast-close").addEventListener("click", () => {
             toast.style.transform = "translateX(120%)";
             setTimeout(() => toast.remove(), 300);
@@ -1029,7 +1055,92 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnAddRoutineRow.addEventListener("click", () => addRoutineBuilderRow());
 
+    function showStaffRoutinePreview() {
+        staffRoutinePreview.classList.remove("hidden");
+        staffRoutineEditor.classList.add("hidden");
+    }
+
+    function showStaffRoutineEditor() {
+        staffRoutinePreview.classList.add("hidden");
+        staffRoutineEditor.classList.remove("hidden");
+    }
+
+    btnEditRoutine.addEventListener("click", showStaffRoutineEditor);
+    btnViewRoutine.addEventListener("click", showStaffRoutinePreview);
+
+    function renderRoutineSheet(rutina) {
+        const hasRoutine = Boolean(rutina && rutina.detalles && rutina.detalles.length > 0);
+        btnEditRoutine.querySelector("span").textContent = hasRoutine ? "Editar rutina" : "Crear rutina";
+
+        if (!hasRoutine) {
+            return `
+                <div class="empty-state">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <h3>Aún no hay una rutina asignada</h3>
+                    <p>Agrega ejercicios para crear la planilla de entrenamiento de este socio.</p>
+                </div>
+            `;
+        }
+
+        const entrenador = rutina.detalles.find(det => det.usuario)?.usuario;
+        const entrenadorNombre = entrenador ? entrenador.nombre : "No informado";
+        const exercisesHtml = rutina.detalles.map((det, index) => {
+            const ejNombre = det.ejercicio ? det.ejercicio.nombre_ejercicio : `Ejercicio #${det.id_ejercicio}`;
+            const ejGrupo = det.ejercicio ? det.ejercicio.grupo_muscular : "General";
+
+            return `
+                <tr>
+                    <td class="routine-order" data-label="N°">${index + 1}</td>
+                    <td data-label="Ejercicio">
+                        <strong class="routine-exercise-name">${ejNombre}</strong>
+                        <span class="routine-muscle-group">${ejGrupo}</span>
+                    </td>
+                    <td class="routine-number" data-label="Series">${det.series}</td>
+                    <td class="routine-number" data-label="Repeticiones">${det.repeticiones}</td>
+                    <td class="routine-value" data-label="Carga">${det.carga ? `${det.carga} kg` : "A criterio"}</td>
+                    <td class="routine-value" data-label="Descanso">${det.descanso || "90 seg"}</td>
+                </tr>
+            `;
+        }).join("");
+
+        const obsBox = rutina.observaciones ? `
+            <div class="routine-obs-box">
+                <strong><i class="fa-solid fa-comment-dots"></i> Indicaciones del Entrenador:</strong><br>
+                ${rutina.observaciones}
+            </div>
+        ` : "";
+
+        return `
+            <div class="routine-card">
+                <div class="routine-header-banner">
+                    <div>
+                        <div class="routine-goal-title">
+                            <i class="fa-solid fa-bullseye" style="color: var(--primary);"></i>
+                            <span>${rutina.objetivo || "Plan de Entrenamiento"}</span>
+                        </div>
+                        <div class="routine-meta-pills">
+                            <span class="meta-pill"><i class="fa-regular fa-calendar"></i> Inicio: ${rutina.fecha_inicio}</span>
+                            <span class="meta-pill"><i class="fa-solid fa-clock"></i> Duración: ${rutina.periodo ? `${rutina.periodo} semanas` : "Mensual"}</span>
+                            <span class="meta-pill"><i class="fa-solid fa-dumbbell"></i> ${rutina.detalles.length} ejercicios</span>
+                            <span class="meta-pill routine-trainer"><i class="fa-solid fa-user-tie"></i> Entrenador: ${entrenadorNombre}</span>
+                        </div>
+                    </div>
+                </div>
+                ${obsBox}
+                <div class="routine-sheet-container">
+                    <table class="routine-sheet">
+                        <thead>
+                            <tr><th>#</th><th>Ejercicio</th><th>Series</th><th>Repeticiones</th><th>Carga</th><th>Descanso</th></tr>
+                        </thead>
+                        <tbody>${exercisesHtml}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
     async function fetchClientRutina(dni) {
+        showStaffRoutinePreview();
         if (!cachedEjercicios || cachedEjercicios.length === 0) {
             await fetchEjerciciosAux();
         }
@@ -1048,6 +1159,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             if (response.ok) {
                 const rutina = await response.json();
+                staffRoutineSheet.innerHTML = renderRoutineSheet(rutina);
                 if (rutina && rutina.detalles && rutina.detalles.length > 0) {
                     rFecha.value = rutina.fecha_inicio;
                     rPeriodo.value = rutina.periodo || 4;
@@ -1060,10 +1172,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     addRoutineBuilderRow();
                 }
             } else {
+                staffRoutineSheet.innerHTML = renderRoutineSheet(null);
                 addRoutineBuilderRow();
             }
         } catch (err) {
             console.error("Error al cargar rutina del cliente:", err);
+            staffRoutineSheet.innerHTML = renderRoutineSheet(null);
             addRoutineBuilderRow();
         }
     }
@@ -1128,6 +1242,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             if (response.ok) {
+                const savedRoutine = await response.json();
+                staffRoutineSheet.innerHTML = renderRoutineSheet(savedRoutine);
+                showStaffRoutinePreview();
                 showToast("Rutina Asignada", `La rutina fue asignada exitosamente al socio ${editingDni}.`);
             } else {
                 const errData = await response.json();
@@ -1432,71 +1549,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                const entrenador = rutina.detalles.find(det => det.usuario)?.usuario;
-                const entrenadorNombre = entrenador ? entrenador.nombre : 'No informado';
-                let exercisesHtml = "";
-                rutina.detalles.forEach((det, index) => {
-                    const ejNombre = det.ejercicio ? det.ejercicio.nombre_ejercicio : 'Ejercicio #' + det.id_ejercicio;
-                    const ejGrupo = det.ejercicio ? det.ejercicio.grupo_muscular : 'General';
-                    
-                    exercisesHtml += `
-                        <tr>
-                            <td class="routine-order" data-label="N°">${index + 1}</td>
-                            <td data-label="Ejercicio">
-                                <strong class="routine-exercise-name">${ejNombre}</strong>
-                                <span class="routine-muscle-group">${ejGrupo}</span>
-                            </td>
-                            <td class="routine-number" data-label="Series">${det.series}</td>
-                            <td class="routine-number" data-label="Repeticiones">${det.repeticiones}</td>
-                            <td class="routine-value" data-label="Carga">${det.carga ? det.carga + ' kg' : 'A criterio'}</td>
-                            <td class="routine-value" data-label="Descanso">${det.descanso || '90 seg'}</td>
-                        </tr>
-                    `;
-                });
-
-                const obsBox = rutina.observaciones ? `
-                    <div class="routine-obs-box">
-                        <strong><i class="fa-solid fa-comment-dots"></i> Indicaciones del Entrenador:</strong><br>
-                        ${rutina.observaciones}
-                    </div>
-                ` : ``;
-
-                socioRutinaContainer.innerHTML = `
-                    <div class="routine-card">
-                        <div class="routine-header-banner">
-                            <div>
-                                <div class="routine-goal-title">
-                                    <i class="fa-solid fa-bullseye" style="color: var(--primary);"></i>
-                                    <span>${rutina.objetivo || 'Plan de Entrenamiento'}</span>
-                                </div>
-                                <div class="routine-meta-pills">
-                                    <span class="meta-pill"><i class="fa-regular fa-calendar"></i> Inicio: ${rutina.fecha_inicio}</span>
-                                    <span class="meta-pill"><i class="fa-solid fa-clock"></i> Duración: ${rutina.periodo ? rutina.periodo + ' semanas' : 'Mensual'}</span>
-                                    <span class="meta-pill"><i class="fa-solid fa-dumbbell"></i> ${rutina.detalles.length} ejercicios</span>
-                                    <span class="meta-pill routine-trainer"><i class="fa-solid fa-user-tie"></i> Entrenador: ${entrenadorNombre}</span>
-                                </div>
-                            </div>
-                        </div>
-                        ${obsBox}
-                        <div class="routine-sheet-container">
-                            <table class="routine-sheet">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Ejercicio</th>
-                                        <th>Series</th>
-                                        <th>Repeticiones</th>
-                                        <th>Carga</th>
-                                        <th>Descanso</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${exercisesHtml}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                socioRutinaContainer.innerHTML = renderRoutineSheet(rutina);
             }
         } catch (err) {
             console.error("Error al cargar rutina del socio:", err);

@@ -585,7 +585,22 @@
 
                 <!-- Pestaña 2: Editor de Rutina (Entrenador / Admin) -->
                 <div id="tab-rutina" class="tab-content-panel">
-                    <form id="form-rutina" class="evolution-subform">
+                    <div id="staff-rutina-preview">
+                        <div class="staff-routine-actions">
+                            <button type="button" id="btn-edit-routine" class="btn-primary">
+                                <i class="fa-solid fa-pen-to-square"></i> <span>Editar rutina</span>
+                            </button>
+                        </div>
+                        <div id="staff-rutina-sheet"></div>
+                    </div>
+
+                    <div id="staff-rutina-editor" class="hidden">
+                        <div class="staff-routine-actions">
+                            <button type="button" id="btn-view-routine" class="btn-secondary">
+                                <i class="fa-solid fa-arrow-left"></i> Ver ficha
+                            </button>
+                        </div>
+                        <form id="form-rutina" class="evolution-subform">
                         <div class="form-section-title">Parámetros de la Rutina</div>
                         <div class="form-grid">
                             <div class="form-group">
@@ -638,7 +653,8 @@
                                 <i class="fa-solid fa-floppy-disk"></i> Guardar Rutina Asignada
                             </button>
                         </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Pestaña 3: Evolución Física -->
