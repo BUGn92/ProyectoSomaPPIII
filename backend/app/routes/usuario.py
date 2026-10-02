@@ -8,6 +8,8 @@ from app.schemas import schemas
 from app.models import models
 from app.routes.auth import get_current_user
 
+ROLES_STAFF = {"admin", "secretaria", "recepcionista", "entrenador"}
+
 router = APIRouter(prefix="/api/usuarios", tags=["Usuarios"])
 
 # Dependencia para verificar si es Admin
@@ -23,10 +25,24 @@ def require_admin(current_user: models.Usuario = Depends(get_current_user)):
 def read_users(
     skip: int = 0,
     limit: int = 100,
+    incluir_inactivos: bool = False,
     db: Session = Depends(database.get_db),
     admin_user: models.Usuario = Depends(require_admin)
 ):
+    if incluir_inactivos:
+        return crud.get_all_users(db, skip=skip, limit=limit)
     return crud.get_users(db, skip=skip, limit=limit)
+
+@router.get("/con-pago", response_model=List[schemas.UsuarioConPagoResponse])
+def read_users_con_pago(
+    skip: int = 0,
+    limit: int = 100,
+    incluir_inactivos: bool = False,
+    db: Session = Depends(database.get_db),
+    admin_user: models.Usuario = Depends(require_admin)
+):
+    """Retorna la lista de usuarios con estado de pago/membersía para los de rol Cliente."""
+    return crud.get_users_con_estado_pago(db, skip=skip, limit=limit, incluir_inactivos=incluir_inactivos)
 
 @router.get("/{user_id}", response_model=schemas.UsuarioResponse)
 def read_user(
@@ -84,3 +100,14 @@ def delete_existing_user(
     if deleted_user is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return deleted_user
+
+@router.post("/{user_id}/reactivar", response_model=schemas.UsuarioResponse)
+def reactivate_existing_user(
+    user_id: int,
+    db: Session = Depends(database.get_db),
+    admin_user: models.Usuario = Depends(require_admin)
+):
+    reactivated = crud.reactivate_user(db=db, user_id=user_id)
+    if reactivated is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return reactivated

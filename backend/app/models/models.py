@@ -33,6 +33,7 @@ class Usuario(Base):
     password = Column(String(255), nullable=False)
     rol = Column(String(50), nullable=False)
     debe_cambiar_password = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True, nullable=False)
 
 
 class Ejercicio(Base):
