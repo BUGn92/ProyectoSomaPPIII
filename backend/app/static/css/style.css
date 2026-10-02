@@ -515,7 +515,80 @@ body {
 
 .table-header-filters {
     margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
 }
+
+/* Toggle switch "Mostrar inactivos" */
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    user-select: none;
+    transition: color 0.2s;
+}
+.toggle-label:hover { color: var(--text-primary); }
+.toggle-label input[type="checkbox"] { display: none; }
+.toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: var(--bg-input);
+    border-radius: 11px;
+    border: 1px solid var(--border-light);
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    transition: transform 0.25s, background 0.25s;
+}
+.toggle-label input:checked + .toggle-switch {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+.toggle-label input:checked + .toggle-switch::after {
+    transform: translateX(18px);
+    background: #fff;
+}
+
+/* Botón reactivar */
+.btn-reactivate {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    font-size: 0.85rem;
+}
+.btn-reactivate:hover {
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+    transform: scale(1.08);
+}
+
+
 
 .search-box {
     position: relative;
@@ -640,6 +713,14 @@ tr:hover td {
 .badge-warning {
     background-color: rgba(245, 158, 11, 0.15);
     color: var(--warning);
+}
+.badge-primary {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+}
+.badge-inactive {
+    background-color: rgba(100, 116, 139, 0.15);
+    color: #94a3b8;
 }
 
 /* ==========================================================================

@@ -46,9 +46,15 @@ class UsuarioUpdate(BaseModel):
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
     debe_cambiar_password: Optional[bool] = False
+    activo: Optional[bool] = True
 
     class Config:
         from_attributes = True
+
+class UsuarioConPagoResponse(UsuarioResponse):
+    """Extiende UsuarioResponse con información de estado de pago para socios (rol Cliente)."""
+    estado_pago: Optional[str] = None          # "Al día", "Vencido", "Sin membresía"
+    fecha_vencimiento_cuota: Optional[date] = None
 
 class UsuarioLogin(BaseModel):
     usuario_login: str

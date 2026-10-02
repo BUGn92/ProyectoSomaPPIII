@@ -50,10 +50,16 @@ def get_next_cliente_membresia_id(db: Session) -> int:
 
 # --- CRUD de Usuario ---
 def get_user(db: Session, user_id: int):
-    return db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
+    return db.query(models.Usuario).filter(
+        models.Usuario.id_usuario == user_id,
+        models.Usuario.activo == True
+    ).first()
 
 def get_user_by_login(db: Session, username: str):
-    return db.query(models.Usuario).filter(models.Usuario.usuario_login == username).first()
+    return db.query(models.Usuario).filter(
+        models.Usuario.usuario_login == username,
+        models.Usuario.activo == True
+    ).first()
 
 def get_user_by_identifier(db: Session, identificador: str):
     """
@@ -94,7 +100,62 @@ def get_email_for_user(db: Session, user: models.Usuario) -> str:
     return f"{user.usuario_login}@somagym.com"
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Usuario).filter(
+        models.Usuario.activo == True
+    ).offset(skip).limit(limit).all()
+
+def get_all_users(db: Session, skip: int = 0, limit: int = 100):
+    """Retorna todos los usuarios, incluyendo los dados de baja (activo=False)."""
     return db.query(models.Usuario).offset(skip).limit(limit).all()
+
+def get_users_con_estado_pago(db: Session, skip: int = 0, limit: int = 100, incluir_inactivos: bool = False):
+    """
+    Retorna todos los usuarios enriquecidos con estado de pago para socios (rol Cliente).
+    Para Admin, Secretaria, Entrenador y Recepcionista, estado_pago y fecha_vencimiento_cuota son None.
+    """
+    query = db.query(models.Usuario)
+    if not incluir_inactivos:
+        query = query.filter(models.Usuario.activo == True)
+    usuarios = query.offset(skip).limit(limit).all()
+
+    hoy = date.today()
+    resultado = []
+    for u in usuarios:
+        estado_pago = None
+        fecha_venc = None
+        if u.rol.lower() == "cliente":
+            membresia = get_membresia_activa_cliente(db, u.usuario_login)
+            if membresia is None:
+                estado_pago = "Sin membresía"
+            elif membresia.fecha_fin < hoy:
+                estado_pago = "Vencido"
+                fecha_venc = membresia.fecha_fin
+            else:
+                estado_pago = "Al día"
+                fecha_venc = membresia.fecha_fin
+        resultado.append({
+            "id_usuario": u.id_usuario,
+            "nombre": u.nombre,
+            "usuario_login": u.usuario_login,
+            "rol": u.rol,
+            "activo": u.activo,
+            "debe_cambiar_password": u.debe_cambiar_password,
+            "estado_pago": estado_pago,
+            "fecha_vencimiento_cuota": fecha_venc,
+        })
+    return resultado
+
+def reactivate_user(db: Session, user_id: int):
+    """Reactiva un usuario dado de baja lógicamente."""
+    db_user = db.query(models.Usuario).filter(
+        models.Usuario.id_usuario == user_id
+    ).first()
+    if not db_user:
+        return None
+    db_user.activo = True
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 def create_user(db: Session, user: schemas.UsuarioCreate):
     next_id = get_next_user_id(db)
@@ -138,8 +199,10 @@ def delete_user(db: Session, user_id: int):
     db_user = get_user(db, user_id)
     if not db_user:
         return None
-    db.delete(db_user)
+    # Borrado lógico: se marca como inactivo, NO se elimina de la BD
+    db_user.activo = False
     db.commit()
+    db.refresh(db_user)
     return db_user
 
 # --- CRUD de Cliente ---

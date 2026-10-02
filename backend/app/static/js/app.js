@@ -54,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Search boxes
     const searchClientesInput = document.getElementById("search-clientes");
     const searchUsuariosInput = document.getElementById("search-usuarios");
+    const toggleInactivos = document.getElementById("toggle-inactivos");
     
     // Tables body Staff
     const tbodyClientes = document.getElementById("tbody-clientes");
@@ -1651,8 +1652,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- GESTIÓN DE USUARIOS DEL SISTEMA (SOLO ADMIN) ---
     async function fetchUsuarios() {
+        const incluirInactivos = toggleInactivos && toggleInactivos.checked;
         try {
-            const response = await fetch("/api/usuarios/", {
+            const url = incluirInactivos
+                ? "/api/usuarios/con-pago?incluir_inactivos=true"
+                : "/api/usuarios/con-pago";
+            const response = await fetch(url, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (response.ok) {
@@ -1667,7 +1672,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderUsuarios(users) {
         tbodyUsuarios.innerHTML = "";
         if (users.length === 0) {
-            tbodyUsuarios.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No hay usuarios registrados</td></tr>`;
+            tbodyUsuarios.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No hay usuarios registrados</td></tr>`;
             return;
         }
 
@@ -1676,15 +1681,49 @@ document.addEventListener("DOMContentLoaded", () => {
             let badgeClass = "badge-primary";
             if (u.rol.toLowerCase() === "admin") badgeClass = "badge-success";
             if (u.rol.toLowerCase() === "cliente") badgeClass = "badge-inactive";
+            if (u.rol.toLowerCase() === "secretaria") badgeClass = "badge-warning";
+
+            const esActivo = u.activo !== false;
+            const estadoBadge = esActivo
+                ? `<span class="badge badge-success">Activo</span>`
+                : `<span class="badge badge-inactive">Inactivo</span>`;
+
+            // Badge de estado de pago: solo para clientes
+            let pagoBadge = `<span style="color: var(--text-secondary); font-size: 0.8rem;">—</span>`;
+            if (u.rol && u.rol.toLowerCase() === "cliente" && u.estado_pago) {
+                const estadoPago = u.estado_pago;
+                let pagoClass = "badge-primary";
+                let pagoIcon = "fa-circle-check";
+                if (estadoPago === "Vencido") {
+                    pagoClass = "badge-danger";
+                    pagoIcon = "fa-circle-exclamation";
+                } else if (estadoPago === "Sin membresía") {
+                    pagoClass = "badge-inactive";
+                    pagoIcon = "fa-circle-minus";
+                } else if (estadoPago === "Al día") {
+                    pagoClass = "badge-success";
+                    pagoIcon = "fa-circle-check";
+                }
+                const vencTxt = u.fecha_vencimiento_cuota
+                    ? ` <small style="opacity:0.75;">(vence: ${u.fecha_vencimiento_cuota})</small>`
+                    : "";
+                pagoBadge = `<span class="badge ${pagoClass}"><i class="fa-solid ${pagoIcon}"></i> ${estadoPago}</span>${vencTxt}`;
+            }
+
+            const accionBtn = esActivo
+                ? `<button class="btn-action btn-delete" data-id="${u.id_usuario}" title="Dar de baja (borrado lógico)"><i class="fa-solid fa-user-slash"></i></button>`
+                : `<button class="btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario"><i class="fa-solid fa-user-check"></i></button>`;
 
             tr.innerHTML = `
                 <td><strong>#${u.id_usuario}</strong></td>
                 <td>${u.nombre}</td>
                 <td><code>${u.usuario_login}</code></td>
                 <td><span class="badge ${badgeClass}">${u.rol}</span></td>
+                <td>${estadoBadge}</td>
+                <td>${pagoBadge}</td>
                 <td class="actions-col">
                     <button class="btn-action btn-edit" data-id="${u.id_usuario}" title="Editar Usuario"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn-action btn-delete" data-id="${u.id_usuario}" title="Eliminar Usuario"><i class="fa-solid fa-trash"></i></button>
+                    ${accionBtn}
                 </td>
             `;
             tbodyUsuarios.appendChild(tr);
@@ -1693,9 +1732,11 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll("#table-usuarios .btn-edit").forEach(btn => {
             btn.addEventListener("click", () => openUserModal("edit", parseInt(btn.getAttribute("data-id"))));
         });
-
         document.querySelectorAll("#table-usuarios .btn-delete").forEach(btn => {
             btn.addEventListener("click", () => deleteUser(parseInt(btn.getAttribute("data-id"))));
+        });
+        document.querySelectorAll("#table-usuarios .btn-reactivate").forEach(btn => {
+            btn.addEventListener("click", () => reactivateUser(parseInt(btn.getAttribute("data-id"))));
         });
     }
 
@@ -1707,6 +1748,10 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         renderUsuarios(filtered);
     });
+
+    if (toggleInactivos) {
+        toggleInactivos.addEventListener("change", () => fetchUsuarios());
+    }
 
     function openUserModal(mode, id = null) {
         editingUserId = id;
@@ -1776,10 +1821,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function deleteUser(id) {
         if (id === currentUser.id_usuario) {
-            showToast("Advertencia", "No puedes eliminar tu propio usuario en sesión.", "warning");
+            showToast("Advertencia", "No puedes dar de baja tu propio usuario en sesión.", "warning");
             return;
         }
-        if (!confirm(`¿Eliminar usuario #${id}?`)) return;
+        const user = usuariosData.find(u => u.id_usuario === id);
+        const nombre = user ? user.nombre : `#${id}`;
+        if (!confirm(`¿Dar de baja a "${nombre}"?\nEl usuario quedará inactivo y no podrá iniciar sesión, pero sus datos se conservan en la base de datos.`)) return;
 
         try {
             const response = await fetch(`/api/usuarios/${id}`, {
@@ -1787,11 +1834,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (response.ok) {
-                showToast("Eliminado", "Usuario eliminado");
+                showToast("Baja realizada", `"${nombre}" fue dado de baja correctamente.`);
                 fetchUsuarios();
             }
         } catch (err) {
-            showToast("Error", "No se pudo eliminar", "error");
+            showToast("Error", "No se pudo dar de baja al usuario", "error");
+        }
+    }
+
+    async function reactivateUser(id) {
+        const user = usuariosData.find(u => u.id_usuario === id);
+        const nombre = user ? user.nombre : `#${id}`;
+        if (!confirm(`¿Reactivar a "${nombre}"?\nEl usuario podrá volver a iniciar sesión.`)) return;
+
+        try {
+            const response = await fetch(`/api/usuarios/${id}/reactivar`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (response.ok) {
+                showToast("Éxito", `"${nombre}" fue reactivado correctamente.`);
+                fetchUsuarios();
+            } else {
+                const data = await response.json();
+                showToast("Error", data.detail || "No se pudo reactivar", "error");
+            }
+        } catch (err) {
+            showToast("Error", "Error de comunicación", "error");
         }
     }
 

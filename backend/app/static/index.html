@@ -247,6 +247,11 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="text" id="search-usuarios" placeholder="Buscar por usuario o nombre...">
                         </div>
+                        <label class="toggle-label" id="toggle-inactivos-label" title="Mostrar también los usuarios dados de baja">
+                            <input type="checkbox" id="toggle-inactivos">
+                            <span class="toggle-switch"></span>
+                            <span>Mostrar inactivos</span>
+                        </label>
                     </div>
                     <div class="table-container">
                         <table id="table-usuarios">
@@ -256,6 +261,8 @@
                                     <th>Nombre</th>
                                     <th>Usuario</th>
                                     <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Estado Pago</th>
                                     <th class="actions-col">Acciones</th>
                                 </tr>
                             </thead>
@@ -862,6 +869,7 @@
                         <label for="u-rol">Rol *</label>
                         <select id="u-rol" required>
                             <option value="Admin">Admin</option>
+                            <option value="Secretaria">Secretaria</option>
                             <option value="Recepcionista">Recepcionista</option>
                             <option value="Entrenador">Entrenador</option>
                         </select>
