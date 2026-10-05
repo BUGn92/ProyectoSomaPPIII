@@ -2,14 +2,14 @@
    ENTRY POINT: PÁGINA DE LOGIN Y RECUPERACIÓN (INDEX.HTML)
    ========================================================================== */
 
-import { state } from "./state.js";
+import { state, clearSession } from "./state.js";
 import { initAuthModule, setOnAuthSuccess } from "./modules/auth.module.js";
 import { initModalsModule } from "./modules/modals.module.js";
-import { redirectIfAuthenticated, getRedirectUrlForRole } from "./guards.js";
+import { getRedirectUrlForRole } from "./guards.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Si ya tiene sesión abierta, redirigir directo al portal que le corresponde
-    if (redirectIfAuthenticated()) return;
+    // Requerimiento estricto: Siempre arrancar desde el login al abrir la app o entrar al inicio
+    clearSession();
 
     // Inicializar listeners de modales y de autenticación
     initModalsModule();

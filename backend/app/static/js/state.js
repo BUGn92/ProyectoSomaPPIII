@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ESTADO GLOBAL DE LA APLICACIÓN (SPA STATE)
+   ESTADO GLOBAL DE LA APLICACIÓN (SPA/MPA STATE)
    ========================================================================== */
 
 export const state = {
@@ -20,11 +20,12 @@ export const state = {
 };
 
 /**
- * Inicializa la sesión desde localStorage si existe, o la resetea.
+ * Inicializa la sesión activa.
+ * Usa sessionStorage para que la sesión expire al cerrar el navegador o la pestaña.
  */
 export function initSessionState() {
-    state.token = localStorage.getItem("soma_token") || null;
-    const rawUser = localStorage.getItem("soma_user");
+    state.token = sessionStorage.getItem("soma_token") || localStorage.getItem("soma_token") || null;
+    const rawUser = sessionStorage.getItem("soma_user") || localStorage.getItem("soma_user");
     try {
         state.currentUser = rawUser ? JSON.parse(rawUser) : null;
     } catch {
@@ -33,23 +34,25 @@ export function initSessionState() {
 }
 
 /**
- * Guarda la sesión activa en el estado y en localStorage.
+ * Guarda la sesión activa para la navegación entre portales.
  * @param {string} token 
  * @param {object} user 
  */
 export function setSession(token, user) {
     state.token = token;
     state.currentUser = user;
-    localStorage.setItem("soma_token", token);
-    localStorage.setItem("soma_user", JSON.stringify(user));
+    sessionStorage.setItem("soma_token", token);
+    sessionStorage.setItem("soma_user", JSON.stringify(user));
 }
 
 /**
- * Limpia la sesión activa por completo.
+ * Limpia la sesión activa por completo (tanto en memoria como en almacenamiento local/sesión).
  */
 export function clearSession() {
     state.token = null;
     state.currentUser = null;
+    sessionStorage.removeItem("soma_token");
+    sessionStorage.removeItem("soma_user");
     localStorage.removeItem("soma_token");
     localStorage.removeItem("soma_user");
 }

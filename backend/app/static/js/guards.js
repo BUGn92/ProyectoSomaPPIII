@@ -22,10 +22,11 @@ export function getRedirectUrlForRole(role) {
 }
 
 /**
- * Guardia de página: verifica que exista una sesión activa y que el rol esté autorizado.
- * Si no está autenticado o el rol no coincide, redirige al portal correspondiente.
+ * Guardia de página para portales internos (socio.html, entrenador.html, admin.html):
+ * Verifica que exista una sesión activa. Si no está autenticado o el rol no corresponde,
+ * redirige inmediatamente a index.html (Login).
  * 
- * @param {string[]} [allowedRoles=[]] - Roles permitidos en esta página (ej. ['admin', 'recepcionista'])
+ * @param {string[]} [allowedRoles=[]] - Roles permitidos en esta página
  * @returns {boolean}
  */
 export function requireAuth(allowedRoles = []) {
@@ -51,23 +52,7 @@ export function requireAuth(allowedRoles = []) {
 }
 
 /**
- * Se ejecuta en la pantalla de login (index.html):
- * Si el usuario ya tiene sesión iniciada, lo redirige directo a su portal.
- */
-export function redirectIfAuthenticated() {
-    initSessionState();
-    if (state.token && state.currentUser) {
-        const dest = getRedirectUrlForRole(state.currentUser.rol);
-        if (dest && dest !== "index.html") {
-            window.location.href = dest;
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
- * Cierre de sesión transversal: limpia localStorage y redirige a index.html.
+ * Cierre de sesión transversal: limpia almacenamiento y redirige al login.
  */
 export function logout() {
     clearSession();
