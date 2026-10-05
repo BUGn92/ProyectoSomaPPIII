@@ -25,10 +25,11 @@ def check_client_data_access(dni: str, current_user: models.Usuario):
 def read_clients(
     skip: int = 0,
     limit: int = 100,
+    incluir_inactivos: bool = False,
     db: Session = Depends(database.get_db),
     current_user: models.Usuario = Depends(require_roles(["Admin", "Recepcionista", "Entrenador"]))
 ):
-    return crud.get_clients(db, skip=skip, limit=limit)
+    return crud.get_clients(db, skip=skip, limit=limit, incluir_inactivos=incluir_inactivos)
 
 @router.get("/{dni}", response_model=schemas.ClienteResponse)
 def read_client(
@@ -75,6 +76,18 @@ def delete_existing_client(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return crud.delete_client(db=db, dni=dni)
+
+@router.post("/{dni}/reactivar", response_model=schemas.ClienteResponse)
+def reactivate_existing_client(
+    dni: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(require_roles(["Admin"]))
+):
+    """Reactiva un cliente dado de baja lógicamente."""
+    reactivated = crud.reactivate_client(db=db, dni=dni)
+    if reactivated is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return reactivated
 
 # --- Endpoints de Evolución Física ---
 @router.get("/{dni}/evolucion-fisica", response_model=List[schemas.EvolucionFisicaResponse])

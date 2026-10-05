@@ -693,6 +693,14 @@ tr:hover td {
     background-color: var(--danger);
     color: #fff;
 }
+.btn-icon-reactivate {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+.btn-icon-reactivate:hover {
+    background-color: var(--success);
+    color: #fff;
+}
 
 /* Badges de Estado */
 .badge {
