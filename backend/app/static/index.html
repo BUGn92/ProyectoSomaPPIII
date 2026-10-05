@@ -11,7 +11,7 @@
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Vanilla CSS -->
-    <link rel="stylesheet" href="css/style.css?v=2.1">
+    <link rel="stylesheet" href="css/style.css?v=2.3">
 </head>
 <body>
 
@@ -208,6 +208,11 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="text" id="search-clientes" placeholder="Buscar por DNI, nombre o apellido...">
                         </div>
+                        <label class="toggle-label" id="toggle-inactivos-clientes-label" title="Mostrar también los socios dados de baja">
+                            <input type="checkbox" id="toggle-inactivos-clientes">
+                            <span class="toggle-switch"></span>
+                            <span>Mostrar inactivos</span>
+                        </label>
                     </div>
                     <div class="table-container">
                         <table id="table-clientes">
@@ -231,6 +236,7 @@
                     </div>
                 </div>
             </section>
+
 
             <!-- Sección: Muro de Novedades (Staff) -->
             <section id="noticias-section" class="crud-section hidden">
@@ -884,6 +890,6 @@
     </div>
 
     <!-- Custom Vanilla JS -->
-    <script src="js/app.js?v=2.5"></script>
+    <script src="js/app.js?v=2.7"></script>
 </body>
 </html>

@@ -209,8 +209,11 @@ def delete_user(db: Session, user_id: int):
 def get_client(db: Session, dni: str):
     return db.query(models.Cliente).filter(models.Cliente.dni == dni).first()
 
-def get_clients(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Cliente).offset(skip).limit(limit).all()
+def get_clients(db: Session, skip: int = 0, limit: int = 100, incluir_inactivos: bool = False):
+    query = db.query(models.Cliente)
+    if not incluir_inactivos:
+        query = query.filter(models.Cliente.activo == True)
+    return query.offset(skip).limit(limit).all()
 
 # --- Lógica de Pagos y Vigencia de Membresía ---
 def calcular_nuevo_vencimiento(fecha_fin_actual: date | None, fecha_pago: date, meses: int) -> date:
@@ -424,33 +427,36 @@ def update_client(db: Session, dni: str, client_update: schemas.ClienteUpdate):
     return db_client
 
 def delete_client(db: Session, dni: str):
+    """Borrado lógico del cliente: marca activo=False. No elimina ningún registro de la BD."""
     db_client = get_client(db, dni)
     if not db_client:
         return None
-        
-    # 1. Eliminar registros de evolución e historial relacionados
-    db.query(models.EvolucionFisica).filter(models.EvolucionFisica.dni_cliente == dni).delete()
-    db.query(models.RegistroEntrenamiento).filter(models.RegistroEntrenamiento.dni_cliente == dni).delete()
-
-    # 2. Eliminar rutinas y detalles asociados
-    rutinas = db.query(models.Rutina).filter(models.Rutina.dni_cliente == dni).all()
-    for r in rutinas:
-        db.query(models.DetalleRutina).filter(models.DetalleRutina.id_rutina == r.id_rutina).delete()
-    db.query(models.Rutina).filter(models.Rutina.dni_cliente == dni).delete()
-
-    # 3. Eliminar usuario asociado de rol Cliente
-    db.query(models.Usuario).filter(models.Usuario.usuario_login == dni, models.Usuario.rol == "Cliente").delete()
-
-    # 4. Eliminar direccion asociada si existe
-    dir_id = db_client.id_direccion
-    db.delete(db_client)
-    
-    if dir_id:
-        db_dir = db.query(models.Direccion).filter(models.Direccion.id_direccion == dir_id).first()
-        if db_dir:
-            db.delete(db_dir)
-            
+    db_client.activo = False
+    # Dar de baja también el usuario asociado si existe
+    db_user = db.query(models.Usuario).filter(
+        models.Usuario.usuario_login == dni,
+        models.Usuario.rol == "Cliente"
+    ).first()
+    if db_user:
+        db_user.activo = False
     db.commit()
+    db.refresh(db_client)
+    return db_client
+
+def reactivate_client(db: Session, dni: str):
+    """Reactiva un cliente dado de baja lógicamente."""
+    db_client = db.query(models.Cliente).filter(models.Cliente.dni == dni).first()
+    if not db_client:
+        return None
+    db_client.activo = True
+    db_user = db.query(models.Usuario).filter(
+        models.Usuario.usuario_login == dni,
+        models.Usuario.rol == "Cliente"
+    ).first()
+    if db_user:
+        db_user.activo = True
+    db.commit()
+    db.refresh(db_client)
     return db_client
 
 # --- CRUD de Evolución Física ---

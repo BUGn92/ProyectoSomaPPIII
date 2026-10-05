@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchClientesInput = document.getElementById("search-clientes");
     const searchUsuariosInput = document.getElementById("search-usuarios");
     const toggleInactivos = document.getElementById("toggle-inactivos");
+    const toggleInactivosClientes = document.getElementById("toggle-inactivos-clientes");
     
     // Tables body Staff
     const tbodyClientes = document.getElementById("tbody-clientes");
@@ -515,8 +516,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- GESTIÓN DE CLIENTES / SOCIOS (STAFF) ---
     async function fetchClientes() {
+        const incluirInactivos = toggleInactivosClientes && toggleInactivosClientes.checked;
         try {
-            const response = await fetch("/api/clientes/", {
+            const url = incluirInactivos
+                ? "/api/clientes/?incluir_inactivos=true"
+                : "/api/clientes/";
+            const response = await fetch(url, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (response.ok) {
@@ -551,10 +556,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 dirText = `${c.direccion.calle || ''} ${c.direccion.numero || ''} (${c.direccion.ciudad || ''})`.trim();
             }
 
-            const canDelete = currentUser.rol.toLowerCase() === "admin";
-            const deleteBtnHtml = canDelete 
-                ? `<button class="btn-icon btn-icon-delete" data-dni="${c.dni}" title="Eliminar Socio"><i class="fa-solid fa-trash"></i></button>`
-                : ``;
+            const canAdmin = currentUser.rol.toLowerCase() === "admin";
+            let actionBtnHtml = "";
+            if (canAdmin) {
+                if (c.activo) {
+                    actionBtnHtml = `<button class="btn-icon btn-icon-delete" data-dni="${c.dni}" title="Dar de baja al socio (borrado lógico)"><i class="fa-solid fa-user-slash"></i></button>`;
+                } else {
+                    actionBtnHtml = `<button class="btn-icon btn-icon-reactivate" data-dni="${c.dni}" title="Reactivar socio"><i class="fa-solid fa-user-check"></i></button>`;
+                }
+            }
 
             tr.innerHTML = `
                 <td><strong>${c.dni}</strong></td>
@@ -569,7 +579,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="table-actions">
                         <button class="btn-icon btn-icon-routine" data-dni="${c.dni}" title="Asignar / Modificar Rutina de Entrenamiento"><i class="fa-solid fa-dumbbell"></i></button>
                         <button class="btn-icon btn-icon-edit" data-dni="${c.dni}" title="Ver / Editar Ficha General"><i class="fa-solid fa-pen-to-square"></i></button>
-                        ${deleteBtnHtml}
+                        ${actionBtnHtml}
                     </div>
                 </td>
             `;
@@ -587,6 +597,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.querySelectorAll("#table-clientes .btn-icon-delete").forEach(btn => {
             btn.addEventListener("click", () => deleteClient(btn.getAttribute("data-dni")));
+        });
+
+        document.querySelectorAll("#table-clientes .btn-icon-reactivate").forEach(btn => {
+            btn.addEventListener("click", () => reactivateClient(btn.getAttribute("data-dni")));
         });
     }
 
@@ -820,9 +834,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Eliminar Cliente
+    // Dar de baja lógica al Socio
     async function deleteClient(dni) {
-        if (!confirm(`¿Estás seguro de eliminar permanentemente al socio con DNI ${dni}? Se eliminarán todas sus rutinas, historial físico y su cuenta de usuario.`)) return;
+        const client = clientesData.find(c => c.dni === dni);
+        const nombre = client ? `${client.nombre} ${client.apellido}` : dni;
+        if (!confirm(`¿Dar de baja al socio "${nombre}" (DNI: ${dni})?\nEl socio quedará inactivo pero todos sus datos y pagos se conservan en el sistema. Se puede reactivar luego.`)) return;
 
         try {
             const response = await fetch(`/api/clientes/${dni}`, {
@@ -830,15 +846,42 @@ document.addEventListener("DOMContentLoaded", () => {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (response.ok) {
-                showToast("Eliminado", `Socio ${dni} eliminado correctamente`);
+                showToast("Baja realizada", `"${nombre}" fue dado de baja. Sus datos se conservan en el sistema.`);
                 fetchClientes();
             } else {
                 const data = await response.json();
-                showToast("Error", data.detail || "No se pudo eliminar el socio", "error");
+                showToast("Error", data.detail || "No se pudo dar de baja al socio", "error");
             }
         } catch (err) {
-            showToast("Error", "Error al eliminar el socio", "error");
+            showToast("Error", "Error al dar de baja al socio", "error");
         }
+    }
+
+    // Reactivar Socio
+    async function reactivateClient(dni) {
+        const client = clientesData.find(c => c.dni === dni);
+        const nombre = client ? `${client.nombre} ${client.apellido}` : dni;
+        if (!confirm(`¿Reactivar al socio "${nombre}" (DNI: ${dni})?`)) return;
+
+        try {
+            const response = await fetch(`/api/clientes/${dni}/reactivar`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (response.ok) {
+                showToast("Éxito", `"${nombre}" fue reactivado correctamente.`);
+                fetchClientes();
+            } else {
+                const data = await response.json();
+                showToast("Error", data.detail || "No se pudo reactivar el socio", "error");
+            }
+        } catch (err) {
+            showToast("Error", "Error al reactivar el socio", "error");
+        }
+    }
+
+    if (toggleInactivosClientes) {
+        toggleInactivosClientes.addEventListener("change", () => fetchClientes());
     }
 
     // --- MODULO DE PAGOS ---
