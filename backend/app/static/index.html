@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOMA Gym - Sistema de Gestión</title>
+    <title>SOMA Gym - Acceso al Sistema</title>
     <!-- Google Fonts: Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome for Premium Icons -->
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Vanilla CSS -->
     <link rel="stylesheet" href="css/style.css?v=2.3">
@@ -18,7 +18,7 @@
     <!-- Contenedor del Toast de Notificaciones -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- 1. PÁGINA DE ACCESO (LOGIN) -->
+    <!-- PÁGINA DE ACCESO (LOGIN) -->
     <div id="login-page" class="login-wrapper">
         <div class="login-background">
             <div class="glow-orb orb-1"></div>
@@ -41,7 +41,7 @@
                     <label for="password"><i class="fa-solid fa-lock"></i> Contraseña</label>
                     <div class="password-input-wrapper">
                         <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
-                        <button type="button" id="toggle-password" class="btn-toggle-password">
+                        <button type="button" id="toggle-password" class="btn-toggle-password" aria-label="Mostrar u ocultar contraseña">
                             <i class="fa-solid fa-eye"></i>
                         </button>
                     </div>
@@ -99,46 +99,37 @@
                             <label for="reset-otp-code">
                                 <i class="fa-solid fa-envelope-open-text"></i> Código OTP (6 dígitos)
                             </label>
-                            <input type="text" id="reset-otp-code" placeholder="123456" maxlength="6" pattern="[0-9]{6}" style="letter-spacing: 4px; font-size: 1.2rem; text-align: center; font-weight: bold;" required autocomplete="one-time-code">
+                            <input type="text" id="reset-otp-code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="123456" required style="letter-spacing: 0.25rem; font-size: 1.3rem; text-align: center;">
                         </div>
                     </div>
-                    <div class="modal-footer" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                        <button type="submit" class="btn-primary btn-block" id="btn-verificar-otp">
-                            <i class="fa-solid fa-shield-halved"></i> Verificar Código OTP
-                        </button>
-                        <button type="button" class="btn-secondary btn-block" id="btn-volver-step1" style="margin-top: 0.25rem;">
-                            <i class="fa-solid fa-arrow-left"></i> Cambiar Usuario / Email
+                    <div class="modal-footer" style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                        <button type="button" class="btn-secondary" id="btn-volver-step1">Atrás</button>
+                        <button type="submit" class="btn-primary" id="btn-verificar-otp" style="flex: 1;">
+                            <i class="fa-solid fa-circle-check"></i> Verificar Código
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- PASO 3: Definir nueva contraseña -->
+            <!-- PASO 3: Ingresar Nueva Contraseña -->
             <div id="recuperar-step-3" class="hidden">
                 <p class="modal-description">
-                    ¡Código OTP verificado con éxito! Definí tu nueva contraseña a continuación (mínimo 6 caracteres).
+                    Código validado. Ingresá tu nueva contraseña para restablecer tu cuenta.
                 </p>
                 <form id="form-confirmar-reset">
                     <div class="form-vertical">
                         <div class="form-group">
-                            <label for="reset-nueva-password">
-                                <i class="fa-solid fa-lock"></i> Nueva Contraseña
-                            </label>
-                            <input type="password" id="reset-nueva-password"
-                                   placeholder="Mínimo 6 caracteres" required minlength="6">
+                            <label for="reset-nueva-password"><i class="fa-solid fa-lock"></i> Nueva Contraseña</label>
+                            <input type="password" id="reset-nueva-password" placeholder="Mínimo 6 caracteres" minlength="6" required>
                         </div>
                         <div class="form-group">
-                            <label for="reset-confirmar-password">
-                                <i class="fa-solid fa-lock"></i> Confirmar Contraseña
-                            </label>
-                            <input type="password" id="reset-confirmar-password"
-                                   placeholder="Repetí tu nueva contraseña" required minlength="6">
+                            <label for="reset-confirmar-password"><i class="fa-solid fa-lock"></i> Confirmar Nueva Contraseña</label>
+                            <input type="password" id="reset-confirmar-password" placeholder="Repite la contraseña" minlength="6" required>
                         </div>
                     </div>
                     <div class="modal-footer" style="margin-top: 1.5rem;">
                         <button type="submit" class="btn-primary btn-block" id="btn-confirmar-reset">
-
-                            <i class="fa-solid fa-check"></i> Restablecer Contraseña
+                            <i class="fa-solid fa-floppy-disk"></i> Cambiar Contraseña e Ingresar
                         </button>
                     </div>
                 </form>
@@ -146,750 +137,38 @@
         </div>
     </div>
 
-    <!-- 2. PANEL DE ADMINISTRACIÓN / STAFF (DASHBOARD) -->
-    <div id="dashboard-page" class="dashboard-wrapper hidden">
-        <!-- Sidebar Izquierdo -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <i class="fa-solid fa-dumbbell"></i>
-                <h2>SOMA<span>GYM</span></h2>
-            </div>
-            <div class="user-profile-summary">
-                <div class="avatar">
-                    <i class="fa-solid fa-user-tie"></i>
-                </div>
-                <div class="info">
-                    <h3 id="current-user-name">Usuario SOMA</h3>
-                    <span id="current-user-role" class="badge-role">Rol</span>
-                </div>
-            </div>
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="active" data-target="clientes-section">
-                        <a href="#"><i class="fa-solid fa-users"></i><span>Socios / Clientes</span></a>
-                    </li>
-                    <li data-target="noticias-section" id="nav-noticias-li">
-                        <a href="#"><i class="fa-solid fa-bullhorn"></i><span>Novedades del Gym</span></a>
-                    </li>
-                    <li data-target="usuarios-section" id="nav-usuarios-li">
-                        <a href="#"><i class="fa-solid fa-user-gear"></i><span>Personal / Usuarios</span></a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="sidebar-footer">
-                <button id="btn-logout" class="btn-logout">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>Cerrar Sesión</span>
-                </button>
-            </div>
-        </aside>
-
-        <!-- Contenedor Principal Staff -->
-        <main class="main-content">
-            <!-- Header superior -->
-            <header class="content-header">
-                <div class="title-section">
-                    <h1 id="section-title">Gestión de Socios</h1>
-                    <p id="section-subtitle">Alta, modificación, rutinas y evolución física.</p>
-                </div>
-                <div class="actions-section">
-                    <button id="btn-action-add" class="btn-primary">
-                        <i class="fa-solid fa-plus"></i>
-                        <span id="btn-action-add-text">Nuevo Cliente</span>
-                    </button>
-                </div>
-            </header>
-
-            <!-- Sección: Clientes CRUD -->
-            <section id="clientes-section" class="crud-section active-section">
-                <div class="table-card">
-                    <div class="table-header-filters">
-                        <div class="search-box">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="search-clientes" placeholder="Buscar por DNI, nombre o apellido...">
-                        </div>
-                        <label class="toggle-label" id="toggle-inactivos-clientes-label" title="Mostrar también los socios dados de baja">
-                            <input type="checkbox" id="toggle-inactivos-clientes">
-                            <span class="toggle-switch"></span>
-                            <span>Mostrar inactivos</span>
-                        </label>
-                    </div>
-                    <div class="table-container">
-                        <table id="table-clientes">
-                            <thead>
-                                <tr>
-                                    <th>DNI</th>
-                                    <th>Nombre Completo</th>
-                                    <th>Edad</th>
-                                    <th>Contacto</th>
-                                    <th>Dirección</th>
-                                    <th>Apto Médico</th>
-                                    <th>Estado</th>
-                                    <th>Alta</th>
-                                    <th class="actions-col">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-clientes">
-                                <!-- Filas dinámicas -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-
-            <!-- Sección: Muro de Novedades (Staff) -->
-            <section id="noticias-section" class="crud-section hidden">
-                <div class="feed-container" id="admin-noticias-feed">
-                    <!-- Tarjetas de noticias dinámicas -->
-                </div>
-            </section>
-
-            <!-- Sección: Usuarios CRUD (Solo Admin) -->
-            <section id="usuarios-section" class="crud-section hidden">
-                <div class="table-card">
-                    <div class="table-header-filters">
-                        <div class="search-box">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="search-usuarios" placeholder="Buscar por usuario o nombre...">
-                        </div>
-                        <label class="toggle-label" id="toggle-inactivos-label" title="Mostrar también los usuarios dados de baja">
-                            <input type="checkbox" id="toggle-inactivos">
-                            <span class="toggle-switch"></span>
-                            <span>Mostrar inactivos</span>
-                        </label>
-                    </div>
-                    <div class="table-container">
-                        <table id="table-usuarios">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nombre</th>
-                                    <th>Usuario</th>
-                                    <th>Rol</th>
-                                    <th>Estado</th>
-                                    <th>Estado Pago</th>
-                                    <th class="actions-col">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-usuarios">
-                                <!-- Filas dinámicas -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- 3. PORTAL DEL SOCIO (VISTA CLIENTE) -->
-    <div id="portal-socio-page" class="portal-wrapper hidden">
-        <!-- Top Navbar del Socio -->
-        <header class="portal-navbar">
-            <div class="portal-brand">
-                <i class="fa-solid fa-dumbbell"></i>
-                <span>SOMA<b>GYM</b></span>
-                <span class="portal-tag">Portal Socio</span>
-            </div>
-            <div class="portal-user-info">
-                <div class="user-greeting">
-                    <span class="welcome-text">Hola,</span>
-                    <strong id="socio-header-name">Socio</strong>
-                </div>
-                <div class="portal-badges-header">
-                    <div id="socio-apto-badge" class="badge-apto-header">
-                        <i class="fa-solid fa-file-medical"></i>
-                        <span id="socio-apto-text">Apto al día</span>
-                    </div>
-                    <div id="socio-cuota-badge" class="badge-apto-header">
-                        <i class="fa-solid fa-receipt"></i>
-                        <span id="socio-cuota-text">Cuota al día</span>
-                    </div>
-                </div>
-                <button id="btn-socio-logout" class="btn-logout-compact" title="Cerrar Sesión">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
-            </div>
-        </header>
-
-        <!-- Navegación de Pestañas del Socio -->
-        <div class="portal-nav-bar">
-            <div class="portal-tabs">
-                <button class="portal-tab-btn active" data-portal-tab="socio-tab-rutina">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>Mi Rutina</span>
-                </button>
-                <button class="portal-tab-btn" data-portal-tab="socio-tab-novedades">
-                    <i class="fa-solid fa-bullhorn"></i>
-                    <span>Novedades del Gym</span>
-                </button>
-                <button class="portal-tab-btn" data-portal-tab="socio-tab-evolucion">
-                    <i class="fa-solid fa-chart-line"></i>
-                    <span>Mi Progreso</span>
-                </button>
-                <button class="portal-tab-btn" data-portal-tab="socio-tab-pagos">
-                    <i class="fa-solid fa-receipt"></i>
-                    <span>Mis Pagos</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Contenido de Pestañas del Socio -->
-        <main class="portal-main-container">
-            
-            <!-- Pestaña Socio: Mi Rutina (Solo Lectura) -->
-            <section id="socio-tab-rutina" class="portal-panel active">
-                <div id="socio-rutina-container">
-                    <!-- Tarjeta de Rutina Dinámica -->
-                </div>
-            </section>
-
-            <!-- Pestaña Socio: Muro de Novedades -->
-            <section id="socio-tab-novedades" class="portal-panel">
-                <div class="portal-section-header">
-                    <h2><i class="fa-solid fa-bullhorn"></i> Comunicados y Novedades</h2>
-                    <p>Enterate de los avisos, horarios y noticias oficiales del gimnasio.</p>
-                </div>
-                <div class="feed-container" id="socio-noticias-feed">
-                    <!-- Tarjetas de noticias dinámicas -->
-                </div>
-            </section>
-
-            <!-- Pestaña Socio: Mi Progreso -->
-            <section id="socio-tab-evolucion" class="portal-panel">
-                <div class="portal-section-header">
-                    <h2><i class="fa-solid fa-chart-line"></i> Historial de Evolución</h2>
-                    <p>Seguimiento de mediciones físicas y cargas alcanzadas.</p>
-                </div>
-                <div class="portal-progress-grid">
-                    <div class="portal-card">
-                        <h3><i class="fa-solid fa-weight-scale"></i> Mediciones Físicas</h3>
-                        <div class="sub-table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Peso (kg)</th>
-                                        <th>% Grasa</th>
-                                        <th>Observaciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-socio-ev-fisica">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="portal-card">
-                        <h3><i class="fa-solid fa-dumbbell"></i> Historial de Cargas</h3>
-                        <div class="sub-table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Ejercicio</th>
-                                        <th>Carga (kg)</th>
-                                        <th>Reps</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-socio-ev-deportiva">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Pestaña Socio: Mis Pagos y Membresía -->
-            <section id="socio-tab-pagos" class="portal-panel">
-                <div class="portal-section-header">
-                    <h2><i class="fa-solid fa-receipt"></i> Mis Pagos y Estado de Membresía</h2>
-                    <p>Consulta el estado de tu membresía y el historial completo de cuotas abonadas.</p>
-                </div>
-                <div class="portal-card" style="margin-bottom: 1.5rem;">
-                    <h3><i class="fa-solid fa-id-card"></i> Estado Actual de Cuota</h3>
-                    <div style="display: flex; gap: 2.5rem; flex-wrap: wrap; margin-top: 1rem;">
-                        <div>
-                            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">Estado</span>
-                            <span id="socio-membresia-estado" style="font-weight: 700; font-size: 1.1rem;">-</span>
-                        </div>
-                        <div>
-                            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">Vencimiento de Cuota</span>
-                            <span id="socio-membresia-vencimiento" style="font-weight: 700; font-size: 1.1rem;">-</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="portal-card">
-                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Cuotas Pagadas</h3>
-                    <div class="sub-table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Fecha de Pago</th>
-                                    <th>Concepto</th>
-                                    <th>Meses Abonados</th>
-                                    <th>Vencimiento Cuota</th>
-                                    <th>Método de Pago</th>
-                                    <th>Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-socio-pagos">
-                                <!-- Dinámico -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-        </main>
-    </div>
-
-    <!-- 4. MODAL OBLIGATORIO DE CAMBIO DE CONTRASEÑA -->
-    <div id="modal-cambiar-password" class="modal modal-forced">
+    <!-- MODAL: CAMBIO OBLIGATORIO DE PASSWORD EN PRIMER ACCESO -->
+    <div id="modal-cambiar-password" class="modal">
         <div class="modal-content small-modal">
             <div class="modal-header">
-                <h2><i class="fa-solid fa-shield-halved"></i> Primer Ingreso al Sistema</h2>
+                <h2><i class="fa-solid fa-shield-halved"></i> Cambio de Contraseña</h2>
             </div>
-            <p class="modal-description">
-                Por motivos de seguridad, debes actualizar tu clave inicial generada (<code>clave1234</code>) por una contraseña personal para continuar.
-            </p>
             <form id="form-cambiar-password">
+                <p class="modal-description">
+                    Por motivos de seguridad, debes cambiar tu clave temporal antes de comenzar a operar en el sistema.
+                </p>
                 <div class="form-vertical">
                     <div class="form-group">
                         <label for="cp-actual">Contraseña Actual *</label>
-                        <input type="password" id="cp-actual" required placeholder="clave1234">
+                        <input type="password" id="cp-actual" required placeholder="Ingresa clave actual">
                     </div>
                     <div class="form-group">
                         <label for="cp-nueva">Nueva Contraseña *</label>
-                        <input type="password" id="cp-nueva" required minlength="4" placeholder="Crea una contraseña segura">
+                        <input type="password" id="cp-nueva" required minlength="6" placeholder="Mínimo 6 caracteres">
                     </div>
                     <div class="form-group">
                         <label for="cp-confirmar">Confirmar Nueva Contraseña *</label>
-                        <input type="password" id="cp-confirmar" required minlength="4" placeholder="Repite la nueva contraseña">
+                        <input type="password" id="cp-confirmar" required minlength="6" placeholder="Repite la nueva clave">
                     </div>
                 </div>
                 <div class="modal-footer" style="margin-top: 1.5rem;">
-                    <button type="submit" class="btn-primary btn-block">
-                        <i class="fa-solid fa-check"></i> Actualizar y Acceder
-                    </button>
+                    <button type="submit" class="btn-primary btn-block">Actualizar Contraseña</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 5. MODAL FORMULARIO: CLIENTE (GENERAL / EV. FÍSICA / EV. DEPORTIVA / RUTINA) -->
-    <div id="modal-cliente" class="modal">
-        <div class="modal-content modal-large">
-            <div class="modal-header">
-                <h2 id="modal-cliente-title">Registrar Nuevo Socio</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            
-            <!-- Barra de Pestañas -->
-            <div class="modal-tabs" id="client-modal-tabs">
-                <button type="button" class="tab-link active" data-tab="tab-general">Datos Generales</button>
-                <button type="button" class="tab-link" data-tab="tab-rutina" id="tab-link-rutina">Rutina Asignada</button>
-                <button type="button" class="tab-link" data-tab="tab-evolucion-fisica" id="tab-link-ev-fisica">Evolución Física</button>
-                <button type="button" class="tab-link" data-tab="tab-evolucion-deportiva" id="tab-link-ev-deportiva">Evolución Deportiva</button>
-                <button type="button" class="tab-link" data-tab="tab-pagos" id="tab-link-pagos"><i class="fa-solid fa-dollar-sign"></i> Pagos</button>
-            </div>
-
-            <!-- Contenido de Pestañas -->
-            <div class="tab-content-wrapper">
-                
-                <!-- Pestaña 1: Datos Generales -->
-                <div id="tab-general" class="tab-content-panel active">
-                    <div id="readonly-trainer-notice" class="modal-readonly-notice hidden">
-                        <i class="fa-solid fa-circle-info"></i>
-                        <span><strong>Modo solo lectura:</strong> Como entrenador puedes consultar los datos del socio, pero las modificaciones de la ficha general corresponden a Administración o Recepción.</span>
-                    </div>
-                    <form id="form-cliente">
-                        <div class="form-grid">
-                            <!-- Datos Personales -->
-                            <div class="form-section-title">Datos Personales</div>
-                            <div class="form-group">
-                                <label for="c-dni">DNI *</label>
-                                <input type="text" id="c-dni" required placeholder="Ej: 30111222">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-nombre">Nombre *</label>
-                                <input type="text" id="c-nombre" required placeholder="Ej: Juan">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-apellido">Apellido *</label>
-                                <input type="text" id="c-apellido" required placeholder="Ej: Pérez">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-edad">Edad</label>
-                                <input type="number" id="c-edad" min="1" max="120" placeholder="Ej: 34">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-email">Email</label>
-                                <input type="email" id="c-email" placeholder="Ej: juan.perez@email.com">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-telefono">Teléfono</label>
-                                <input type="text" id="c-telefono" placeholder="Ej: 1122334455">
-                            </div>
-
-                            <!-- Dirección -->
-                            <div class="form-section-title">Dirección</div>
-                            <div class="form-group">
-                                <label for="c-calle">Calle</label>
-                                <input type="text" id="c-calle" placeholder="Ej: Av. Corrientes">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-numero">Número</label>
-                                <input type="text" id="c-numero" placeholder="Ej: 1234">
-                            </div>
-                            <div class="form-group">
-                                <label for="c-ciudad">Ciudad</label>
-                                <input type="text" id="c-ciudad" placeholder="Ej: Buenos Aires">
-                            </div>
-
-                            <!-- Estado y Apto Médico -->
-                            <div class="form-section-title">Estado y Aptitud Física</div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="c-activo" checked>
-                                <label for="c-activo">Socio Activo</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="c-apto">
-                                <label for="c-apto">Apto Médico Entregado</label>
-                            </div>
-                            <div class="form-group" id="group-vencimiento-apto">
-                                <label for="c-vencimiento">Vencimiento Apto Médico</label>
-                                <input type="date" id="c-vencimiento">
-                            </div>
-
-                            <!-- Pago Inicial (solo visible en modo Alta) -->
-                            <div class="form-section-title" id="group-pago-inicial-title" style="display:none">
-                                <i class="fa-solid fa-dollar-sign"></i> Pago Inicial Obligatorio
-                            </div>
-                            <div class="form-group" id="group-pago-monto" style="display:none">
-                                <label for="pi-monto">Monto *</label>
-                                <input type="number" id="pi-monto" step="0.01" min="0.01" placeholder="Ej: 15000.00">
-                            </div>
-                            <div class="form-group" id="group-pago-metodo" style="display:none">
-                                <label for="pi-metodo">Método de Pago *</label>
-                                <select id="pi-metodo">
-                                    <option value="Efectivo">Efectivo</option>
-                                    <option value="Transferencia">Transferencia</option>
-                                    <option value="Débito">Débito</option>
-                                    <option value="Crédito">Crédito</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="group-pago-meses" style="display:none">
-                                <label for="pi-meses">Meses Abonados *</label>
-                                <input type="number" id="pi-meses" min="1" max="12" value="1">
-                            </div>
-                            <div class="form-group" id="group-pago-descripcion" style="display:none">
-                                <label for="pi-descripcion">Descripción (opcional)</label>
-                                <input type="text" id="pi-descripcion" placeholder="Ej: Cuota mes de octubre">
-                            </div>
-                        </div>
-                        <div class="modal-footer" id="modal-cliente-footer">
-                            <button type="button" class="btn-secondary modal-close">Cerrar</button>
-                            <button type="submit" id="btn-guardar-cliente" class="btn-primary">Guardar Socio</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Pestaña 2: Editor de Rutina (Entrenador / Admin) -->
-                <div id="tab-rutina" class="tab-content-panel">
-                    <form id="form-rutina" class="evolution-subform">
-                        <div class="form-section-title">Parámetros de la Rutina</div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="r-fecha">Fecha de Inicio *</label>
-                                <input type="date" id="r-fecha" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="r-periodo">Duración (Semanas)</label>
-                                <input type="number" min="1" max="52" id="r-periodo" placeholder="Ej: 4">
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="r-objetivo">Objetivo Principal *</label>
-                                <input type="text" id="r-objetivo" required placeholder="Ej: Hipertrofia / Fuerza / Recomposición">
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="r-obs">Indicaciones y Observaciones del Entrenador</label>
-                                <input type="text" id="r-obs" placeholder="Ej: Calentar 10 min antes, respetar tiempos de descanso.">
-                            </div>
-                        </div>
-
-                        <!-- Lista Dinámica de Ejercicios -->
-                        <div class="form-section-title routine-builder-heading">
-                            <span>Ejercicios de la Rutina</span>
-                            <button type="button" id="btn-add-routine-row" class="btn-secondary btn-sm">
-                                <i class="fa-solid fa-plus"></i> Agregar Ejercicio
-                            </button>
-                        </div>
-
-                        <div class="routine-builder-container">
-                            <table class="routine-builder-table">
-                                <thead>
-                                    <tr>
-                                        <th class="routine-order-column">Orden</th>
-                                        <th>Ejercicio</th>
-                                        <th>Series</th>
-                                        <th>Reps</th>
-                                        <th>Carga (kg)</th>
-                                        <th>Descanso</th>
-                                        <th class="routine-actions-column">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="routine-builder-tbody">
-                                    <!-- Filas de ejercicios agregadas dinámicamente -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
-                            <button type="submit" class="btn-primary">
-                                <i class="fa-solid fa-floppy-disk"></i> Guardar Rutina Asignada
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Pestaña 3: Evolución Física -->
-                <div id="tab-evolucion-fisica" class="tab-content-panel">
-                    <form id="form-ev-fisica" class="evolution-subform">
-                        <div class="form-section-title">Registrar Medición Física</div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="ef-fecha">Fecha de Medición *</label>
-                                <input type="date" id="ef-fecha" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="ef-peso">Peso (kg) *</label>
-                                <input type="number" step="0.01" min="30" max="300" id="ef-peso" required placeholder="Ej: 83.50">
-                            </div>
-                            <div class="form-group">
-                                <label for="ef-grasa">% Grasa Antropométrico</label>
-                                <input type="number" step="0.01" min="1" max="70" id="ef-grasa" placeholder="Ej: 18.50">
-                            </div>
-                            <div class="form-group">
-                                <label for="ef-obs">Observaciones de Salud</label>
-                                <input type="text" id="ef-obs" placeholder="Ej: Progreso lineal, bajó grasa corporal.">
-                            </div>
-                        </div>
-                        <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-                            <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Guardar Medición</button>
-                        </div>
-                    </form>
-                    
-                    <div class="evolution-history-section">
-                        <div class="form-section-title" style="margin-top: 2rem;">Historial Antropométrico</div>
-                        <div class="sub-table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Peso (kg)</th>
-                                        <th>% Grasa</th>
-                                        <th>Observaciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-ev-fisica">
-                                    <!-- Carga dinámica -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pestaña 4: Evolución Deportiva -->
-                <div id="tab-evolucion-deportiva" class="tab-content-panel">
-                    <form id="form-ev-deportiva" class="evolution-subform">
-                        <div class="form-section-title">Registrar Carga Lograda</div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="ed-fecha">Fecha del Entrenamiento *</label>
-                                <input type="date" id="ed-fecha" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="ed-ejercicio">Ejercicio *</label>
-                                <select id="ed-ejercicio" required>
-                                    <option value="" disabled selected>Selecciona un ejercicio...</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="ed-carga">Carga Real Lograda (kg) *</label>
-                                <input type="number" step="0.01" min="0" max="600" id="ed-carga" required placeholder="Ej: 70.00">
-                            </div>
-                            <div class="form-group">
-                                <label for="ed-reps">Repeticiones Logradas *</label>
-                                <input type="number" min="1" max="100" id="ed-reps" required placeholder="Ej: 10">
-                            </div>
-                        </div>
-                        <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-                            <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Guardar Carga</button>
-                        </div>
-                    </form>
-                    
-                    <div class="evolution-history-section">
-                        <div class="form-section-title" style="margin-top: 2rem;">Evolución de Cargas Logradas</div>
-                        <div class="sub-table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Ejercicio</th>
-                                        <th>Grupo Muscular</th>
-                                        <th>Carga Real (kg)</th>
-                                        <th>Reps Logradas</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-ev-deportiva">
-                                    <!-- Carga dinámica -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pestaña 5: Pagos y Cuotas -->
-                <div id="tab-pagos" class="tab-content-panel">
-
-                    <!-- Sección: Registrar nuevo cobro -->
-                    <form id="form-pago" class="evolution-subform">
-                        <div class="form-section-title"><i class="fa-solid fa-receipt"></i> Registrar Cobro</div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="p-monto">Monto *</label>
-                                <input type="number" id="p-monto" step="0.01" min="0.01" required placeholder="Ej: 15000.00">
-                            </div>
-                            <div class="form-group">
-                                <label for="p-metodo">Método de Pago *</label>
-                                <select id="p-metodo" required>
-                                    <option value="Efectivo">Efectivo</option>
-                                    <option value="Transferencia">Transferencia</option>
-                                    <option value="Débito">Débito</option>
-                                    <option value="Crédito">Crédito</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="p-meses">Meses Abonados *</label>
-                                <input type="number" id="p-meses" min="1" max="12" value="1" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="p-descripcion">Descripción (opcional)</label>
-                                <input type="text" id="p-descripcion" placeholder="Ej: Cuota mes de octubre">
-                            </div>
-                        </div>
-                        <p id="p-nuevo-vencimiento-preview" style="margin: 0.5rem 0 1rem; color: var(--text-secondary); font-size: 0.875rem;"></p>
-                        <div style="display: flex; justify-content: flex-end;">
-                            <button type="submit" class="btn-primary"><i class="fa-solid fa-dollar-sign"></i> Registrar Cobro</button>
-                        </div>
-                    </form>
-
-                    <!-- Historial de pagos -->
-                    <div class="evolution-history-section">
-                        <div class="form-section-title" style="margin-top: 2rem;">Historial de Pagos</div>
-                        <div class="sub-table-container">
-                            <table id="table-historial-pagos">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Monto</th>
-                                        <th>Método</th>
-                                        <th>Meses</th>
-                                        <th>Nuevo Vencimiento</th>
-                                        <th>Descripción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-historial-pagos">
-                                    <!-- Carga dinámica -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- 6. MODAL FORMULARIO: PUBLICAR NOTICIA (ADMIN) -->
-    <div id="modal-noticia" class="modal">
-        <div class="modal-content small-modal">
-            <div class="modal-header">
-                <h2><i class="fa-solid fa-bullhorn"></i> Publicar Novedad</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <form id="form-noticia">
-                <div class="form-vertical">
-                    <div class="form-group">
-                        <label for="n-titulo">Título del Comunicado *</label>
-                        <input type="text" id="n-titulo" required placeholder="Ej: Nuevos horarios de Clases Grupales">
-                    </div>
-                    <div class="form-group">
-                        <label for="n-categoria">Categoría *</label>
-                        <select id="n-categoria" required>
-                            <option value="Institucional">Institucional</option>
-                            <option value="Horarios">Horarios y Clases</option>
-                            <option value="Salud">Salud y Nutrición</option>
-                            <option value="Eventos">Eventos y Torneos</option>
-                            <option value="Mantenimiento">Mantenimiento</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="n-contenido">Mensaje / Contenido *</label>
-                        <textarea id="n-contenido" rows="5" required placeholder="Escribe el mensaje o comunicado oficial para los socios..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary modal-close">Cancelar</button>
-                    <button type="submit" class="btn-primary">Publicar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 7. MODAL FORMULARIO: USUARIO (NUEVO / EDITAR) -->
-    <div id="modal-usuario" class="modal">
-        <div class="modal-content small-modal">
-            <div class="modal-header">
-                <h2 id="modal-usuario-title">Nuevo Usuario del Sistema</h2>
-                <button class="modal-close">&times;</button>
-            </div>
-            <form id="form-usuario">
-                <input type="hidden" id="u-id">
-                <div class="form-vertical">
-                    <div class="form-group">
-                        <label for="u-nombre">Nombre Completo *</label>
-                        <input type="text" id="u-nombre" required placeholder="Ej: Carlos Gómez">
-                    </div>
-                    <div class="form-group">
-                        <label for="u-login">Usuario (Login) *</label>
-                        <input type="text" id="u-login" required placeholder="Ej: cgomez">
-                    </div>
-                    <div class="form-group" id="u-password-group">
-                        <label for="u-password">Contraseña *</label>
-                        <input type="password" id="u-password" required placeholder="Ingresa contraseña">
-                    </div>
-                    <div class="form-group">
-                        <label for="u-rol">Rol *</label>
-                        <select id="u-rol" required>
-                            <option value="Admin">Admin</option>
-                            <option value="Secretaria">Secretaria</option>
-                            <option value="Recepcionista">Recepcionista</option>
-                            <option value="Entrenador">Entrenador</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary modal-close">Cancelar</button>
-                    <button type="submit" class="btn-primary">Guardar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Custom Vanilla JS -->
-    <script src="js/app.js?v=2.7"></script>
+    <!-- Script de autenticación de login y redirección -->
+    <script type="module" src="js/login-entry.js?v=3.0"></script>
 </body>
 </html>
