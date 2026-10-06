@@ -36,9 +36,15 @@ Sigue estos pasos ordenados para levantar el entorno de desarrollo localmente:
    ```
 3. Ejecuta el script de siembra de datos de prueba iniciales:
    ```bash
-   mysql -u root < "Documentos/carga_de_datos_v1.1.sql"
+   mysql -u root GimnasioDB < "Documentos/carga_de_datos_v1.1.sql"
    ```
    *(Esto creará la base de datos `GimnasioDB` con los usuarios, ejercicios, clientes y membresías de prueba).*
+
+   El esquema de creación ya incluye el campo `Usuario.activo`, necesario para que el login encuentre usuarios habilitados. Si ya habías creado la base de datos con una versión anterior del esquema, no vuelvas a ejecutar los scripts de creación y carga: aplica una sola vez la migración:
+   ```bash
+   mysql -u root GimnasioDB < "Documentos/migracion_borrado_logico_usuarios.sql"
+   ```
+   *(Si MySQL requiere contraseña, agrega `-p` al comando.)*
 
 ---
 

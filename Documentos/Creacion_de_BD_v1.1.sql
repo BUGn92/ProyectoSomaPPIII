@@ -23,7 +23,8 @@ CREATE TABLE Usuario (
     nombre VARCHAR(50) NOT NULL,
     usuario_login VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    rol VARCHAR(50) NOT NULL -- Ej: Admin, Recepcionista, Entrenador
+    rol VARCHAR(50) NOT NULL, -- Ej: Admin, Recepcionista, Entrenador
+    activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE Ejercicio (
