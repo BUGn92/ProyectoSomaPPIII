@@ -75,8 +75,8 @@ export function renderUsuarios(users) {
         }
 
         const accionBtn = esActivo
-            ? `<button class="btn-action btn-delete" data-id="${u.id_usuario}" title="Dar de baja (borrado lógico)"><i class="fa-solid fa-user-slash"></i></button>`
-            : `<button class="btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario"><i class="fa-solid fa-user-check"></i></button>`;
+            ? `<button type="button" class="btn-icon btn-icon-delete btn-delete" data-id="${u.id_usuario}" title="Dar de baja (borrado lógico)" aria-label="Dar de baja a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-slash"></i></button>`
+            : `<button type="button" class="btn-icon btn-icon-reactivate btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario" aria-label="Reactivar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-check"></i></button>`;
 
         tr.innerHTML = `
             <td><strong>#${escapeHtml(u.id_usuario)}</strong></td>
@@ -86,8 +86,10 @@ export function renderUsuarios(users) {
             <td>${estadoBadge}</td>
             <td>${pagoBadge}</td>
             <td class="actions-col">
-                <button class="btn-action btn-edit" data-id="${u.id_usuario}" title="Editar Usuario"><i class="fa-solid fa-pen-to-square"></i></button>
-                ${accionBtn}
+                <div class="table-actions">
+                    <button type="button" class="btn-icon btn-icon-edit btn-edit" data-id="${u.id_usuario}" title="Editar Usuario" aria-label="Editar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-pen-to-square"></i></button>
+                    ${accionBtn}
+                </div>
             </td>
         `;
         tbodyUsuarios.appendChild(tr);

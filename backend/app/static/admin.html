@@ -11,7 +11,7 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Vanilla CSS -->
-    <link rel="stylesheet" href="css/style.css?v=2.3">
+    <link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
 
@@ -275,7 +275,15 @@
 
                 <!-- Pestaña 2: Editor de Rutina -->
                 <div id="tab-rutina" class="tab-content-panel">
-                    <form id="form-rutina" class="evolution-subform">
+                    <div id="routine-preview">
+                        <!-- Vista compartida con el portal del socio -->
+                    </div>
+                    <div id="routine-management-actions" class="routine-management-actions hidden">
+                        <button type="button" id="btn-edit-routine" class="btn-primary">
+                            <i class="fa-solid fa-pen-to-square"></i> <span id="btn-edit-routine-label">Modificar rutina</span>
+                        </button>
+                    </div>
+                    <form id="form-rutina" class="evolution-subform hidden">
                         <div class="form-section-title">Parámetros de la Rutina</div>
                         <div class="form-grid">
                             <div class="form-group">
@@ -323,6 +331,9 @@
                         </div>
 
                         <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                            <button type="button" id="btn-cancel-routine" class="btn-secondary">
+                                Cancelar
+                            </button>
                             <button type="submit" class="btn-primary">
                                 <i class="fa-solid fa-floppy-disk"></i> Guardar Rutina Asignada
                             </button>
@@ -571,6 +582,6 @@
     </div>
 
     <!-- Script de inicialización de Administración -->
-    <script type="module" src="js/admin-entry.js?v=3.0"></script>
+    <script type="module" src="js/admin-entry.js?v=3.1"></script>
 </body>
 </html>

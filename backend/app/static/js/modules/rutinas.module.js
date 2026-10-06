@@ -6,6 +6,7 @@ import { state } from "../state.js";
 import { ClientesService } from "../services/clientes.service.js";
 import { showToast } from "../utils/toast.js";
 import { escapeHtml } from "../utils/sanitizer.js";
+import { renderRoutineView } from "./routine-view.module.js";
 
 const formRutina = document.getElementById("form-rutina");
 const rFecha = document.getElementById("r-fecha");
@@ -14,7 +15,18 @@ const rObjetivo = document.getElementById("r-objetivo");
 const rObs = document.getElementById("r-obs");
 const btnAddRoutineRow = document.getElementById("btn-add-routine-row");
 const routineBuilderTbody = document.getElementById("routine-builder-tbody");
+const routinePreview = document.getElementById("routine-preview");
+const routineManagementActions = document.getElementById("routine-management-actions");
+const btnEditRoutine = document.getElementById("btn-edit-routine");
+const btnEditRoutineLabel = document.getElementById("btn-edit-routine-label");
+const btnCancelRoutine = document.getElementById("btn-cancel-routine");
 const selectEdEjercicio = document.getElementById("ed-ejercicio");
+let canEditRoutine = false;
+
+function showRoutineEditor(show) {
+    if (routinePreview) routinePreview.classList.toggle("hidden", show);
+    if (formRutina) formRutina.classList.toggle("hidden", !show);
+}
 
 /**
  * Carga el catálogo de ejercicios en memoria y rellena el select de evolución deportiva.
@@ -104,6 +116,10 @@ export function updateRoutineRowNumbers() {
 }
 
 export async function fetchClientRutina(dni) {
+    showRoutineEditor(false);
+    if (routinePreview) routinePreview.innerHTML = "";
+    if (routineManagementActions) routineManagementActions.classList.add("hidden");
+    if (btnEditRoutine) btnEditRoutine.disabled = true;
     if (!state.cachedEjercicios || state.cachedEjercicios.length === 0) {
         await fetchEjerciciosAux();
     }
@@ -116,7 +132,24 @@ export async function fetchClientRutina(dni) {
     if (rObs) rObs.value = "";
 
     const res = await ClientesService.getClienteRutina(dni);
-    if (res.ok && res.data && res.data.detalles && res.data.detalles.length > 0) {
+    if (!res.ok) {
+        showToast("Error", res.detail || "No se pudo cargar la rutina del socio.", "error");
+        if (routinePreview) {
+            routinePreview.innerHTML = `<div class="empty-state"><h3>No se pudo cargar la rutina</h3><p>${escapeHtml(res.detail || "Intenta nuevamente más tarde.")}</p></div>`;
+        }
+        return;
+    }
+
+    const activeRoutine = res.data;
+    if (routinePreview) routinePreview.innerHTML = renderRoutineView(activeRoutine);
+    if (routineManagementActions) routineManagementActions.classList.toggle("hidden", !canEditRoutine);
+    if (btnEditRoutine) btnEditRoutine.disabled = !canEditRoutine;
+    if (btnEditRoutineLabel) {
+        btnEditRoutineLabel.textContent = activeRoutine?.detalles?.length ? "Modificar rutina" : "Crear rutina";
+    }
+    showRoutineEditor(false);
+
+    if (res.data?.detalles?.length > 0) {
         const rutina = res.data;
         if (rFecha) rFecha.value = rutina.fecha_inicio || "";
         if (rPeriodo) rPeriodo.value = rutina.periodo || 4;
@@ -130,6 +163,17 @@ export async function fetchClientRutina(dni) {
 }
 
 export function initRutinasModule() {
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    canEditRoutine = role === "admin" || role === "entrenador";
+    if (btnEditRoutine) {
+        btnEditRoutine.addEventListener("click", () => showRoutineEditor(true));
+    }
+    if (btnCancelRoutine) {
+        btnCancelRoutine.addEventListener("click", () => {
+            if (state.editingDni) fetchClientRutina(state.editingDni);
+        });
+    }
+
     if (routineBuilderTbody) {
         routineBuilderTbody.addEventListener("click", (event) => {
             const button = event.target.closest("button");
@@ -205,6 +249,7 @@ export function initRutinasModule() {
             const res = await ClientesService.saveClienteRutina(state.editingDni, payload);
             if (res.ok) {
                 showToast("Rutina Asignada", `La rutina fue asignada exitosamente al socio ${state.editingDni}.`);
+                await fetchClientRutina(state.editingDni);
             } else {
                 showToast("Error", res.detail || "No se pudo guardar la rutina.", "error");
             }
