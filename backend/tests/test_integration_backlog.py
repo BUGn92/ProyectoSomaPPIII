@@ -90,6 +90,25 @@ def client(db):
         yield test_client
     app.dependency_overrides.clear()
 
+def test_login_con_credencial_de_usuario_sembrado(client, db):
+    usuario = models.Usuario(
+        nombre="Usuario de prueba",
+        usuario_login="seeded-user",
+        password="hash_falso_123",
+        rol="Admin",
+        debe_cambiar_password=False
+    )
+    db.add(usuario)
+    db.commit()
+
+    response = client.post("/api/auth/login", json={
+        "usuario_login": "seeded-user",
+        "password": "hash_falso_123"
+    })
+
+    assert response.status_code == 200
+    assert response.json()["usuario"]["usuario_login"] == "seeded-user"
+
 def get_auth_headers(usuario_login: str, rol: str) -> dict:
     """Genera token JWT y devuelve el header de autorización."""
     token = create_access_token(data={"sub": usuario_login, "rol": rol})
