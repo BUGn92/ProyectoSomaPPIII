@@ -40,10 +40,12 @@ Sigue estos pasos ordenados para levantar el entorno de desarrollo localmente:
    ```
    *(Esto creará la base de datos `GimnasioDB` con los usuarios, ejercicios, clientes y membresías de prueba).*
 
-   El esquema de creación incluye los campos que usa el alta de socios (`Usuario.debe_cambiar_password`, `Pago.meses_abonados` y `Pago.fecha_vencimiento_cuota`). Si ya habías creado la base de datos con una versión anterior, no vuelvas a ejecutar los scripts de creación y carga: aplica la migración compatible con la versión que tengas:
+   El esquema de creación incluye los campos que usa el alta de socios (`Usuario.debe_cambiar_password`, `Pago.meses_abonados` y `Pago.fecha_vencimiento_cuota`) y el día de cada ejercicio (`Detalle_Rutina.dia`). Si ya habías creado la base de datos con una versión anterior, no vuelvas a ejecutar los scripts de creación y carga: aplica las migraciones que correspondan antes de iniciar la aplicación:
    ```bash
    mysql -u root GimnasioDB < "Documentos/migracion_alta_socio.sql"
+   mysql -u root GimnasioDB < "Documentos/migracion_dias_rutina.sql"
    ```
+   La migración de días agrega `Detalle_Rutina.dia` (día 1 para registros existentes) y convierte los marcadores temporales de rutinas de varios días a sus valores de día reales.
    Si además tu base de datos es anterior al borrado lógico de usuarios y no tiene `Usuario.activo`, aplica también:
    ```bash
    mysql -u root GimnasioDB < "Documentos/migracion_borrado_logico_usuarios.sql"

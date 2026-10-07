@@ -384,7 +384,7 @@ def test_tarea_03_generador_rutina_planilla_entrenador(client, db):
     assert len(rutina_activa["detalles"]) == 1
 
 
-def test_rutina_admite_hasta_siete_dias_sin_cambiar_esquema(client, db):
+def test_rutina_persiste_el_dia_de_cada_ejercicio(client, db):
     cliente_db = models.Cliente(
         dni="33999000",
         nombre="Ana",
@@ -415,6 +415,13 @@ def test_rutina_admite_hasta_siete_dias_sin_cambiar_esquema(client, db):
     assert response.status_code == 201
     saved = response.json()
     assert [len(dia["detalles"]) for dia in saved["dias"]] == [1, 1, 2]
+    assert [detalle["dia"] for detalle in saved["detalles"]] == [1, 2, 3, 3]
+    assert [
+        detalle.dia
+        for detalle in db.query(models.DetalleRutina)
+        .filter(models.DetalleRutina.id_rutina == saved["id_rutina"])
+        .order_by(models.DetalleRutina.id_detalle)
+    ] == [1, 2, 3, 3]
     assert saved["observaciones"] == rutina["observaciones"]
     assert len(saved["detalles"]) == 4
 
@@ -426,6 +433,7 @@ def test_rutina_admite_hasta_siete_dias_sin_cambiar_esquema(client, db):
     seven_day_response = client.post("/api/clientes/33999000/rutina", json=rutina, headers=headers_admin)
     assert seven_day_response.status_code == 201
     assert len(seven_day_response.json()["dias"]) == 7
+    assert [detalle["dia"] for detalle in seven_day_response.json()["detalles"]] == list(range(1, 8))
 
     rutina["dias"].append({"detalles": [{"id_ejercicio": 2, "series": 3, "repeticiones": 10}]})
     too_many_days_response = client.post("/api/clientes/33999000/rutina", json=rutina, headers=headers_admin)
