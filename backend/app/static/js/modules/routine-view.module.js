@@ -13,22 +13,46 @@ export function renderRoutineView(rutina) {
 
     const entrenador = rutina.detalles.find(det => det.usuario)?.usuario;
     const entrenadorNombre = entrenador ? entrenador.nombre : "No informado";
-    const exercisesHtml = rutina.detalles.map((det, index) => {
-        const ejNombre = det.ejercicio ? det.ejercicio.nombre_ejercicio : `Ejercicio #${det.id_ejercicio}`;
-        const ejGrupo = det.ejercicio ? det.ejercicio.grupo_muscular : "General";
+    const dias = rutina.dias?.length ? rutina.dias : [{ numero: 1, detalles: rutina.detalles }];
+    const exercisesHtml = dias.map((dia, dayIndex) => {
+        const rows = dia.detalles.map((det, index) => {
+            const ejNombre = det.ejercicio ? det.ejercicio.nombre_ejercicio : `Ejercicio #${det.id_ejercicio}`;
+            const ejGrupo = det.ejercicio ? det.ejercicio.grupo_muscular : "General";
+
+            return `
+                <tr>
+                    <td class="routine-order" data-label="N°">${index + 1}</td>
+                    <td data-label="Ejercicio">
+                        <strong class="routine-exercise-name">${escapeHtml(ejNombre)}</strong>
+                        <span class="routine-muscle-group">${escapeHtml(ejGrupo)}</span>
+                    </td>
+                    <td class="routine-number" data-label="Series">${det.series}</td>
+                    <td class="routine-number" data-label="Repeticiones">${det.repeticiones}</td>
+                    <td class="routine-value" data-label="Carga">${det.carga ? `${escapeHtml(det.carga)} kg` : "A criterio"}</td>
+                    <td class="routine-value" data-label="Descanso">${escapeHtml(det.descanso || "90 seg")}</td>
+                </tr>
+            `;
+        }).join("");
 
         return `
-            <tr>
-                <td class="routine-order" data-label="N°">${index + 1}</td>
-                <td data-label="Ejercicio">
-                    <strong class="routine-exercise-name">${escapeHtml(ejNombre)}</strong>
-                    <span class="routine-muscle-group">${escapeHtml(ejGrupo)}</span>
-                </td>
-                <td class="routine-number" data-label="Series">${det.series}</td>
-                <td class="routine-number" data-label="Repeticiones">${det.repeticiones}</td>
-                <td class="routine-value" data-label="Carga">${det.carga ? `${escapeHtml(det.carga)} kg` : "A criterio"}</td>
-                <td class="routine-value" data-label="Descanso">${escapeHtml(det.descanso || "90 seg")}</td>
-            </tr>
+            <section class="routine-day-sheet">
+                <h3>Día ${dia.numero || dayIndex + 1}</h3>
+                <div class="routine-sheet-container">
+                    <table class="routine-sheet">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Ejercicio</th>
+                                <th>Series</th>
+                                <th>Repeticiones</th>
+                                <th>Carga</th>
+                                <th>Descanso</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </section>
         `;
     }).join("");
 
@@ -50,27 +74,14 @@ export function renderRoutineView(rutina) {
                     <div class="routine-meta-pills">
                         <span class="meta-pill"><i class="fa-regular fa-calendar"></i> Inicio: ${escapeHtml(rutina.fecha_inicio)}</span>
                         <span class="meta-pill"><i class="fa-solid fa-clock"></i> Duración: ${rutina.periodo ? `${rutina.periodo} semanas` : "Mensual"}</span>
+                        <span class="meta-pill"><i class="fa-solid fa-calendar-days"></i> ${dias.length} ${dias.length === 1 ? "día" : "días"}</span>
                         <span class="meta-pill"><i class="fa-solid fa-dumbbell"></i> ${rutina.detalles.length} ejercicios</span>
                         <span class="meta-pill routine-trainer"><i class="fa-solid fa-user-tie"></i> Entrenador: ${escapeHtml(entrenadorNombre)}</span>
                     </div>
                 </div>
             </div>
             ${obsBox}
-            <div class="routine-sheet-container">
-                <table class="routine-sheet">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Ejercicio</th>
-                            <th>Series</th>
-                            <th>Repeticiones</th>
-                            <th>Carga</th>
-                            <th>Descanso</th>
-                        </tr>
-                    </thead>
-                    <tbody>${exercisesHtml}</tbody>
-                </table>
-            </div>
+            ${exercisesHtml}
         </div>
     `;
 }

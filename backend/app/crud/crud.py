@@ -1,6 +1,9 @@
 import hashlib
+import json
+import re
 from datetime import date
 from decimal import Decimal
+from typing import Any, List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from dateutil.relativedelta import relativedelta
@@ -540,10 +543,60 @@ def delete_noticia(db: Session, id_noticia: int):
     return db_noticia
 
 # --- CRUD de Rutinas ---
+_RUTINA_DIAS_MARKER = "\n<!--soma-rutina-dias:v1:"
+_RUTINA_DIAS_SUFFIX = "-->"
+
+
+def _encode_rutina_days(observaciones: Optional[str], dias: List[List[Any]]) -> Optional[str]:
+    # Persist day boundaries in a versioned suffix to avoid requiring a new database column.
+    counts = [len(dia) for dia in dias]
+    if not counts or any(count < 1 for count in counts):
+        return observaciones
+    marker = f"{_RUTINA_DIAS_MARKER}{json.dumps(counts, separators=(',', ':'))}{_RUTINA_DIAS_SUFFIX}"
+    return f"{observaciones or ''}{marker}"
+
+
+def decode_rutina_days(
+    observaciones: Optional[str],
+    detalles: List[Any]
+) -> Tuple[Optional[str], List[List[Any]]]:
+    notes = observaciones or ""
+    marker_pattern = re.compile(r"\n?<!--soma-rutina-dias:v1:(\[[0-9,]*\])-->$")
+    match = marker_pattern.search(notes)
+    if not match:
+        return observaciones, [detalles] if detalles else []
+
+    try:
+        counts = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return observaciones, [detalles] if detalles else []
+
+    if not isinstance(counts, list) or any(not isinstance(count, int) for count in counts):
+        return observaciones, [detalles] if detalles else []
+
+    clean_notes = notes[:match.start()] or None
+    if not counts or len(counts) > 7 or any(count < 1 for count in counts) or sum(counts) != len(detalles):
+        return observaciones, [detalles] if detalles else []
+
+    days = []
+    offset = 0
+    for count in counts:
+        days.append(detalles[offset:offset + count])
+        offset += count
+    return clean_notes, days
+
+
 def get_rutina_activa_cliente(db: Session, dni_cliente: str):
     return db.query(models.Rutina).filter(models.Rutina.dni_cliente == dni_cliente, models.Rutina.activa == True).order_by(models.Rutina.id_rutina.desc()).first()
 
 def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: schemas.RutinaCreate, id_usuario_entrenador: int):
+    detalles_por_dia = (
+        [dia.detalles for dia in rutina_data.dias]
+        if rutina_data.dias is not None
+        else [rutina_data.detalles]
+    )
+    detalles_rutina = [detalle for dia in detalles_por_dia for detalle in dia]
+
     # Desactivar rutinas anteriores
     rutinas_ant = db.query(models.Rutina).filter(models.Rutina.dni_cliente == dni_cliente).all()
     for r in rutinas_ant:
@@ -557,14 +610,14 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
         periodo=rutina_data.periodo,
         objetivo=rutina_data.objetivo,
         activa=True,
-        observaciones=rutina_data.observaciones
+        observaciones=_encode_rutina_days(rutina_data.observaciones, detalles_por_dia)
     )
     db.add(db_rutina)
     db.flush()
     
     # Insertar detalles de ejercicios incrementando secuencialmente el ID
     base_det_id = get_next_detalle_rutina_id(db)
-    for i, detalle in enumerate(rutina_data.detalles):
+    for i, detalle in enumerate(detalles_rutina):
         db_det = models.DetalleRutina(
             id_detalle=base_det_id + i,
             id_rutina=next_rutina_id,
@@ -580,4 +633,3 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
     db.commit()
     db.refresh(db_rutina)
     return db_rutina
-

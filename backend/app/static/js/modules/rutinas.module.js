@@ -14,7 +14,9 @@ const rPeriodo = document.getElementById("r-periodo");
 const rObjetivo = document.getElementById("r-objetivo");
 const rObs = document.getElementById("r-obs");
 const btnAddRoutineRow = document.getElementById("btn-add-routine-row");
-const routineBuilderTbody = document.getElementById("routine-builder-tbody");
+const btnAddRoutineDay = document.getElementById("btn-add-routine-day");
+const routineDayTabs = document.getElementById("routine-day-tabs");
+const routineDaysContainer = document.getElementById("routine-days-container");
 const routinePreview = document.getElementById("routine-preview");
 const routineManagementActions = document.getElementById("routine-management-actions");
 const btnEditRoutine = document.getElementById("btn-edit-routine");
@@ -54,7 +56,8 @@ export async function fetchEjerciciosAux() {
 /**
  * Agrega una nueva fila al constructor interactivo de rutinas.
  */
-export function addRoutineBuilderRow(detail = null) {
+export function addRoutineBuilderRow(detail = null, targetTbody = null) {
+    const routineBuilderTbody = targetTbody || routineDaysContainer?.querySelector(".routine-day-panel:not(.hidden) tbody");
     if (!routineBuilderTbody) return;
 
     const tr = document.createElement("tr");
@@ -99,20 +102,84 @@ export function addRoutineBuilderRow(detail = null) {
     `;
 
     routineBuilderTbody.appendChild(tr);
-    updateRoutineRowNumbers();
+    updateRoutineRowNumbers(routineBuilderTbody);
 }
 
-export function updateRoutineRowNumbers() {
-    if (!routineBuilderTbody) return;
-    const rows = routineBuilderTbody.querySelectorAll("tr");
+export function updateRoutineRowNumbers(tbody) {
+    const rows = tbody?.querySelectorAll("tr") || [];
     rows.forEach((row, index) => {
-        const numSpan = row.querySelector(".routine-row-number");
-        if (numSpan) numSpan.textContent = index + 1;
-        const upBtn = row.querySelector('[data-direction="up"]');
-        const downBtn = row.querySelector('[data-direction="down"]');
-        if (upBtn) upBtn.disabled = index === 0;
-        if (downBtn) downBtn.disabled = index === rows.length - 1;
+        row.querySelector(".routine-row-number").textContent = index + 1;
+        row.querySelector('[data-direction="up"]').disabled = index === 0;
+        row.querySelector('[data-direction="down"]').disabled = index === rows.length - 1;
     });
+}
+
+function updateRoutineDayControls() {
+    const tabs = routineDayTabs?.querySelectorAll(".routine-day-tab") || [];
+    const panels = routineDaysContainer?.querySelectorAll(".routine-day-panel") || [];
+
+    tabs.forEach((tab, index) => {
+        const button = tab.querySelector("[data-day-index]");
+        const removeButton = tab.querySelector("[data-remove-day]");
+        button.dataset.dayIndex = index;
+        button.textContent = `Día ${index + 1}`;
+        button.classList.toggle("active", !panels[index].classList.contains("hidden"));
+        button.setAttribute("aria-selected", String(!panels[index].classList.contains("hidden")));
+        removeButton.dataset.dayIndex = index;
+        removeButton.disabled = tabs.length === 1;
+        panels[index].dataset.dayIndex = index;
+    });
+    if (btnAddRoutineDay) btnAddRoutineDay.disabled = tabs.length >= 7;
+}
+
+function showRoutineDay(index) {
+    const panels = routineDaysContainer?.querySelectorAll(".routine-day-panel") || [];
+    panels.forEach((panel, panelIndex) => panel.classList.toggle("hidden", panelIndex !== index));
+    updateRoutineDayControls();
+}
+
+function addRoutineBuilderDay(details = []) {
+    const tabsCount = routineDayTabs?.querySelectorAll(".routine-day-tab").length || 0;
+    if (!routineDayTabs || !routineDaysContainer || tabsCount >= 7) return false;
+
+    const index = tabsCount;
+    const tab = document.createElement("div");
+    tab.className = "routine-day-tab";
+    tab.innerHTML = `
+        <button type="button" class="routine-day-tab-button" data-day-index="${index}" role="tab">
+            Día ${index + 1}
+        </button>
+        <button type="button" class="routine-day-remove" data-remove-day data-day-index="${index}" aria-label="Quitar Día ${index + 1}" title="Quitar día">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+    routineDayTabs.appendChild(tab);
+
+    const panel = document.createElement("section");
+    panel.className = `routine-day-panel${index === 0 ? "" : " hidden"}`;
+    panel.dataset.dayIndex = index;
+    panel.innerHTML = `
+        <div class="routine-builder-container">
+            <table class="routine-builder-table">
+                <thead>
+                    <tr>
+                        <th class="routine-order-column">Orden</th>
+                        <th>Ejercicio</th>
+                        <th>Series</th>
+                        <th>Reps</th>
+                        <th>Carga (kg)</th>
+                        <th>Descanso</th>
+                        <th class="routine-actions-column">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    `;
+    routineDaysContainer.appendChild(panel);
+    details.forEach(detail => addRoutineBuilderRow(detail, panel.querySelector("tbody")));
+    updateRoutineDayControls();
+    return true;
 }
 
 export async function fetchClientRutina(dni) {
@@ -123,7 +190,8 @@ export async function fetchClientRutina(dni) {
     if (!state.cachedEjercicios || state.cachedEjercicios.length === 0) {
         await fetchEjerciciosAux();
     }
-    if (routineBuilderTbody) routineBuilderTbody.innerHTML = "";
+    if (routineDayTabs) routineDayTabs.innerHTML = "";
+    if (routineDaysContainer) routineDaysContainer.innerHTML = "";
     if (formRutina) formRutina.reset();
     
     if (rFecha) rFecha.value = new Date().toISOString().split("T")[0];
@@ -155,9 +223,12 @@ export async function fetchClientRutina(dni) {
         if (rPeriodo) rPeriodo.value = rutina.periodo || 4;
         if (rObjetivo) rObjetivo.value = rutina.objetivo || "";
         if (rObs) rObs.value = rutina.observaciones || "";
-        
-        rutina.detalles.forEach(det => addRoutineBuilderRow(det));
+        const dias = rutina.dias?.length
+            ? rutina.dias
+            : [{ detalles: rutina.detalles }];
+        dias.forEach(dia => addRoutineBuilderDay(dia.detalles || []));
     } else {
+        addRoutineBuilderDay();
         addRoutineBuilderRow();
     }
 }
@@ -174,22 +245,45 @@ export function initRutinasModule() {
         });
     }
 
-    if (routineBuilderTbody) {
-        routineBuilderTbody.addEventListener("click", (event) => {
+    if (routineDayTabs) {
+        routineDayTabs.addEventListener("click", (event) => {
+            const button = event.target.closest("button");
+            if (!button) return;
+
+            if (button.hasAttribute("data-remove-day")) {
+                const tabs = routineDayTabs.querySelectorAll(".routine-day-tab");
+                if (tabs.length <= 1) return;
+                const dayIndex = parseInt(button.dataset.dayIndex);
+                button.closest(".routine-day-tab").remove();
+                routineDaysContainer.querySelector(`.routine-day-panel[data-day-index="${dayIndex}"]`)?.remove();
+                const panels = routineDaysContainer.querySelectorAll(".routine-day-panel");
+                panels.forEach((panel, index) => panel.dataset.dayIndex = index);
+                showRoutineDay(Math.min(dayIndex, panels.length - 1));
+            } else if (button.hasAttribute("data-day-index")) {
+                showRoutineDay(parseInt(button.dataset.dayIndex));
+            }
+        });
+    }
+
+    if (routineDaysContainer) {
+        routineDaysContainer.addEventListener("click", (event) => {
             const button = event.target.closest("button");
             if (!button) return;
 
             const row = button.closest("tr");
+            const tbody = button.closest("tbody");
             if (button.classList.contains("btn-remove-row")) {
                 row.remove();
             } else if (button.classList.contains("btn-move-row")) {
                 if (button.dataset.direction === "up" && row.previousElementSibling) {
-                    routineBuilderTbody.insertBefore(row, row.previousElementSibling);
+                    tbody.insertBefore(row, row.previousElementSibling);
                 } else if (button.dataset.direction === "down" && row.nextElementSibling) {
-                    routineBuilderTbody.insertBefore(row.nextElementSibling, row);
+                    tbody.insertBefore(row.nextElementSibling, row);
+                } else {
+                    return;
                 }
             }
-            updateRoutineRowNumbers();
+            updateRoutineRowNumbers(tbody);
         });
     }
 
@@ -197,43 +291,57 @@ export function initRutinasModule() {
         btnAddRoutineRow.addEventListener("click", () => addRoutineBuilderRow());
     }
 
+    if (btnAddRoutineDay) {
+        btnAddRoutineDay.addEventListener("click", () => {
+            if (addRoutineBuilderDay()) {
+                showRoutineDay(routineDayTabs.querySelectorAll(".routine-day-tab").length - 1);
+            }
+        });
+    }
+
     if (formRutina) {
         formRutina.addEventListener("submit", async (e) => {
             e.preventDefault();
             if (!state.editingDni) return;
 
-            const rows = routineBuilderTbody.querySelectorAll("tr");
-            if (rows.length === 0) {
-                showToast("Advertencia", "Debes agregar al menos un ejercicio a la rutina.", "warning");
+            const dayBodies = Array.from(routineDaysContainer.querySelectorAll(".routine-day-panel tbody"));
+            if (dayBodies.length === 0 || dayBodies.length > 7) {
+                showToast("Error", "La rutina debe tener entre 1 y 7 días.", "error");
                 return;
             }
 
-            const detalles = [];
+            const dias = [];
             let valid = true;
 
-            rows.forEach(row => {
-                const idEj = parseInt(row.querySelector(".rb-ejercicio").value);
-                const series = parseInt(row.querySelector(".rb-series").value);
-                const reps = parseInt(row.querySelector(".rb-reps").value);
-                const cargaVal = row.querySelector(".rb-carga").value;
-                const carga = cargaVal ? parseFloat(cargaVal) : null;
-                const descanso = row.querySelector(".rb-descanso").value.trim() || null;
+            dayBodies.forEach(tbody => {
+                const rows = tbody.querySelectorAll("tr");
+                if (rows.length === 0) valid = false;
+                const detalles = [];
+                rows.forEach(row => {
+                    const idEj = parseInt(row.querySelector(".rb-ejercicio").value);
+                    const series = parseInt(row.querySelector(".rb-series").value);
+                    const reps = parseInt(row.querySelector(".rb-reps").value);
+                    const cargaVal = row.querySelector(".rb-carga").value;
+                    const carga = cargaVal ? parseFloat(cargaVal) : null;
+                    const descanso = row.querySelector(".rb-descanso").value.trim() || null;
 
-                if (!idEj || isNaN(series) || isNaN(reps)) {
-                    valid = false;
-                } else {
-                    detalles.push({
-                        id_ejercicio: idEj,
-                        series: series,
-                        repeticiones: reps,
-                        carga: carga,
-                        descanso: descanso
-                    });
-                }
+                    if (!idEj || isNaN(series) || isNaN(reps)) {
+                        valid = false;
+                    } else {
+                        detalles.push({
+                            id_ejercicio: idEj,
+                            series: series,
+                            repeticiones: reps,
+                            carga: carga,
+                            descanso: descanso
+                        });
+                    }
+                });
+                dias.push({ detalles });
             });
 
-            if (!valid || detalles.length === 0) {
-                showToast("Error", "Completa todos los campos obligatorios de los ejercicios.", "error");
+            if (!valid) {
+                showToast("Error", "Cada día debe tener al menos un ejercicio y todos los campos obligatorios completos.", "error");
                 return;
             }
 
@@ -243,7 +351,7 @@ export function initRutinasModule() {
                 objetivo: rObjetivo.value.trim(),
                 observaciones: rObs.value.trim() || null,
                 activa: true,
-                detalles: detalles
+                dias
             };
 
             const res = await ClientesService.saveClienteRutina(state.editingDni, payload);

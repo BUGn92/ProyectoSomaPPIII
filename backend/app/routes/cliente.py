@@ -140,6 +140,24 @@ def create_client_registro_entrenamiento(
     return crud.create_client_registro_entrenamiento(db, dni_cliente=dni, registro=registro)
 
 # --- Endpoints de Rutina Activa ---
+def _rutina_response_data(rutina: models.Rutina) -> dict:
+    observaciones, dias = crud.decode_rutina_days(rutina.observaciones, rutina.detalles)
+    return {
+        "id_rutina": rutina.id_rutina,
+        "dni_cliente": rutina.dni_cliente,
+        "fecha_inicio": rutina.fecha_inicio,
+        "periodo": rutina.periodo,
+        "objetivo": rutina.objetivo,
+        "activa": rutina.activa,
+        "observaciones": observaciones,
+        "detalles": rutina.detalles,
+        "dias": [
+            {"numero": index + 1, "detalles": detalles}
+            for index, detalles in enumerate(dias)
+        ],
+    }
+
+
 @router.get("/{dni}/rutina", response_model=Optional[schemas.RutinaResponse])
 def read_client_rutina_activa(
     dni: str,
@@ -151,7 +169,7 @@ def read_client_rutina_activa(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     rutina = crud.get_rutina_activa_cliente(db, dni_cliente=dni)
-    return rutina
+    return _rutina_response_data(rutina) if rutina else None
 
 @router.post("/{dni}/rutina", response_model=schemas.RutinaResponse, status_code=status.HTTP_201_CREATED)
 def assign_or_update_client_rutina(
@@ -165,7 +183,12 @@ def assign_or_update_client_rutina(
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
     # Validar que los ejercicios existan
-    for det in rutina_data.detalles:
+    detalles = (
+        [det for dia in rutina_data.dias for det in dia.detalles]
+        if rutina_data.dias is not None
+        else rutina_data.detalles
+    )
+    for det in detalles:
         ej = db.query(models.Ejercicio).filter(models.Ejercicio.id_ejercicio == det.id_ejercicio).first()
         if not ej:
             raise HTTPException(
@@ -179,7 +202,7 @@ def assign_or_update_client_rutina(
         rutina_data=rutina_data,
         id_usuario_entrenador=current_user.id_usuario
     )
-    return nueva_rutina
+    return _rutina_response_data(nueva_rutina)
 
 # --- Endpoints auxiliares: Catálogo de Ejercicios ---
 @router.get("/aux/ejercicios", response_model=List[schemas.EjercicioResponse])

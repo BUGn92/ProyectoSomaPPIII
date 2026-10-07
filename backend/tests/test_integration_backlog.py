@@ -384,6 +384,57 @@ def test_tarea_03_generador_rutina_planilla_entrenador(client, db):
     assert len(rutina_activa["detalles"]) == 1
 
 
+def test_rutina_admite_hasta_siete_dias_sin_cambiar_esquema(client, db):
+    cliente_db = models.Cliente(
+        dni="33999000",
+        nombre="Ana",
+        apellido="Días",
+        fecha_alta=date.today(),
+        activo=True
+    )
+    db.add(cliente_db)
+    db.commit()
+
+    rutina = {
+        "fecha_inicio": str(date.today()),
+        "periodo": 4,
+        "objetivo": "Fuerza",
+        "observaciones": "Alternar días de trabajo y descanso.",
+        "dias": [
+            {"detalles": [{"id_ejercicio": 1, "series": 3, "repeticiones": 10, "descanso": "60s"}]},
+            {"detalles": [{"id_ejercicio": 2, "series": 4, "repeticiones": 8, "descanso": "90s"}]},
+            {"detalles": [
+                {"id_ejercicio": 3, "series": 3, "repeticiones": 8, "descanso": "60s"},
+                {"id_ejercicio": 4, "series": 3, "repeticiones": 12, "descanso": "60s"}
+            ]}
+        ]
+    }
+    headers_trainer = get_auth_headers("mfuerte", "Entrenador")
+    response = client.post("/api/clientes/33999000/rutina", json=rutina, headers=headers_trainer)
+
+    assert response.status_code == 201
+    saved = response.json()
+    assert [len(dia["detalles"]) for dia in saved["dias"]] == [1, 1, 2]
+    assert saved["observaciones"] == rutina["observaciones"]
+    assert len(saved["detalles"]) == 4
+
+    headers_admin = get_auth_headers("cadmin", "Admin")
+    rutina["dias"] = [
+        {"detalles": [{"id_ejercicio": 1, "series": 3, "repeticiones": 10}]}
+        for _ in range(7)
+    ]
+    seven_day_response = client.post("/api/clientes/33999000/rutina", json=rutina, headers=headers_admin)
+    assert seven_day_response.status_code == 201
+    assert len(seven_day_response.json()["dias"]) == 7
+
+    rutina["dias"].append({"detalles": [{"id_ejercicio": 2, "series": 3, "repeticiones": 10}]})
+    too_many_days_response = client.post("/api/clientes/33999000/rutina", json=rutina, headers=headers_admin)
+    assert too_many_days_response.status_code == 422
+
+    active = client.get("/api/clientes/33999000/rutina", headers=headers_admin).json()
+    assert len(active["dias"]) == 7
+
+
 # ==============================================================================
 # TEST 4: SOMA-04 - Consistencia Visual y Operativa de Usuarios (Admin)
 # ==============================================================================
