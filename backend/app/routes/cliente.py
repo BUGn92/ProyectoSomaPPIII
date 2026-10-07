@@ -25,10 +25,11 @@ def check_client_data_access(dni: str, current_user: models.Usuario):
 def read_clients(
     skip: int = 0,
     limit: int = 100,
+    incluir_inactivos: bool = False,
     db: Session = Depends(database.get_db),
     current_user: models.Usuario = Depends(require_roles(["Admin", "Recepcionista", "Entrenador"]))
 ):
-    return crud.get_clients(db, skip=skip, limit=limit)
+    return crud.get_clients(db, skip=skip, limit=limit, incluir_inactivos=incluir_inactivos)
 
 @router.get("/{dni}", response_model=schemas.ClienteResponse)
 def read_client(
@@ -44,7 +45,7 @@ def read_client(
 
 @router.post("/", response_model=schemas.ClienteResponse, status_code=status.HTTP_201_CREATED)
 def create_new_client(
-    client: schemas.ClienteCreate,
+    client: schemas.ClienteConPagoCreate,
     db: Session = Depends(database.get_db),
     current_user: models.Usuario = Depends(require_roles(["Admin", "Recepcionista"]))
 ):
@@ -75,6 +76,18 @@ def delete_existing_client(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return crud.delete_client(db=db, dni=dni)
+
+@router.post("/{dni}/reactivar", response_model=schemas.ClienteResponse)
+def reactivate_existing_client(
+    dni: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(require_roles(["Admin"]))
+):
+    """Reactiva un cliente dado de baja lógicamente."""
+    reactivated = crud.reactivate_client(db=db, dni=dni)
+    if reactivated is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return reactivated
 
 # --- Endpoints de Evolución Física ---
 @router.get("/{dni}/evolucion-fisica", response_model=List[schemas.EvolucionFisicaResponse])
@@ -127,6 +140,24 @@ def create_client_registro_entrenamiento(
     return crud.create_client_registro_entrenamiento(db, dni_cliente=dni, registro=registro)
 
 # --- Endpoints de Rutina Activa ---
+def _rutina_response_data(rutina: models.Rutina) -> dict:
+    observaciones, dias = crud.decode_rutina_days(rutina.observaciones, rutina.detalles)
+    return {
+        "id_rutina": rutina.id_rutina,
+        "dni_cliente": rutina.dni_cliente,
+        "fecha_inicio": rutina.fecha_inicio,
+        "periodo": rutina.periodo,
+        "objetivo": rutina.objetivo,
+        "activa": rutina.activa,
+        "observaciones": observaciones,
+        "detalles": rutina.detalles,
+        "dias": [
+            {"numero": index + 1, "detalles": detalles}
+            for index, detalles in enumerate(dias)
+        ],
+    }
+
+
 @router.get("/{dni}/rutina", response_model=Optional[schemas.RutinaResponse])
 def read_client_rutina_activa(
     dni: str,
@@ -138,7 +169,7 @@ def read_client_rutina_activa(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     rutina = crud.get_rutina_activa_cliente(db, dni_cliente=dni)
-    return rutina
+    return _rutina_response_data(rutina) if rutina else None
 
 @router.post("/{dni}/rutina", response_model=schemas.RutinaResponse, status_code=status.HTTP_201_CREATED)
 def assign_or_update_client_rutina(
@@ -152,7 +183,12 @@ def assign_or_update_client_rutina(
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
     # Validar que los ejercicios existan
-    for det in rutina_data.detalles:
+    detalles = (
+        [det for dia in rutina_data.dias for det in dia.detalles]
+        if rutina_data.dias is not None
+        else rutina_data.detalles
+    )
+    for det in detalles:
         ej = db.query(models.Ejercicio).filter(models.Ejercicio.id_ejercicio == det.id_ejercicio).first()
         if not ej:
             raise HTTPException(
@@ -166,7 +202,7 @@ def assign_or_update_client_rutina(
         rutina_data=rutina_data,
         id_usuario_entrenador=current_user.id_usuario
     )
-    return nueva_rutina
+    return _rutina_response_data(nueva_rutina)
 
 # --- Endpoints auxiliares: Catálogo de Ejercicios ---
 @router.get("/aux/ejercicios", response_model=List[schemas.EjercicioResponse])
@@ -175,3 +211,21 @@ def read_ejercicios(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     return crud.get_ejercicios(db)
+
+# --- Endpoint de Membresía Activa (para preview de vencimiento y portal del socio) ---
+@router.get("/{dni}/membresia", response_model=Optional[schemas.ClienteMembresiaResponse])
+def read_cliente_membresia_activa(
+    dni: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(get_current_user),
+):
+    """
+    Retorna el registro activo de ClienteMembresia del socio.
+    Permite el acceso a staff (Admin, Recepcionista, Entrenador) y al propio socio.
+    Devuelve null si el socio nunca tuvo membresía registrada.
+    """
+    check_client_data_access(dni, current_user)
+    db_client = crud.get_client(db, dni=dni)
+    if db_client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return crud.get_membresia_activa_cliente(db, dni_cliente=dni)

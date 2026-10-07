@@ -23,7 +23,9 @@ CREATE TABLE Usuario (
     nombre VARCHAR(50) NOT NULL,
     usuario_login VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    rol VARCHAR(50) NOT NULL -- Ej: Admin, Recepcionista, Entrenador
+    debe_cambiar_password BOOLEAN NOT NULL DEFAULT FALSE,
+    rol VARCHAR(50) NOT NULL, -- Ej: Admin, Recepcionista, Entrenador
+    activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE Ejercicio (
@@ -70,6 +72,8 @@ CREATE TABLE Pago (
     monto DECIMAL(10, 2) NOT NULL,
     metodo_pago VARCHAR(50),
     descripcion VARCHAR(255),
+    meses_abonados INT NOT NULL DEFAULT 1,
+    fecha_vencimiento_cuota DATE NULL,
     FOREIGN KEY (dni_cliente) REFERENCES Cliente(dni)
 );
 

@@ -46,9 +46,15 @@ class UsuarioUpdate(BaseModel):
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
     debe_cambiar_password: Optional[bool] = False
+    activo: Optional[bool] = True
 
     class Config:
         from_attributes = True
+
+class UsuarioConPagoResponse(UsuarioResponse):
+    """Extiende UsuarioResponse con información de estado de pago para socios (rol Cliente)."""
+    estado_pago: Optional[str] = None          # "Al día", "Vencido", "Sin membresía"
+    fecha_vencimiento_cuota: Optional[date] = None
 
 class UsuarioLogin(BaseModel):
     usuario_login: str
@@ -90,6 +96,7 @@ class ClienteUpdate(BaseModel):
 
 class ClienteResponse(ClienteBase):
     fecha_alta: date
+    fecha_vencimiento_cuota: Optional[date] = None
     id_direccion: Optional[int] = None
     direccion: Optional[DireccionResponse] = None
 
@@ -104,6 +111,35 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     usuario_login: Optional[str] = None
+
+# --- Recuperación de Contraseña ---
+class SolicitudRecuperacionRequest(BaseModel):
+    """Recibe el identificador del usuario (usuario_login, DNI o email)."""
+    identificador: str
+
+class SolicitudRecuperacionResponse(BaseModel):
+    """Respuesta a la solicitud de recuperación por OTP."""
+    message: str
+    usuario_login: str
+    email_enviado: str
+    reset_token: Optional[str] = None  # Mantenido para retrocompatibilidad/pruebas
+
+class VerificarOTPRequest(BaseModel):
+    """Recibe el usuario_login y el código OTP de 6 dígitos."""
+    usuario_login: str
+    otp: str
+
+class VerificarOTPResponse(BaseModel):
+    """Respuesta tras verificar correctamente el código OTP."""
+    message: str
+    token_recuperacion: str
+
+
+class ConfirmarReseteoRequest(BaseModel):
+    """Recibe el token de reseteo y la nueva contraseña."""
+    token: str
+    nueva_password: str
+    confirmar_password: str
 
 # --- Ejercicio ---
 class EjercicioResponse(BaseModel):
@@ -184,6 +220,7 @@ class DetalleRutinaResponse(DetalleRutinaBase):
     id_rutina: int
     id_usuario: int
     ejercicio: Optional[EjercicioResponse] = None
+    usuario: Optional[UsuarioResponse] = None
 
     class Config:
         from_attributes = True
@@ -195,15 +232,73 @@ class RutinaBase(BaseModel):
     observaciones: Optional[str] = None
     activa: Optional[bool] = True
 
+class DiaRutinaCreate(BaseModel):
+    detalles: List[DetalleRutinaCreate] = Field(min_length=1)
+
 class RutinaCreate(RutinaBase):
-    detalles: List[DetalleRutinaCreate] = []
+    detalles: List[DetalleRutinaCreate] = Field(default_factory=list)
+    dias: Optional[List[DiaRutinaCreate]] = Field(default=None, min_length=1, max_length=7)
+
+class DiaRutinaResponse(BaseModel):
+    numero: int
+    detalles: List[DetalleRutinaResponse]
 
 class RutinaResponse(RutinaBase):
     id_rutina: int
     dni_cliente: str
-    detalles: List[DetalleRutinaResponse] = []
+    detalles: List[DetalleRutinaResponse] = Field(default_factory=list)
+    dias: List[DiaRutinaResponse] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
 
 
+# --- Pagos ---
+class PagoInicialCreate(BaseModel):
+    """Datos del primer pago a registrar al dar de alta un socio."""
+    monto: Decimal
+    metodo_pago: str  # Efectivo, Transferencia, Débito, Crédito
+    meses_abonados: int = 1
+    descripcion: Optional[str] = None
+
+class PagoCreate(BaseModel):
+    dni_cliente: str
+    monto: Decimal
+    metodo_pago: str  # Efectivo, Transferencia, Débito, Crédito
+    meses_abonados: int = 1
+    descripcion: Optional[str] = None
+
+class PagoResponse(BaseModel):
+    id_pago: int
+    dni_cliente: str
+    fecha_pago: date
+    monto: Decimal
+    metodo_pago: Optional[str]
+    meses_abonados: int
+    fecha_vencimiento_cuota: Optional[date]
+    descripcion: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+class ResumenMensualResponse(BaseModel):
+    anio: int
+    mes: int
+    total_recaudado: Decimal
+    cantidad_cuotas: int
+
+# --- Schema compuesto: Alta de Socio con Pago Inicial obligatorio ---
+class ClienteConPagoCreate(ClienteCreate):
+    """Extiende ClienteCreate con el pago inicial obligatorio."""
+    primer_pago: PagoInicialCreate
+
+# --- Membresía activa (para preview de vencimiento en frontend) ---
+class ClienteMembresiaResponse(BaseModel):
+    id_cliente_membresia: int
+    dni_cliente: str
+    fecha_inicio: date
+    fecha_fin: date
+    estado: str
+
+    class Config:
+        from_attributes = True

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOMA Gym - Portal del Socio</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Vanilla CSS -->
+    <link rel="stylesheet" href="css/style.css?v=2.5">
+</head>
+<body>
+
+    <!-- Contenedor del Toast de Notificaciones -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- PORTAL DEL SOCIO (VISTA CLIENTE) -->
+    <div id="portal-socio-page" class="portal-wrapper">
+        <!-- Top Navbar del Socio -->
+        <header class="portal-navbar">
+            <div class="portal-brand">
+                <i class="fa-solid fa-dumbbell"></i>
+                <span>SOMA<b>GYM</b></span>
+                <span class="portal-tag">Portal Socio</span>
+            </div>
+            <div class="portal-user-info">
+                <div class="user-greeting">
+                    <span class="welcome-text">Hola,</span>
+                    <strong id="socio-header-name">Socio</strong>
+                </div>
+                <div class="portal-badges-header">
+                    <div id="socio-apto-badge" class="badge-apto-header">
+                        <i class="fa-solid fa-file-medical"></i>
+                        <span id="socio-apto-text">Apto al día</span>
+                    </div>
+                    <div id="socio-cuota-badge" class="badge-apto-header">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span id="socio-cuota-text">Cuota al día</span>
+                    </div>
+                </div>
+                <button id="btn-socio-logout" class="btn-logout-compact" title="Cerrar Sesión">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navegación de Pestañas del Socio -->
+        <div class="portal-nav-bar">
+            <div class="portal-tabs">
+                <button class="portal-tab-btn active" data-portal-tab="socio-tab-rutina">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Mi Rutina</span>
+                </button>
+                <button class="portal-tab-btn" data-portal-tab="socio-tab-novedades">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span>Novedades del Gym</span>
+                </button>
+                <button class="portal-tab-btn" data-portal-tab="socio-tab-evolucion">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Mi Progreso</span>
+                </button>
+                <button class="portal-tab-btn" data-portal-tab="socio-tab-pagos">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Mis Pagos</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenido de Pestañas del Socio -->
+        <main class="portal-main-container">
+            
+            <!-- Pestaña Socio: Mi Rutina (Solo Lectura) -->
+            <section id="socio-tab-rutina" class="portal-panel active">
+                <div id="socio-rutina-container">
+                    <!-- Tarjeta de Rutina Dinámica -->
+                </div>
+            </section>
+
+            <!-- Pestaña Socio: Muro de Novedades -->
+            <section id="socio-tab-novedades" class="portal-panel">
+                <div class="portal-section-header">
+                    <h2><i class="fa-solid fa-bullhorn"></i> Comunicados y Novedades</h2>
+                    <p>Enterate de los avisos, horarios y noticias oficiales del gimnasio.</p>
+                </div>
+                <div class="feed-container" id="socio-noticias-feed">
+                    <!-- Tarjetas de noticias dinámicas -->
+                </div>
+            </section>
+
+            <!-- Pestaña Socio: Mi Progreso -->
+            <section id="socio-tab-evolucion" class="portal-panel">
+                <div class="portal-section-header">
+                    <h2><i class="fa-solid fa-chart-line"></i> Historial de Evolución</h2>
+                    <p>Seguimiento de mediciones físicas y cargas alcanzadas.</p>
+                </div>
+                <div class="portal-progress-grid">
+                    <div class="portal-card">
+                        <h3><i class="fa-solid fa-weight-scale"></i> Mediciones Físicas</h3>
+                        <div class="sub-table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Peso (kg)</th>
+                                        <th>% Grasa</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-socio-ev-fisica">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="portal-card">
+                        <h3><i class="fa-solid fa-dumbbell"></i> Historial de Cargas</h3>
+                        <div class="sub-table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Ejercicio</th>
+                                        <th>Carga (kg)</th>
+                                        <th>Reps</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-socio-ev-deportiva">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pestaña Socio: Mis Pagos y Membresía -->
+            <section id="socio-tab-pagos" class="portal-panel">
+                <div class="portal-section-header">
+                    <h2><i class="fa-solid fa-receipt"></i> Mis Pagos y Estado de Membresía</h2>
+                    <p>Consulta el estado de tu membresía y el historial completo de cuotas abonadas.</p>
+                </div>
+                <div class="portal-card" style="margin-bottom: 1.5rem;">
+                    <h3><i class="fa-solid fa-id-card"></i> Estado Actual de Cuota</h3>
+                    <div style="display: flex; gap: 2.5rem; flex-wrap: wrap; margin-top: 1rem;">
+                        <div>
+                            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">Estado</span>
+                            <span id="socio-membresia-estado" style="font-weight: 700; font-size: 1.1rem;">-</span>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">Vencimiento de Cuota</span>
+                            <span id="socio-membresia-vencimiento" style="font-weight: 700; font-size: 1.1rem;">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="portal-card">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Historial de Cuotas Pagadas</h3>
+                    <div class="sub-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha de Pago</th>
+                                    <th>Concepto</th>
+                                    <th>Meses Abonados</th>
+                                    <th>Vencimiento Cuota</th>
+                                    <th>Método de Pago</th>
+                                    <th>Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-socio-pagos">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Script de inicialización del Portal Socio -->
+    <script type="module" src="js/socio-entry.js?v=3.1"></script>
+</body>
+</html>

@@ -33,6 +33,7 @@ class Usuario(Base):
     password = Column(String(255), nullable=False)
     rol = Column(String(50), nullable=False)
     debe_cambiar_password = Column(Boolean, default=False)
+    activo = Column(Boolean, default=True, nullable=False)
 
 
 class Ejercicio(Base):
@@ -88,8 +89,11 @@ class Pago(Base):
     monto = Column(Numeric(10, 2), nullable=False)
     metodo_pago = Column(String(50))
     descripcion = Column(String(255))
+    meses_abonados = Column(Integer, default=1, nullable=False)
+    fecha_vencimiento_cuota = Column(Date, nullable=True)
 
     cliente = relationship("Cliente", back_populates="pagos")
+
 
 
 class Rutina(Base):
@@ -104,7 +108,7 @@ class Rutina(Base):
     observaciones = Column(Text)
 
     cliente = relationship("Cliente", back_populates="rutinas")
-    detalles = relationship("DetalleRutina", back_populates="rutina")
+    detalles = relationship("DetalleRutina", back_populates="rutina", order_by="DetalleRutina.id_detalle")
 
 
 class DetalleRutina(Base):
