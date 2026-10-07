@@ -118,6 +118,7 @@ class DetalleRutina(Base):
     id_rutina = Column(Integer, ForeignKey("Rutina.id_rutina"), nullable=False)
     id_usuario = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
     id_ejercicio = Column(Integer, ForeignKey("Ejercicio.id_ejercicio"), nullable=False)
+    dia = Column(Integer, nullable=False, default=1, server_default="1")
     series = Column(Integer, nullable=False)
     repeticiones = Column(Integer, nullable=False)
     carga = Column(Numeric(5, 2))
@@ -166,5 +167,4 @@ class Noticia(Base):
     id_usuario_autor = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
 
     autor = relationship("Usuario")
-
 

@@ -219,6 +219,7 @@ class DetalleRutinaResponse(DetalleRutinaBase):
     id_detalle: int
     id_rutina: int
     id_usuario: int
+    dia: int
     ejercicio: Optional[EjercicioResponse] = None
     usuario: Optional[UsuarioResponse] = None
 
