@@ -506,10 +506,28 @@ def test_tarea_06_clientes_borrado_logico_y_realta(client, db):
         "fecha_vencimiento_apto": str(date.today() + timedelta(days=180)),
         "calle": "San Martín",
         "numero": "450",
-        "ciudad": "Rosario"
+        "ciudad": "Rosario",
+        "primer_pago": {
+            "monto": "15000.00",
+            "metodo_pago": "Efectivo",
+            "meses_abonados": 1
+        }
     }
+    db.add(models.Membresia(
+        id_membresia=1,
+        tipo="Mensual",
+        precio=Decimal("15000.00"),
+        duracion_dias=30
+    ))
+    db.commit()
+
     res_crear = client.post("/api/clientes/", json=nuevo_cliente, headers=headers_admin)
     assert res_crear.status_code == 201
+    pago_inicial = db.query(models.Pago).filter(
+        models.Pago.dni_cliente == "28999111"
+    ).one()
+    assert pago_inicial.meses_abonados == 1
+    assert pago_inicial.fecha_vencimiento_cuota is not None
 
     # 2. Registrar evolución y entrenamiento para este cliente
     client.post("/api/clientes/28999111/evolucion-fisica", json={
@@ -658,3 +676,51 @@ def test_tarea_09_foto_perfil_cliente_flujo_aprobacion(client, db):
 
     # 5. Verificar que el perfil del socio ahora refleja la nueva foto aprobada
     assert getattr(cliente_db, "foto_url") == "uploads/temp/propuesta_32111333.jpg"
+
+
+def test_lista_clientes_incluye_vencimiento_de_pago(client, db):
+    headers_admin = get_auth_headers("cadmin", "Admin")
+    fecha_fin = date.today() + timedelta(days=12)
+    clientes = [
+        models.Cliente(
+            dni="30000111",
+            nombre="Socio",
+            apellido="Con membresía",
+            fecha_alta=date.today(),
+            activo=True,
+        ),
+        models.Cliente(
+            dni="30000222",
+            nombre="Socio",
+            apellido="Sin membresía",
+            fecha_alta=date.today(),
+            activo=True,
+        ),
+    ]
+    db.add_all(clientes)
+    db.add(models.Membresia(
+        id_membresia=1,
+        tipo="Mensual",
+        precio=Decimal("15000.00"),
+        duracion_dias=30,
+    ))
+    db.commit()
+    db.add(models.ClienteMembresia(
+        id_cliente_membresia=1,
+        dni_cliente="30000111",
+        id_membresia=1,
+        fecha_inicio=date.today(),
+        fecha_fin=fecha_fin,
+        estado="Activo",
+    ))
+    db.commit()
+
+    response = client.get("/api/clientes/", headers=headers_admin)
+
+    assert response.status_code == 200
+    vencimientos = {
+        socio["dni"]: socio["fecha_vencimiento_cuota"]
+        for socio in response.json()
+    }
+    assert vencimientos["30000111"] == str(fecha_fin)
+    assert vencimientos["30000222"] is None

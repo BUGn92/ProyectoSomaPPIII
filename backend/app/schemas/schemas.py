@@ -96,6 +96,7 @@ class ClienteUpdate(BaseModel):
 
 class ClienteResponse(ClienteBase):
     fecha_alta: date
+    fecha_vencimiento_cuota: Optional[date] = None
     id_direccion: Optional[int] = None
     direccion: Optional[DireccionResponse] = None
 
