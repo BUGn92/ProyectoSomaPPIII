@@ -213,7 +213,24 @@ def get_clients(db: Session, skip: int = 0, limit: int = 100, incluir_inactivos:
     query = db.query(models.Cliente)
     if not incluir_inactivos:
         query = query.filter(models.Cliente.activo == True)
-    return query.offset(skip).limit(limit).all()
+    clients = query.offset(skip).limit(limit).all()
+    if not clients:
+        return clients
+
+    vencimientos = (
+        db.query(
+            models.ClienteMembresia.dni_cliente,
+            func.max(models.ClienteMembresia.fecha_fin),
+        )
+        .filter(models.ClienteMembresia.dni_cliente.in_([client.dni for client in clients]))
+        .group_by(models.ClienteMembresia.dni_cliente)
+        .all()
+    )
+    vencimiento_por_dni = {dni: fecha_fin for dni, fecha_fin in vencimientos}
+    for client in clients:
+        client.fecha_vencimiento_cuota = vencimiento_por_dni.get(client.dni)
+
+    return clients
 
 # --- Lógica de Pagos y Vigencia de Membresía ---
 def calcular_nuevo_vencimiento(fecha_fin_actual: date | None, fecha_pago: date, meses: int) -> date:
@@ -563,5 +580,4 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
     db.commit()
     db.refresh(db_rutina)
     return db_rutina
-
 

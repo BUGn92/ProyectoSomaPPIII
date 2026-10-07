@@ -63,16 +63,43 @@ export async function fetchClientes() {
     }
 }
 
+function renderEstadoPago(fechaVencimiento) {
+    if (!fechaVencimiento) {
+        return `<span class="badge badge-inactive">Sin membresía</span>`;
+    }
+
+    const [anio, mes, dia] = fechaVencimiento.split("-").map(Number);
+    const vencimientoUtc = Date.UTC(anio, mes - 1, dia);
+    const hoy = new Date();
+    const hoyUtc = Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const diasRestantes = Math.round((vencimientoUtc - hoyUtc) / 86400000);
+    const fechaVisible = `${dia.toString().padStart(2, "0")}/${mes.toString().padStart(2, "0")}/${anio}`;
+
+    if (diasRestantes < 0) {
+        return `<span class="badge badge-danger"><i class="fa-solid fa-circle" aria-hidden="true"></i> Vencido · ${fechaVisible}</span>`;
+    }
+    if (diasRestantes > 7) {
+        return `<span class="badge badge-success"><i class="fa-solid fa-circle" aria-hidden="true"></i> Al día · ${diasRestantes} días · ${fechaVisible}</span>`;
+    }
+
+    const estado = diasRestantes === 0
+        ? "Vence hoy"
+        : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
+    return `<span class="badge badge-warning"><i class="fa-solid fa-circle" aria-hidden="true"></i> ${estado} · ${fechaVisible}</span>`;
+}
+
 export function renderClientes(clients) {
     if (!tbodyClientes) return;
     tbodyClientes.innerHTML = "";
 
+    const esAdmin = (state.currentUser?.rol || "").toLowerCase() === "admin";
     if (!clients || clients.length === 0) {
-        tbodyClientes.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
+        const columnas = esAdmin ? 8 : 9;
+        tbodyClientes.innerHTML = `<tr><td colspan="${columnas}" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
         return;
     }
 
-    const canAdmin = (state.currentUser?.rol || "").toLowerCase() === "admin";
+    const canAdmin = esAdmin;
 
     clients.forEach(c => {
         const tr = document.createElement("tr");
@@ -84,7 +111,7 @@ export function renderClientes(clients) {
         const estadoBadge = c.activo
             ? `<span class="badge badge-success">Activo</span>`
             : `<span class="badge badge-inactive">Inactivo</span>`;
-            
+        const pagoBadge = renderEstadoPago(c.fecha_vencimiento_cuota);
         let dirText = "-";
         if (c.direccion) {
             dirText = `${c.direccion.calle || ''} ${c.direccion.numero || ''} (${c.direccion.ciudad || ''})`.trim() || "-";
@@ -101,8 +128,9 @@ export function renderClientes(clients) {
             <td><strong>${escapeHtml(c.dni)}</strong></td>
             <td>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</td>
             <td>${c.edad ? escapeHtml(c.edad) + ' años' : '-'}</td>
-            <td>${escapeHtml(c.email || c.telefono || '-')}</td>
-            <td>${escapeHtml(dirText)}</td>
+            ${esAdmin
+                ? `<td>${pagoBadge}</td>`
+                : `<td>${escapeHtml(c.email || c.telefono || '-')}</td><td>${escapeHtml(dirText)}</td>`}
             <td>${aptoBadge}</td>
             <td>${estadoBadge}</td>
             <td>${escapeHtml(c.fecha_alta)}</td>
