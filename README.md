@@ -40,10 +40,15 @@ Sigue estos pasos ordenados para levantar el entorno de desarrollo localmente:
    ```
    *(Esto creará la base de datos `GimnasioDB` con los usuarios, ejercicios, clientes y membresías de prueba).*
 
-   El esquema de creación ya incluye el campo `Usuario.activo`, necesario para que el login encuentre usuarios habilitados. Si ya habías creado la base de datos con una versión anterior del esquema, no vuelvas a ejecutar los scripts de creación y carga: aplica una sola vez la migración:
+   El esquema de creación incluye los campos que usa el alta de socios (`Usuario.debe_cambiar_password`, `Pago.meses_abonados` y `Pago.fecha_vencimiento_cuota`). Si ya habías creado la base de datos con una versión anterior, no vuelvas a ejecutar los scripts de creación y carga: aplica la migración compatible con la versión que tengas:
+   ```bash
+   mysql -u root GimnasioDB < "Documentos/migracion_alta_socio.sql"
+   ```
+   Si además tu base de datos es anterior al borrado lógico de usuarios y no tiene `Usuario.activo`, aplica también:
    ```bash
    mysql -u root GimnasioDB < "Documentos/migracion_borrado_logico_usuarios.sql"
    ```
+   La migración de alta de socios conserva los datos y se puede ejecutar más de una vez. El alta también requiere que exista la membresía con `id_membresia = 1`; el script de carga inicial la crea.
    *(Si MySQL requiere contraseña, agrega `-p` al comando.)*
 
 ---
@@ -123,10 +128,10 @@ La base de datos viene precargada con los siguientes usuarios para probar los di
 
 | Usuario (Login) | Contraseña | Rol | Permisos |
 | :--- | :--- | :--- | :--- |
-| **`cadmin`** | `hash_falso_123` | **Admin** | Acceso total: CRUD de Clientes, Evolución y CRUD de Usuarios |
+| **`cadmin`** | `hash_falso_123` | **Admin** | CRUD de Clientes, rutinas de hasta 7 días, Evolución y Usuarios |
 | **`alopez`** | `hash_falso_456` | **Recepcionista** | Gestión de clientes, cuotas y check-in |
-| **`mfuerte`** | `hash_falso_789` | **Entrenador** | Consulta de rutinas y registro de cargas |
-| **`lfit`** | `hash_falso_101` | **Entrenador** | Consulta de rutinas y registro de cargas |
+| **`mfuerte`** | `hash_falso_789` | **Entrenador** | Asignación y edición de rutinas de hasta 7 días y registro de cargas |
+| **`lfit`** | `hash_falso_101` | **Entrenador** | Asignación y edición de rutinas de hasta 7 días y registro de cargas |
 
 ---
 
