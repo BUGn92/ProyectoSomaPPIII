@@ -1536,6 +1536,63 @@ tr:hover td {
     margin-top: 1.5rem;
 }
 
+.routine-builder-actions,
+.routine-day-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.routine-day-tabs {
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.routine-day-tab {
+    display: inline-flex;
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-dark);
+}
+
+.routine-day-tab-button,
+.routine-day-remove {
+    border: 0;
+    color: var(--text-secondary);
+    background: transparent;
+    cursor: pointer;
+}
+
+.routine-day-tab-button {
+    padding: 0.55rem 0.8rem;
+    font: inherit;
+}
+
+.routine-day-tab-button.active {
+    color: var(--bg-dark);
+    background: var(--accent);
+    font-weight: 700;
+}
+
+.routine-day-remove {
+    padding: 0 0.55rem;
+    border-left: 1px solid var(--border-light);
+}
+
+.routine-day-remove:hover:not(:disabled) {
+    color: var(--danger);
+}
+
+.routine-day-remove:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.routine-day-panel {
+    margin-top: 0.75rem;
+}
+
 .routine-builder-table {
     width: 100%;
     border-collapse: collapse;
@@ -1638,6 +1695,12 @@ tr:hover td {
 @media (max-width: 700px) {
     .routine-builder-heading {
         align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .routine-builder-actions {
+        width: 100%;
+        flex-wrap: wrap;
     }
 
     .routine-builder-heading .btn-secondary {
@@ -2109,6 +2172,16 @@ tr:hover td {
     border: 1px solid var(--border-light);
     border-radius: 8px;
     background: var(--bg-dark);
+}
+
+.routine-day-sheet + .routine-day-sheet {
+    margin-top: 1.5rem;
+}
+
+.routine-day-sheet h3 {
+    margin: 0 0 0.65rem;
+    color: var(--accent);
+    font-size: 1.05rem;
 }
 
 .routine-sheet {

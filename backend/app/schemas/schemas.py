@@ -232,13 +232,22 @@ class RutinaBase(BaseModel):
     observaciones: Optional[str] = None
     activa: Optional[bool] = True
 
+class DiaRutinaCreate(BaseModel):
+    detalles: List[DetalleRutinaCreate] = Field(min_length=1)
+
 class RutinaCreate(RutinaBase):
-    detalles: List[DetalleRutinaCreate] = []
+    detalles: List[DetalleRutinaCreate] = Field(default_factory=list)
+    dias: Optional[List[DiaRutinaCreate]] = Field(default=None, min_length=1, max_length=7)
+
+class DiaRutinaResponse(BaseModel):
+    numero: int
+    detalles: List[DetalleRutinaResponse]
 
 class RutinaResponse(RutinaBase):
     id_rutina: int
     dni_cliente: str
-    detalles: List[DetalleRutinaResponse] = []
+    detalles: List[DetalleRutinaResponse] = Field(default_factory=list)
+    dias: List[DiaRutinaResponse] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

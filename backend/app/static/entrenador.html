@@ -233,29 +233,20 @@
 
                         <!-- Lista Dinámica de Ejercicios -->
                         <div class="form-section-title routine-builder-heading">
-                            <span>Ejercicios de la Rutina</span>
-                            <button type="button" id="btn-add-routine-row" class="btn-secondary btn-sm">
-                                <i class="fa-solid fa-plus"></i> Agregar Ejercicio
-                            </button>
+                            <span>Días de Entrenamiento</span>
+                            <div class="routine-builder-actions">
+                                <button type="button" id="btn-add-routine-day" class="btn-secondary btn-sm">
+                                    <i class="fa-solid fa-calendar-plus"></i> Agregar Día
+                                </button>
+                                <button type="button" id="btn-add-routine-row" class="btn-secondary btn-sm">
+                                    <i class="fa-solid fa-plus"></i> Agregar Ejercicio
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="routine-builder-container">
-                            <table class="routine-builder-table">
-                                <thead>
-                                    <tr>
-                                        <th class="routine-order-column">Orden</th>
-                                        <th>Ejercicio</th>
-                                        <th>Series</th>
-                                        <th>Reps</th>
-                                        <th>Carga (kg)</th>
-                                        <th>Descanso</th>
-                                        <th class="routine-actions-column">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="routine-builder-tbody">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
+                        <div id="routine-day-tabs" class="routine-day-tabs" role="tablist" aria-label="Días de entrenamiento"></div>
+                        <div id="routine-days-container">
+                            <!-- Días y ejercicios dinámicos -->
                         </div>
 
                         <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
