@@ -17,6 +17,22 @@ const nImagenUrl = document.getElementById("n-imagen-url");
 const nImgPreviewContainer = document.getElementById("noticia-img-preview-container");
 const nImgPreview = document.getElementById("noticia-img-preview");
 
+/**
+ * Transforma enlaces compartidos de Google Drive o directos al formato CDN visible.
+ * @param {string} url 
+ * @returns {string} URL lista para ser renderizada en una etiqueta <img>
+ */
+export function normalizarUrlImagen(url) {
+    if (!url) return "";
+    const trimmed = url.trim();
+    const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|lh[0-9]\.googleusercontent\.com\/d\/)([a-zA-Z0-9_-]+)/;
+    const match = trimmed.match(driveRegex);
+    if (match && match[1]) {
+        return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+    return trimmed;
+}
+
 export async function fetchNoticias() {
     const res = await NoticiasService.getNoticias();
     if (res.ok) {
@@ -97,9 +113,10 @@ export function renderNoticiasFeed(container, canDelete = false) {
         const autorNombre = n.autor ? n.autor.nombre : "Administración";
 
         // Renderizado de imagen ilustrativa en formato 16:9 con efecto zoom si está presente
-        const imageHtml = n.imagen_url ? `
-            <div class="news-image-container" data-img="${escapeHtml(n.imagen_url)}" title="Clic para ampliar imagen">
-                <img src="${escapeHtml(n.imagen_url)}" alt="${escapeHtml(n.titulo)}" class="news-image" loading="lazy" onerror="this.parentElement.style.display='none'">
+        const imgUrl = n.imagen_url ? normalizarUrlImagen(n.imagen_url) : null;
+        const imageHtml = imgUrl ? `
+            <div class="news-image-container" data-img="${escapeHtml(imgUrl)}" title="Clic para ampliar imagen">
+                <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(n.titulo)}" class="news-image" loading="lazy" onerror="this.parentElement.style.display='none'">
                 <div class="news-image-overlay">
                     <i class="fa-solid fa-magnifying-glass-plus"></i> Ampliar
                 </div>
@@ -161,7 +178,8 @@ export function initNoticiasModule() {
     // Vista previa interactiva de URL de imagen
     if (nImagenUrl && nImgPreview && nImgPreviewContainer) {
         const updatePreview = () => {
-            const url = nImagenUrl.value.trim();
+            const raw = nImagenUrl.value.trim();
+            const url = normalizarUrlImagen(raw);
             if (url) {
                 nImgPreview.src = url;
                 nImgPreviewContainer.style.display = "block";
@@ -182,11 +200,12 @@ export function initNoticiasModule() {
     if (formNoticia) {
         formNoticia.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const rawUrl = nImagenUrl && nImagenUrl.value.trim() ? nImagenUrl.value.trim() : null;
             const payload = {
                 titulo: nTitulo.value.trim(),
                 categoria: nCategoria.value,
                 contenido: nContenido.value.trim(),
-                imagen_url: nImagenUrl && nImagenUrl.value.trim() ? nImagenUrl.value.trim() : null
+                imagen_url: rawUrl ? normalizarUrlImagen(rawUrl) : null
             };
 
             const res = await NoticiasService.crearNoticia(payload);

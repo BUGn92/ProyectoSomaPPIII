@@ -64,10 +64,14 @@
                     <h1 id="section-title">Gestión de Socios</h1>
                     <p id="section-subtitle">Alta de socios con cobro inicial, cuotas, rutinas y fichas.</p>
                 </div>
-                <div class="header-actions">
+                <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
                     <button id="btn-action-add" class="btn-primary">
                         <i class="fa-solid fa-plus"></i>
                         <span id="btn-action-add-text">Nuevo Socio</span>
+                    </button>
+                    <button id="btn-top-logout" class="btn-secondary" title="Cerrar Sesión" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem;">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Salir</span>
                     </button>
                 </div>
             </header>
@@ -113,7 +117,7 @@
             <!-- SECCIÓN 2: MURO DE NOVEDADES -->
             <section id="noticias-section" class="crud-section hidden">
                 <div class="news-board-container">
-                    <div class="news-feed" id="admin-noticias-feed">
+                    <div class="news-feed feed-container" id="admin-noticias-feed">
                         <!-- Noticias dinámicas -->
                     </div>
                 </div>
