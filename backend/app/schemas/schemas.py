@@ -191,7 +191,6 @@ class NoticiaBase(BaseModel):
     titulo: str
     contenido: str
     categoria: Optional[str] = "General"
-    imagen_url: Optional[str] = None
 
 class NoticiaCreate(NoticiaBase):
     pass
@@ -220,7 +219,6 @@ class DetalleRutinaResponse(DetalleRutinaBase):
     id_detalle: int
     id_rutina: int
     id_usuario: int
-    dia: int
     ejercicio: Optional[EjercicioResponse] = None
     usuario: Optional[UsuarioResponse] = None
 

@@ -141,10 +141,7 @@ def create_client_registro_entrenamiento(
 
 # --- Endpoints de Rutina Activa ---
 def _rutina_response_data(rutina: models.Rutina) -> dict:
-    detalles_por_dia = {}
-    for detalle in rutina.detalles:
-        detalles_por_dia.setdefault(detalle.dia, []).append(detalle)
-
+    observaciones, dias = crud.decode_rutina_days(rutina.observaciones, rutina.detalles)
     return {
         "id_rutina": rutina.id_rutina,
         "dni_cliente": rutina.dni_cliente,
@@ -152,11 +149,11 @@ def _rutina_response_data(rutina: models.Rutina) -> dict:
         "periodo": rutina.periodo,
         "objetivo": rutina.objetivo,
         "activa": rutina.activa,
-        "observaciones": rutina.observaciones,
+        "observaciones": observaciones,
         "detalles": rutina.detalles,
         "dias": [
-            {"numero": numero_dia, "detalles": detalles}
-            for numero_dia, detalles in sorted(detalles_por_dia.items())
+            {"numero": index + 1, "detalles": detalles}
+            for index, detalles in enumerate(dias)
         ],
     }
 
