@@ -35,9 +35,11 @@ document.addEventListener("DOMContentLoaded", () => {
         navUsuariosLi.classList.toggle("hidden", roleLower !== "admin");
     }
 
-    // 4. Logout
+    // 4. Logout (en sidebar y header)
     const btnLogout = document.getElementById("btn-logout");
     if (btnLogout) btnLogout.addEventListener("click", logout);
+    const btnTopLogout = document.getElementById("btn-top-logout");
+    if (btnTopLogout) btnTopLogout.addEventListener("click", logout);
 
     // 5. Navegación entre Secciones
     const navItems = document.querySelectorAll(".sidebar-nav li");

@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 # Cargar variables de entorno desde el archivo .env en la carpeta /backend
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root@localhost:3306/GimnasioDB")
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:root1234@localhost:3306/GimnasioDB")
 
 # Crear el motor de la base de datos MySQL
 engine = create_engine(

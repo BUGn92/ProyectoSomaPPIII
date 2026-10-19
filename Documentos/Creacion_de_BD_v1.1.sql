@@ -95,6 +95,7 @@ CREATE TABLE Detalle_Rutina (
     id_rutina INT NOT NULL,
     id_usuario INT NOT NULL, -- El entrenador que asignó el ejercicio
     id_ejercicio INT NOT NULL,
+    dia INT NOT NULL DEFAULT 1,
     series INT NOT NULL,
     repeticiones INT NOT NULL,
     carga DECIMAL(5, 2), -- Peso a levantar, si aplica
@@ -176,4 +177,16 @@ CREATE TABLE Inscripcion_Clase (
     asistio BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (dni_cliente) REFERENCES Cliente(dni),
     FOREIGN KEY (id_horario) REFERENCES Horario_Clase(id_horario)
+);
+
+-- 9. Tabla de Novedades / Noticias (Muro de Comunicados)
+CREATE TABLE Noticia (
+    id_noticia INT PRIMARY KEY AUTO_INCREMENT,
+    titulo VARCHAR(150) NOT NULL,
+    contenido TEXT NOT NULL,
+    categoria VARCHAR(50) DEFAULT 'General',
+    imagen_url VARCHAR(255) NULL,
+    fecha_publicacion DATE NOT NULL,
+    id_usuario_autor INT NOT NULL,
+    FOREIGN KEY (id_usuario_autor) REFERENCES Usuario(id_usuario)
 );

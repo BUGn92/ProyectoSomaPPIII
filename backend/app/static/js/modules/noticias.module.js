@@ -13,6 +13,25 @@ const formNoticia = document.getElementById("form-noticia");
 const nTitulo = document.getElementById("n-titulo");
 const nCategoria = document.getElementById("n-categoria");
 const nContenido = document.getElementById("n-contenido");
+const nImagenUrl = document.getElementById("n-imagen-url");
+const nImgPreviewContainer = document.getElementById("noticia-img-preview-container");
+const nImgPreview = document.getElementById("noticia-img-preview");
+
+/**
+ * Transforma enlaces compartidos de Google Drive o directos al formato CDN visible.
+ * @param {string} url 
+ * @returns {string} URL lista para ser renderizada en una etiqueta <img>
+ */
+export function normalizarUrlImagen(url) {
+    if (!url) return "";
+    const trimmed = url.trim();
+    const driveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|lh[0-9]\.googleusercontent\.com\/d\/)([a-zA-Z0-9_-]+)/;
+    const match = trimmed.match(driveRegex);
+    if (match && match[1]) {
+        return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+    return trimmed;
+}
 
 export async function fetchNoticias() {
     const res = await NoticiasService.getNoticias();
@@ -24,6 +43,40 @@ export async function fetchNoticias() {
     } else {
         console.error("Error al cargar noticias:", res.detail);
     }
+}
+
+/**
+ * Abre la imagen en un visor modal (Lightbox) interactivo.
+ * @param {string} src 
+ */
+function openLightbox(src) {
+    let lightbox = document.getElementById("lightbox-modal");
+    if (!lightbox) {
+        lightbox = document.createElement("div");
+        lightbox.id = "lightbox-modal";
+        lightbox.className = "lightbox-modal";
+        lightbox.innerHTML = `
+            <span class="lightbox-close" title="Cerrar">&times;</span>
+            <img id="lightbox-img" class="lightbox-content" src="" alt="Novedad ampliada">
+        `;
+        document.body.appendChild(lightbox);
+
+        lightbox.addEventListener("click", (e) => {
+            if (e.target === lightbox || e.target.classList.contains("lightbox-close")) {
+                lightbox.classList.remove("active");
+            }
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && lightbox.classList.contains("active")) {
+                lightbox.classList.remove("active");
+            }
+        });
+    }
+
+    const img = lightbox.querySelector("#lightbox-img");
+    if (img) img.src = src;
+    lightbox.classList.add("active");
 }
 
 /**
@@ -59,11 +112,23 @@ export function renderNoticiasFeed(container, canDelete = false) {
 
         const autorNombre = n.autor ? n.autor.nombre : "Administración";
 
+        // Renderizado de imagen ilustrativa en formato 16:9 con efecto zoom si está presente
+        const imgUrl = n.imagen_url ? normalizarUrlImagen(n.imagen_url) : null;
+        const imageHtml = imgUrl ? `
+            <div class="news-image-container" data-img="${escapeHtml(imgUrl)}" title="Clic para ampliar imagen">
+                <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(n.titulo)}" class="news-image" loading="lazy" onerror="this.parentElement.style.display='none'">
+                <div class="news-image-overlay">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i> Ampliar
+                </div>
+            </div>
+        ` : "";
+
         card.innerHTML = `
             <div class="news-header">
                 <span class="news-badge"><i class="fa-solid fa-tag"></i> ${escapeHtml(n.categoria)}</span>
                 ${deleteBtn}
             </div>
+            ${imageHtml}
             <h3 class="news-title">${escapeHtml(n.titulo)}</h3>
             <div class="news-body">${escapeHtml(n.contenido)}</div>
             <div class="news-footer">
@@ -76,6 +141,14 @@ export function renderNoticiasFeed(container, canDelete = false) {
         container.appendChild(card);
     });
 
+    // Eventos para el Lightbox de fotos
+    container.querySelectorAll(".news-image-container").forEach(el => {
+        el.addEventListener("click", () => {
+            const src = el.getAttribute("data-img");
+            if (src) openLightbox(src);
+        });
+    });
+
     if (canDeleteRole) {
         container.querySelectorAll(".btn-delete-news").forEach(btn => {
             btn.addEventListener("click", () => deleteNoticia(parseInt(btn.getAttribute("data-id"))));
@@ -85,6 +158,8 @@ export function renderNoticiasFeed(container, canDelete = false) {
 
 export function openNoticiaModal() {
     if (formNoticia) formNoticia.reset();
+    if (nImgPreviewContainer) nImgPreviewContainer.style.display = "none";
+    if (nImgPreview) nImgPreview.src = "";
     if (modalNoticia) modalNoticia.classList.add("active", "open");
 }
 
@@ -100,13 +175,37 @@ async function deleteNoticia(id) {
 }
 
 export function initNoticiasModule() {
+    // Vista previa interactiva de URL de imagen
+    if (nImagenUrl && nImgPreview && nImgPreviewContainer) {
+        const updatePreview = () => {
+            const raw = nImagenUrl.value.trim();
+            const url = normalizarUrlImagen(raw);
+            if (url) {
+                nImgPreview.src = url;
+                nImgPreviewContainer.style.display = "block";
+            } else {
+                nImgPreviewContainer.style.display = "none";
+                nImgPreview.src = "";
+            }
+        };
+
+        nImagenUrl.addEventListener("input", updatePreview);
+        nImagenUrl.addEventListener("change", updatePreview);
+        nImgPreview.addEventListener("error", () => {
+            // Si la imagen falla al cargar en la preview, oculta la caja
+            nImgPreviewContainer.style.display = "none";
+        });
+    }
+
     if (formNoticia) {
         formNoticia.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const rawUrl = nImagenUrl && nImagenUrl.value.trim() ? nImagenUrl.value.trim() : null;
             const payload = {
                 titulo: nTitulo.value.trim(),
                 categoria: nCategoria.value,
-                contenido: nContenido.value.trim()
+                contenido: nContenido.value.trim(),
+                imagen_url: rawUrl ? normalizarUrlImagen(rawUrl) : null
             };
 
             const res = await NoticiasService.crearNoticia(payload);
