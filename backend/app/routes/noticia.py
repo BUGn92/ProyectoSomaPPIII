@@ -25,6 +25,14 @@ def crear_noticia(
 ):
     return crud.create_noticia(db, noticia, id_usuario_autor=current_user.id_usuario)
 
+@router.delete("/limpiar-vencidas", status_code=status.HTTP_200_OK)
+def purgar_noticias_vencidas(
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(require_roles(["Admin"]))
+):
+    total = crud.limpiar_noticias_vencidas(db, dias=60)
+    return {"message": f"Se eliminaron {total} noticias con más de 60 días de antigüedad", "eliminadas": total}
+
 @router.delete("/{id_noticia}", response_model=schemas.NoticiaResponse)
 def eliminar_noticia(
     id_noticia: int,
@@ -38,3 +46,4 @@ def eliminar_noticia(
             detail="La noticia no existe o ya fue eliminada"
         )
     return noticia_borrada
+

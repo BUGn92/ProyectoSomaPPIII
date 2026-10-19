@@ -163,6 +163,7 @@ class Noticia(Base):
     titulo = Column(String(150), nullable=False)
     contenido = Column(Text, nullable=False)
     categoria = Column(String(50), default="General")
+    imagen_url = Column(String(255), nullable=True)
     fecha_publicacion = Column(Date, nullable=False)
     id_usuario_autor = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
 

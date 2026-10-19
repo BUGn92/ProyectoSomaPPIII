@@ -178,3 +178,15 @@ CREATE TABLE Inscripcion_Clase (
     FOREIGN KEY (dni_cliente) REFERENCES Cliente(dni),
     FOREIGN KEY (id_horario) REFERENCES Horario_Clase(id_horario)
 );
+
+-- 9. Tabla de Novedades / Noticias (Muro de Comunicados)
+CREATE TABLE Noticia (
+    id_noticia INT PRIMARY KEY AUTO_INCREMENT,
+    titulo VARCHAR(150) NOT NULL,
+    contenido TEXT NOT NULL,
+    categoria VARCHAR(50) DEFAULT 'General',
+    imagen_url VARCHAR(255) NULL,
+    fecha_publicacion DATE NOT NULL,
+    id_usuario_autor INT NOT NULL,
+    FOREIGN KEY (id_usuario_autor) REFERENCES Usuario(id_usuario)
+);

@@ -13,6 +13,9 @@ const formNoticia = document.getElementById("form-noticia");
 const nTitulo = document.getElementById("n-titulo");
 const nCategoria = document.getElementById("n-categoria");
 const nContenido = document.getElementById("n-contenido");
+const nImagenUrl = document.getElementById("n-imagen-url");
+const nImgPreviewContainer = document.getElementById("noticia-img-preview-container");
+const nImgPreview = document.getElementById("noticia-img-preview");
 
 export async function fetchNoticias() {
     const res = await NoticiasService.getNoticias();
@@ -24,6 +27,40 @@ export async function fetchNoticias() {
     } else {
         console.error("Error al cargar noticias:", res.detail);
     }
+}
+
+/**
+ * Abre la imagen en un visor modal (Lightbox) interactivo.
+ * @param {string} src 
+ */
+function openLightbox(src) {
+    let lightbox = document.getElementById("lightbox-modal");
+    if (!lightbox) {
+        lightbox = document.createElement("div");
+        lightbox.id = "lightbox-modal";
+        lightbox.className = "lightbox-modal";
+        lightbox.innerHTML = `
+            <span class="lightbox-close" title="Cerrar">&times;</span>
+            <img id="lightbox-img" class="lightbox-content" src="" alt="Novedad ampliada">
+        `;
+        document.body.appendChild(lightbox);
+
+        lightbox.addEventListener("click", (e) => {
+            if (e.target === lightbox || e.target.classList.contains("lightbox-close")) {
+                lightbox.classList.remove("active");
+            }
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && lightbox.classList.contains("active")) {
+                lightbox.classList.remove("active");
+            }
+        });
+    }
+
+    const img = lightbox.querySelector("#lightbox-img");
+    if (img) img.src = src;
+    lightbox.classList.add("active");
 }
 
 /**
@@ -59,11 +96,22 @@ export function renderNoticiasFeed(container, canDelete = false) {
 
         const autorNombre = n.autor ? n.autor.nombre : "Administración";
 
+        // Renderizado de imagen ilustrativa en formato 16:9 con efecto zoom si está presente
+        const imageHtml = n.imagen_url ? `
+            <div class="news-image-container" data-img="${escapeHtml(n.imagen_url)}" title="Clic para ampliar imagen">
+                <img src="${escapeHtml(n.imagen_url)}" alt="${escapeHtml(n.titulo)}" class="news-image" loading="lazy" onerror="this.parentElement.style.display='none'">
+                <div class="news-image-overlay">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i> Ampliar
+                </div>
+            </div>
+        ` : "";
+
         card.innerHTML = `
             <div class="news-header">
                 <span class="news-badge"><i class="fa-solid fa-tag"></i> ${escapeHtml(n.categoria)}</span>
                 ${deleteBtn}
             </div>
+            ${imageHtml}
             <h3 class="news-title">${escapeHtml(n.titulo)}</h3>
             <div class="news-body">${escapeHtml(n.contenido)}</div>
             <div class="news-footer">
@@ -76,6 +124,14 @@ export function renderNoticiasFeed(container, canDelete = false) {
         container.appendChild(card);
     });
 
+    // Eventos para el Lightbox de fotos
+    container.querySelectorAll(".news-image-container").forEach(el => {
+        el.addEventListener("click", () => {
+            const src = el.getAttribute("data-img");
+            if (src) openLightbox(src);
+        });
+    });
+
     if (canDeleteRole) {
         container.querySelectorAll(".btn-delete-news").forEach(btn => {
             btn.addEventListener("click", () => deleteNoticia(parseInt(btn.getAttribute("data-id"))));
@@ -85,6 +141,8 @@ export function renderNoticiasFeed(container, canDelete = false) {
 
 export function openNoticiaModal() {
     if (formNoticia) formNoticia.reset();
+    if (nImgPreviewContainer) nImgPreviewContainer.style.display = "none";
+    if (nImgPreview) nImgPreview.src = "";
     if (modalNoticia) modalNoticia.classList.add("active", "open");
 }
 
@@ -100,13 +158,35 @@ async function deleteNoticia(id) {
 }
 
 export function initNoticiasModule() {
+    // Vista previa interactiva de URL de imagen
+    if (nImagenUrl && nImgPreview && nImgPreviewContainer) {
+        const updatePreview = () => {
+            const url = nImagenUrl.value.trim();
+            if (url) {
+                nImgPreview.src = url;
+                nImgPreviewContainer.style.display = "block";
+            } else {
+                nImgPreviewContainer.style.display = "none";
+                nImgPreview.src = "";
+            }
+        };
+
+        nImagenUrl.addEventListener("input", updatePreview);
+        nImagenUrl.addEventListener("change", updatePreview);
+        nImgPreview.addEventListener("error", () => {
+            // Si la imagen falla al cargar en la preview, oculta la caja
+            nImgPreviewContainer.style.display = "none";
+        });
+    }
+
     if (formNoticia) {
         formNoticia.addEventListener("submit", async (e) => {
             e.preventDefault();
             const payload = {
                 titulo: nTitulo.value.trim(),
                 categoria: nCategoria.value,
-                contenido: nContenido.value.trim()
+                contenido: nContenido.value.trim(),
+                imagen_url: nImagenUrl && nImagenUrl.value.trim() ? nImagenUrl.value.trim() : null
             };
 
             const res = await NoticiasService.crearNoticia(payload);

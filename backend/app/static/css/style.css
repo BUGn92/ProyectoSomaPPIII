@@ -1906,6 +1906,137 @@ tr:hover td {
     background-color: rgba(239, 68, 68, 0.15);
 }
 
+/* --- Imágenes en Noticias (SOMA-05) --- */
+.news-image-container {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-light);
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.news-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease, filter 0.35s ease;
+}
+
+.news-image-container:hover .news-image {
+    transform: scale(1.03);
+}
+
+.news-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    backdrop-filter: blur(2px);
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.news-image-container:hover .news-image-overlay {
+    opacity: 1;
+}
+
+/* Vista previa en modal de creación */
+.news-preview-box {
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.75rem;
+    border-radius: 10px;
+    border: 1px dashed var(--border-light);
+}
+
+.preview-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+    display: block;
+}
+
+.preview-image-container {
+    cursor: default;
+    max-height: 200px;
+    margin-bottom: 0;
+}
+
+.preview-image-container:hover .news-image {
+    transform: none;
+}
+
+/* Lightbox Modal para Zoom */
+.lightbox-modal {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.lightbox-modal.active {
+    display: flex;
+}
+
+.lightbox-content {
+    max-width: 90vw;
+    max-height: 85vh;
+    border-radius: 12px;
+    object-fit: contain;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: scale(0.95);
+    transition: transform 0.25s ease;
+}
+
+.lightbox-modal.active .lightbox-content {
+    transform: scale(1);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    color: #fff;
+    font-size: 2.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.1);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: var(--transition-smooth);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-close:hover {
+    background: var(--danger);
+    transform: rotate(90deg);
+}
+
+
 /* ==========================================================================
    PORTAL DEL SOCIO (VISTA EXCLUSIVA CLIENTES)
    ========================================================================== */

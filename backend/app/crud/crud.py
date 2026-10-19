@@ -1,5 +1,5 @@
 import hashlib
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
@@ -516,13 +516,21 @@ def get_ejercicios(db: Session):
 
 # --- CRUD de Noticias / Muro de Novedades ---
 def get_noticias(db: Session, limit: int = 50):
-    return db.query(models.Noticia).order_by(models.Noticia.fecha_publicacion.desc(), models.Noticia.id_noticia.desc()).limit(limit).all()
+    limite_vencimiento = date.today() - timedelta(days=60)
+    return (
+        db.query(models.Noticia)
+        .filter(models.Noticia.fecha_publicacion >= limite_vencimiento)
+        .order_by(models.Noticia.fecha_publicacion.desc(), models.Noticia.id_noticia.desc())
+        .limit(limit)
+        .all()
+    )
 
 def create_noticia(db: Session, noticia: schemas.NoticiaCreate, id_usuario_autor: int):
     db_noticia = models.Noticia(
         titulo=noticia.titulo,
         contenido=noticia.contenido,
         categoria=noticia.categoria or "General",
+        imagen_url=noticia.imagen_url,
         fecha_publicacion=date.today(),
         id_usuario_autor=id_usuario_autor
     )
@@ -538,6 +546,16 @@ def delete_noticia(db: Session, id_noticia: int):
     db.delete(db_noticia)
     db.commit()
     return db_noticia
+
+def limpiar_noticias_vencidas(db: Session, dias: int = 60) -> int:
+    limite_vencimiento = date.today() - timedelta(days=dias)
+    registros_eliminados = (
+        db.query(models.Noticia)
+        .filter(models.Noticia.fecha_publicacion < limite_vencimiento)
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return registros_eliminados
 
 # --- CRUD de Rutinas ---
 def get_rutina_activa_cliente(db: Session, dni_cliente: str):

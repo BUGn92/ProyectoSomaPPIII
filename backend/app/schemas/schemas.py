@@ -191,6 +191,7 @@ class NoticiaBase(BaseModel):
     titulo: str
     contenido: str
     categoria: Optional[str] = "General"
+    imagen_url: Optional[str] = None
 
 class NoticiaCreate(NoticiaBase):
     pass
