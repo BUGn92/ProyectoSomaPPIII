@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS Solicitud_Foto_Perfil (
     dni_cliente VARCHAR(20) NOT NULL,
     foto_propuesta_url VARCHAR(255) NOT NULL,
     fecha_solicitud DATETIME DEFAULT CURRENT_TIMESTAMP,
-    estado ENUM('Pendiente', 'Aprobada', 'Rechazada') DEFAULT 'Pendiente',
+    estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
     motivo_rechazo VARCHAR(255) NULL,
     id_usuario_revisor INT NULL,
     fecha_resolucion DATETIME NULL,
