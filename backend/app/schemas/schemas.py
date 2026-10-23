@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
+import re
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import date, time
 from decimal import Decimal
@@ -66,7 +67,7 @@ class CambioPasswordRequest(BaseModel):
 
 # --- Cliente ---
 class ClienteBase(BaseModel):
-    dni: str
+    dni: str = Field(..., description="DNI numérico de 7 u 8 dígitos")
     nombre: str
     apellido: str
     edad: Optional[int] = None
@@ -75,6 +76,16 @@ class ClienteBase(BaseModel):
     activo: Optional[bool] = True
     apto_medico_vigente: Optional[bool] = False
     fecha_vencimiento_apto: Optional[date] = None
+
+    @field_validator("dni")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        if not isinstance(v, str):
+            v = str(v)
+        v_clean = v.strip()
+        if not re.match(r"^\d{7,8}$", v_clean):
+            raise ValueError("El DNI debe ser numérico y contener entre 7 y 8 dígitos.")
+        return v_clean
 
 class ClienteCreate(ClienteBase):
     calle: Optional[str] = None
@@ -269,6 +280,16 @@ class PagoCreate(BaseModel):
     metodo_pago: str  # Efectivo, Transferencia, Débito, Crédito
     meses_abonados: int = 1
     descripcion: Optional[str] = None
+
+    @field_validator("dni_cliente")
+    @classmethod
+    def validar_dni_cliente(cls, v: str) -> str:
+        if not isinstance(v, str):
+            v = str(v)
+        v_clean = v.strip()
+        if not re.match(r"^\d{7,8}$", v_clean):
+            raise ValueError("El DNI del cliente debe ser numérico y contener entre 7 y 8 dígitos.")
+        return v_clean
 
 class PagoResponse(BaseModel):
     id_pago: int

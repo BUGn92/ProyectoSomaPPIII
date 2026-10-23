@@ -329,6 +329,12 @@ export function initClientesModule() {
         toggleInactivosClientes.addEventListener("change", () => fetchClientes());
     }
 
+    if (cDni) {
+        cDni.addEventListener("input", (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8);
+        });
+    }
+
     if (cApto) {
         cApto.addEventListener("change", (e) => {
             if (e.target.checked) {
@@ -351,8 +357,17 @@ export function initClientesModule() {
                 return;
             }
 
+            const dniVal = cDni.value.trim();
+            if (!state.editingDni) {
+                if (!/^\d{7,8}$/.test(dniVal)) {
+                    showToast("DNI Inválido", "El DNI debe contener exactamente 7 u 8 dígitos numéricos (sin puntos ni letras).", "error");
+                    cDni.focus();
+                    return;
+                }
+            }
+
             const payload = {
-                dni: cDni.value.trim(),
+                dni: dniVal,
                 nombre: cNombre.value.trim(),
                 apellido: cApellido.value.trim(),
                 edad: cEdad.value ? parseInt(cEdad.value) : null,

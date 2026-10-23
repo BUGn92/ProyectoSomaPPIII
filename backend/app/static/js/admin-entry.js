@@ -30,9 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (currentUserNameSpan) currentUserNameSpan.textContent = state.currentUser.nombre;
     if (currentUserRoleSpan) currentUserRoleSpan.textContent = state.currentUser.rol;
 
-    // Ocultar pestaña de Personal si es recepcionista
+    // Mostrar pestaña de Personal para Administrador y Recepción
     if (navUsuariosLi) {
-        navUsuariosLi.classList.toggle("hidden", roleLower !== "admin");
+        const canAccessUsuarios = roleLower === "admin" || roleLower === "recepcionista" || roleLower === "secretaria";
+        navUsuariosLi.classList.toggle("hidden", !canAccessUsuarios);
     }
 
     // 4. Logout (en sidebar y header)
