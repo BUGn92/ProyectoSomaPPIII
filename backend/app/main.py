@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # Importar rutas
-from app.routes import auth, usuario, cliente, noticia, pago
+from app.routes import auth, usuario, cliente, noticia, pago, solicitud_foto
 
 app = FastAPI(
     title="SOMA Gym API",
@@ -40,6 +40,7 @@ app.include_router(usuario.router)
 app.include_router(cliente.router)
 app.include_router(noticia.router)
 app.include_router(pago.router)
+app.include_router(solicitud_foto.router)
 
 # Ruta de chequeo de estado de la API
 @app.get("/api/health", tags=["General"])

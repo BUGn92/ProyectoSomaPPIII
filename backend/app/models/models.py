@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, Date, Time, Text, ForeignKey
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, Numeric, Date, Time, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.config.database import Base
 
@@ -59,11 +60,13 @@ class Cliente(Base):
     activo = Column(Boolean, default=True)
     apto_medico_vigente = Column(Boolean, default=False)
     fecha_vencimiento_apto = Column(Date)
+    foto_url = Column(String(255), nullable=True)
 
     direccion = relationship("Direccion", back_populates="clientes")
     cliente_membresias = relationship("ClienteMembresia", back_populates="cliente")
     pagos = relationship("Pago", back_populates="cliente")
     rutinas = relationship("Rutina", back_populates="cliente")
+    solicitudes_foto = relationship("SolicitudFotoPerfil", back_populates="cliente")
 
 
 class ClienteMembresia(Base):
@@ -168,4 +171,20 @@ class Noticia(Base):
     id_usuario_autor = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
 
     autor = relationship("Usuario")
+
+
+class SolicitudFotoPerfil(Base):
+    __tablename__ = "Solicitud_Foto_Perfil"
+
+    id_solicitud = Column(Integer, primary_key=True, autoincrement=True)
+    dni_cliente = Column(String(20), ForeignKey("Cliente.dni", ondelete="CASCADE"), nullable=False)
+    foto_propuesta_url = Column(String(255), nullable=False)
+    fecha_solicitud = Column(DateTime, nullable=False, default=datetime.utcnow)
+    estado = Column(String(20), default="Pendiente", nullable=False)
+    motivo_rechazo = Column(String(255), nullable=True)
+    id_usuario_revisor = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=True)
+    fecha_resolucion = Column(DateTime, nullable=True)
+
+    cliente = relationship("Cliente", back_populates="solicitudes_foto")
+    revisor = relationship("Usuario")
 

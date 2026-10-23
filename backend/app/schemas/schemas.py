@@ -1,7 +1,7 @@
 import re
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
-from datetime import date, time
+from datetime import date, time, datetime
 from decimal import Decimal
 
 # --- Dirección ---
@@ -76,6 +76,7 @@ class ClienteBase(BaseModel):
     activo: Optional[bool] = True
     apto_medico_vigente: Optional[bool] = False
     fecha_vencimiento_apto: Optional[date] = None
+    foto_url: Optional[str] = None
 
     @field_validator("dni")
     @classmethod
@@ -104,6 +105,7 @@ class ClienteUpdate(BaseModel):
     calle: Optional[str] = None
     numero: Optional[str] = None
     ciudad: Optional[str] = None
+    foto_url: Optional[str] = None
 
 class ClienteResponse(ClienteBase):
     fecha_alta: date
@@ -322,6 +324,32 @@ class ClienteMembresiaResponse(BaseModel):
     fecha_inicio: date
     fecha_fin: date
     estado: str
+
+    class Config:
+        from_attributes = True
+
+# --- Solicitud Foto de Perfil (SOMA-09) ---
+class SolicitudFotoPerfilBase(BaseModel):
+    foto_propuesta_url: str
+
+class SolicitudFotoPerfilCreate(SolicitudFotoPerfilBase):
+    pass
+
+class SolicitudFotoRechazoRequest(BaseModel):
+    motivo_rechazo: Optional[str] = None
+
+class CargaFotoDirectaRequest(BaseModel):
+    foto_url: str
+
+class SolicitudFotoPerfilResponse(BaseModel):
+    id_solicitud: int
+    dni_cliente: str
+    foto_propuesta_url: str
+    fecha_solicitud: datetime
+    estado: str
+    motivo_rechazo: Optional[str] = None
+    id_usuario_revisor: Optional[int] = None
+    fecha_resolucion: Optional[datetime] = None
 
     class Config:
         from_attributes = True

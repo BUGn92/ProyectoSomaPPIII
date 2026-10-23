@@ -689,52 +689,105 @@ def test_tarea_07_y_08_pagos_adelanto_multimes_y_estado_cuota(client, db):
 # ==============================================================================
 def test_tarea_09_foto_perfil_cliente_flujo_aprobacion(client, db):
     """
-    Valida el flujo de gestión de fotos:
-    1. Carga directa de foto por administrador.
-    2. Solicitud de cambio de foto enviada por el socio (estado Pendiente).
-    3. Aprobación de la solicitud por recepción y actualización del avatar.
+    Valida el flujo integral de gestión de fotos:
+    1. Creación de cliente y carga directa de foto inicial por Administrador/Recepción.
+    2. Envío de solicitud de cambio de foto por el socio (estado Pendiente).
+    3. Listado de solicitudes pendientes por staff.
+    4. Aprobación de la solicitud por Admin/Recepción y actualización automática de foto_url en Cliente.
+    5. Envío de nueva solicitud y rechazo con motivo por Admin/Recepción.
     """
     headers_admin = get_auth_headers("cadmin", "Admin")
 
-    # 1. Crear Cliente
+    # 1. Crear Cliente y su Usuario socio en BD
     cliente_db = models.Cliente(
         dni="32111333",
         nombre="Gonzalo",
         apellido="Paz",
+        email="gonzalo.paz@test.com",
         fecha_alta=date.today(),
         activo=True
     )
+    usuario_socio = models.Usuario(
+        id_usuario=9909,
+        nombre="Gonzalo Paz",
+        usuario_login="32111333",
+        password=crud.hash_password("socio123"),
+        rol="Cliente",
+        activo=True
+    )
     db.add(cliente_db)
+    db.add(usuario_socio)
     db.commit()
 
-    # 2. Admin asigna foto inicial oficial al crear perfil
-    foto_oficial = "uploads/perfiles/32111333_avatar_oficial.jpg"
-    cliente_db.email = "gonzalo.paz@test.com"
-    # Simular atributo foto_url en cliente
-    setattr(cliente_db, "foto_url", foto_oficial)
-    db.commit()
-    assert getattr(cliente_db, "foto_url") == foto_oficial
+    headers_socio = get_auth_headers("32111333", "Cliente")
 
-    # 3. Socio envía solicitud de cambio de foto
-    solicitud_foto = {
-        "dni_cliente": "32111333",
-        "foto_propuesta_url": "uploads/temp/propuesta_32111333.jpg",
-        "fecha_solicitud": datetime.utcnow(),
-        "estado": "Pendiente"
-    }
-    assert solicitud_foto["estado"] == "Pendiente"
+    # 2. Admin asigna foto inicial oficial directamente
+    foto_oficial = "/uploads/perfiles/32111333_avatar_oficial.jpg"
+    resp_asignar = client.post(
+        "/api/clientes/32111333/foto",
+        json={"foto_url": foto_oficial},
+        headers=headers_admin
+    )
+    assert resp_asignar.status_code == 200
+    assert resp_asignar.json()["foto_url"] == foto_oficial
 
-    # 4. Recepción/Admin aprueba la solicitud
-    solicitud_foto["estado"] = "Aprobada"
-    solicitud_foto["fecha_resolucion"] = datetime.utcnow()
-    solicitud_foto["id_usuario_revisor"] = 1
+    # 3. Socio envía solicitud de cambio de foto desde su portal
+    foto_propuesta = "/uploads/perfiles/propuesta_32111333.jpg"
+    resp_solicitud = client.post(
+        "/api/clientes/32111333/solicitar-cambio-foto",
+        json={"foto_propuesta_url": foto_propuesta},
+        headers=headers_socio
+    )
+    assert resp_solicitud.status_code == 201
+    solicitud_data = resp_solicitud.json()
+    assert solicitud_data["estado"] == "Pendiente"
+    assert solicitud_data["foto_propuesta_url"] == foto_propuesta
+    id_solicitud = solicitud_data["id_solicitud"]
 
-    # Al ser aprobada, se actualiza la foto oficial en el perfil del socio
-    cliente_db.foto_url = solicitud_foto["foto_propuesta_url"]
-    db.commit()
+    # 4. Socio consulta su solicitud activa
+    resp_activa = client.get("/api/clientes/32111333/solicitud-foto-activa", headers=headers_socio)
+    assert resp_activa.status_code == 200
+    assert resp_activa.json()["id_solicitud"] == id_solicitud
+    assert resp_activa.json()["estado"] == "Pendiente"
 
-    # 5. Verificar que el perfil del socio ahora refleja la nueva foto aprobada
-    assert getattr(cliente_db, "foto_url") == "uploads/temp/propuesta_32111333.jpg"
+    # 5. Staff (Admin/Recepción) lista solicitudes pendientes
+    resp_pendientes = client.get("/api/solicitudes-foto/?estado=Pendiente", headers=headers_admin)
+    assert resp_pendientes.status_code == 200
+    solicitudes = resp_pendientes.json()
+    assert any(s["id_solicitud"] == id_solicitud for s in solicitudes)
+
+    # 6. Staff aprueba la solicitud
+    resp_aprobar = client.post(f"/api/solicitudes-foto/{id_solicitud}/aprobar", headers=headers_admin)
+    assert resp_aprobar.status_code == 200
+    assert resp_aprobar.json()["estado"] == "Aprobada"
+
+    # 7. Verificar que el perfil del socio ahora refleja la nueva foto aprobada
+    resp_cliente = client.get("/api/clientes/32111333", headers=headers_socio)
+    assert resp_cliente.status_code == 200
+    assert resp_cliente.json()["foto_url"] == foto_propuesta
+
+    # 8. Socio envía una segunda solicitud y el staff la rechaza con motivo
+    foto_inadecuada = "/uploads/perfiles/inadecuada.jpg"
+    resp_solicitud2 = client.post(
+        "/api/clientes/32111333/solicitar-cambio-foto",
+        json={"foto_propuesta_url": foto_inadecuada},
+        headers=headers_socio
+    )
+    assert resp_solicitud2.status_code == 201
+    id_solicitud_2 = resp_solicitud2.json()["id_solicitud"]
+
+    resp_rechazo = client.post(
+        f"/api/solicitudes-foto/{id_solicitud_2}/rechazar",
+        json={"motivo_rechazo": "La imagen no muestra el rostro claramente."},
+        headers=headers_admin
+    )
+    assert resp_rechazo.status_code == 200
+    assert resp_rechazo.json()["estado"] == "Rechazada"
+    assert resp_rechazo.json()["motivo_rechazo"] == "La imagen no muestra el rostro claramente."
+
+    # 9. La foto oficial del socio se mantiene intacta tras el rechazo
+    resp_cliente_post_rechazo = client.get("/api/clientes/32111333", headers=headers_socio)
+    assert resp_cliente_post_rechazo.json()["foto_url"] == foto_propuesta
 
 
 def test_lista_clientes_incluye_vencimiento_de_pago(client, db):

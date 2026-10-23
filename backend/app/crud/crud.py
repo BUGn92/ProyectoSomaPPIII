@@ -1,5 +1,5 @@
 import hashlib
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
@@ -362,7 +362,8 @@ def create_client(db: Session, client: schemas.ClienteConPagoCreate):
         fecha_alta=date.today(),
         activo=client.activo if client.activo is not None else True,
         apto_medico_vigente=client.apto_medico_vigente if client.apto_medico_vigente is not None else False,
-        fecha_vencimiento_apto=client.fecha_vencimiento_apto
+        fecha_vencimiento_apto=client.fecha_vencimiento_apto,
+        foto_url=client.foto_url
     )
     db.add(db_client)
     db.flush()
@@ -608,3 +609,88 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
     db.commit()
     db.refresh(db_rutina)
     return db_rutina
+
+
+# --- CRUD de Fotos de Perfil y Solicitudes (SOMA-09) ---
+
+def asignar_foto_cliente(db: Session, dni: str, foto_url: str):
+    cliente = db.query(models.Cliente).filter(models.Cliente.dni == dni).first()
+    if not cliente:
+        return None
+    cliente.foto_url = foto_url
+    db.commit()
+    db.refresh(cliente)
+    return cliente
+
+
+def crear_solicitud_foto(db: Session, dni_cliente: str, foto_propuesta_url: str):
+    # Si existía alguna solicitud pendiente previa, la cancelamos/reemplazamos
+    solicitudes_previas = db.query(models.SolicitudFotoPerfil).filter(
+        models.SolicitudFotoPerfil.dni_cliente == dni_cliente,
+        models.SolicitudFotoPerfil.estado == "Pendiente"
+    ).all()
+    for s in solicitudes_previas:
+        s.estado = "Reemplazada"
+        s.fecha_resolucion = datetime.utcnow()
+
+    nueva_solicitud = models.SolicitudFotoPerfil(
+        dni_cliente=dni_cliente,
+        foto_propuesta_url=foto_propuesta_url,
+        fecha_solicitud=datetime.utcnow(),
+        estado="Pendiente"
+    )
+    db.add(nueva_solicitud)
+    db.commit()
+    db.refresh(nueva_solicitud)
+    return nueva_solicitud
+
+
+def get_solicitudes_foto(db: Session, estado: str = None):
+    query = db.query(models.SolicitudFotoPerfil)
+    if estado:
+        query = query.filter(models.SolicitudFotoPerfil.estado == estado)
+    return query.order_by(models.SolicitudFotoPerfil.fecha_solicitud.desc()).all()
+
+
+def get_solicitud_foto(db: Session, id_solicitud: int):
+    return db.query(models.SolicitudFotoPerfil).filter(
+        models.SolicitudFotoPerfil.id_solicitud == id_solicitud
+    ).first()
+
+
+def get_solicitud_activa_cliente(db: Session, dni_cliente: str):
+    return db.query(models.SolicitudFotoPerfil).filter(
+        models.SolicitudFotoPerfil.dni_cliente == dni_cliente,
+        models.SolicitudFotoPerfil.estado == "Pendiente"
+    ).order_by(models.SolicitudFotoPerfil.fecha_solicitud.desc()).first()
+
+
+def aprobar_solicitud_foto(db: Session, id_solicitud: int, id_usuario_revisor: int):
+    solicitud = get_solicitud_foto(db, id_solicitud)
+    if not solicitud:
+        return None
+    solicitud.estado = "Aprobada"
+    solicitud.id_usuario_revisor = id_usuario_revisor
+    solicitud.fecha_resolucion = datetime.utcnow()
+
+    cliente = db.query(models.Cliente).filter(models.Cliente.dni == solicitud.dni_cliente).first()
+    if cliente:
+        cliente.foto_url = solicitud.foto_propuesta_url
+
+    db.commit()
+    db.refresh(solicitud)
+    return solicitud
+
+
+def rechazar_solicitud_foto(db: Session, id_solicitud: int, id_usuario_revisor: int, motivo: str = None):
+    solicitud = get_solicitud_foto(db, id_solicitud)
+    if not solicitud:
+        return None
+    solicitud.estado = "Rechazada"
+    solicitud.motivo_rechazo = motivo
+    solicitud.id_usuario_revisor = id_usuario_revisor
+    solicitud.fecha_resolucion = datetime.utcnow()
+
+    db.commit()
+    db.refresh(solicitud)
+    return solicitud

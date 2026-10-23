@@ -6,10 +6,13 @@ import { state } from "../state.js";
 import { ClientesService } from "../services/clientes.service.js";
 import { PagosService } from "../services/pagos.service.js";
 import { NoticiasService } from "../services/noticias.service.js";
+import { showToast } from "../utils/toast.js";
 import { formatCurrency } from "../utils/formatters.js";
 import { escapeHtml } from "../utils/sanitizer.js";
 import { renderNoticiasFeed } from "./noticias.module.js";
 import { renderRoutineView } from "./routine-view.module.js";
+
+const DEFAULT_AVATAR_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
 const socioHeaderName = document.getElementById("socio-header-name");
 const socioAptoBadge = document.getElementById("socio-apto-badge");
@@ -24,6 +27,23 @@ const socioNoticiasFeed = document.getElementById("socio-noticias-feed");
 const tbodySocioEvFisica = document.getElementById("tbody-socio-ev-fisica");
 const tbodySocioEvDeportiva = document.getElementById("tbody-socio-ev-deportiva");
 
+// Elementos de Foto de Perfil (SOMA-09)
+const socioAvatarImg = document.getElementById("socio-avatar-img");
+const socioPendingDot = document.getElementById("socio-pending-dot");
+const btnAbrirModalFoto = document.getElementById("btn-abrir-modal-foto");
+const modalSolicitarFoto = document.getElementById("modal-solicitar-foto");
+const btnCerrarModalFoto = document.getElementById("btn-cerrar-modal-foto");
+const btnCancelarModalFoto = document.getElementById("btn-cancelar-modal-foto");
+const formSolicitarFoto = document.getElementById("form-solicitar-foto");
+const bannerSolicitudActiva = document.getElementById("banner-solicitud-activa");
+const textoSolicitudActiva = document.getElementById("texto-solicitud-activa");
+const socioFotoModalPreview = document.getElementById("socio-foto-modal-preview");
+const inputArchivoFotoSocio = document.getElementById("input-archivo-foto-socio");
+const btnEnviarSolicitudFoto = document.getElementById("btn-enviar-solicitud-foto");
+
+let currentClienteFotoUrl = "";
+let selectedFotoFile = null;
+
 export async function fetchSocioData() {
     const dni = state.currentUser?.usuario_login;
     if (!dni) return;
@@ -34,6 +54,13 @@ export async function fetchSocioData() {
         if (resCli.ok && resCli.data) {
             const client = resCli.data;
             if (socioHeaderName) socioHeaderName.textContent = `${client.nombre} ${client.apellido}`;
+            
+            // Actualizar avatar en navbar
+            currentClienteFotoUrl = client.foto_url || "";
+            if (socioAvatarImg) {
+                socioAvatarImg.src = client.foto_url || DEFAULT_AVATAR_SVG;
+            }
+
             if (socioAptoBadge && socioAptoText) {
                 if (client.apto_medico_vigente) {
                     socioAptoBadge.className = "badge-apto-header vigente";
@@ -47,6 +74,9 @@ export async function fetchSocioData() {
     } catch (e) {
         console.error("Error al obtener datos de perfil del socio:", e);
     }
+
+    // 1.1 Consultar si tiene solicitud de cambio de foto pendiente
+    await checkSolicitudFotoActiva(dni);
 
     // 2. Membresía y cuota
     await fetchSocioMembresia(dni);
@@ -192,6 +222,28 @@ export async function fetchSocioPagos(dni) {
     }
 }
 
+export async function checkSolicitudFotoActiva(dni) {
+    try {
+        const resSol = await ClientesService.getSolicitudFotoActiva(dni);
+        if (resSol.ok && resSol.data) {
+            const sol = resSol.data;
+            if (socioPendingDot) socioPendingDot.classList.remove("hidden");
+            if (bannerSolicitudActiva) {
+                bannerSolicitudActiva.classList.remove("hidden");
+                if (textoSolicitudActiva) {
+                    const fechaStr = sol.fecha_solicitud ? new Date(sol.fecha_solicitud).toLocaleDateString() : "";
+                    textoSolicitudActiva.textContent = `Tienes una propuesta enviada ${fechaStr ? 'el ' + fechaStr : ''} en revisión por el personal. Si subes otra, la reemplazará.`;
+                }
+            }
+        } else {
+            if (socioPendingDot) socioPendingDot.classList.add("hidden");
+            if (bannerSolicitudActiva) bannerSolicitudActiva.classList.add("hidden");
+        }
+    } catch (err) {
+        console.error("Error consultando solicitud de foto activa:", err);
+    }
+}
+
 export function initPortalSocioModule() {
     const portalTabBtns = document.querySelectorAll(".portal-tab-btn");
     const portalPanels = document.querySelectorAll(".portal-panel");
@@ -208,4 +260,75 @@ export function initPortalSocioModule() {
             if (panel) panel.classList.add("active");
         });
     });
+
+    // Gestión de Foto de Perfil (SOMA-09)
+    if (btnAbrirModalFoto && modalSolicitarFoto) {
+        btnAbrirModalFoto.addEventListener("click", () => {
+            selectedFotoFile = null;
+            if (inputArchivoFotoSocio) inputArchivoFotoSocio.value = "";
+            if (btnEnviarSolicitudFoto) btnEnviarSolicitudFoto.disabled = true;
+            if (socioFotoModalPreview) {
+                socioFotoModalPreview.src = currentClienteFotoUrl || DEFAULT_AVATAR_SVG;
+            }
+            modalSolicitarFoto.classList.add("active");
+        });
+    }
+
+    const cerrarModalFoto = () => {
+        if (modalSolicitarFoto) modalSolicitarFoto.classList.remove("active");
+        selectedFotoFile = null;
+        if (inputArchivoFotoSocio) inputArchivoFotoSocio.value = "";
+    };
+
+    if (btnCerrarModalFoto) btnCerrarModalFoto.addEventListener("click", cerrarModalFoto);
+    if (btnCancelarModalFoto) btnCancelarModalFoto.addEventListener("click", cerrarModalFoto);
+
+    if (inputArchivoFotoSocio) {
+        inputArchivoFotoSocio.addEventListener("change", (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                selectedFotoFile = file;
+                const objectUrl = URL.createObjectURL(file);
+                if (socioFotoModalPreview) socioFotoModalPreview.src = objectUrl;
+                if (btnEnviarSolicitudFoto) btnEnviarSolicitudFoto.disabled = false;
+            }
+        });
+    }
+
+    if (formSolicitarFoto) {
+        formSolicitarFoto.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!selectedFotoFile) {
+                showToast("Atención", "Debes seleccionar una imagen para enviar la solicitud.", "warning");
+                return;
+            }
+
+            const dni = state.currentUser?.usuario_login;
+            if (!dni) return;
+
+            if (btnEnviarSolicitudFoto) {
+                btnEnviarSolicitudFoto.disabled = true;
+                btnEnviarSolicitudFoto.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Enviando...`;
+            }
+
+            try {
+                const res = await ClientesService.solicitarCambioFoto(dni, selectedFotoFile);
+                if (res.ok) {
+                    showToast("¡Solicitud Enviada!", "Tu nueva foto fue enviada al staff para su aprobación.", "success");
+                    cerrarModalFoto();
+                    await checkSolicitudFotoActiva(dni);
+                } else {
+                    showToast("Error", res.detail || "No se pudo enviar la solicitud de foto.", "error");
+                }
+            } catch (err) {
+                console.error("Error enviando solicitud de foto:", err);
+                showToast("Error", "Error de conexión al enviar la imagen.", "error");
+            } finally {
+                if (btnEnviarSolicitudFoto) {
+                    btnEnviarSolicitudFoto.disabled = false;
+                    btnEnviarSolicitudFoto.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Enviar Solicitud`;
+                }
+            }
+        });
+    }
 }
