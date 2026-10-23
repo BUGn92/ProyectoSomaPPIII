@@ -599,5 +599,11 @@ export function initClientesModule() {
             modalSolicitudesFoto.classList.add("active");
             cargarYRenderizarSolicitudesFoto();
         });
+
+        modalSolicitudesFoto.querySelectorAll(".modal-close").forEach(btn => {
+            btn.addEventListener("click", () => {
+                modalSolicitudesFoto.classList.remove("active", "open");
+            });
+        });
     }
 }
