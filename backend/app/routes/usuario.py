@@ -21,13 +21,23 @@ def require_admin(current_user: models.Usuario = Depends(get_current_user)):
         )
     return current_user
 
+# Dependencia para verificar si es Admin o Recepcionista / Secretaria
+def require_admin_or_recepcionista(current_user: models.Usuario = Depends(get_current_user)):
+    rol = (current_user.rol or "").lower()
+    if rol not in {"admin", "recepcionista", "secretaria"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operación restringida a personal de administración y recepción"
+        )
+    return current_user
+
 @router.get("/", response_model=List[schemas.UsuarioResponse])
 def read_users(
     skip: int = 0,
     limit: int = 100,
     incluir_inactivos: bool = False,
     db: Session = Depends(database.get_db),
-    admin_user: models.Usuario = Depends(require_admin)
+    staff_user: models.Usuario = Depends(require_admin_or_recepcionista)
 ):
     if incluir_inactivos:
         return crud.get_all_users(db, skip=skip, limit=limit)
@@ -39,7 +49,7 @@ def read_users_con_pago(
     limit: int = 100,
     incluir_inactivos: bool = False,
     db: Session = Depends(database.get_db),
-    admin_user: models.Usuario = Depends(require_admin)
+    staff_user: models.Usuario = Depends(require_admin_or_recepcionista)
 ):
     """Retorna la lista de usuarios con estado de pago/membersía para los de rol Cliente."""
     return crud.get_users_con_estado_pago(db, skip=skip, limit=limit, incluir_inactivos=incluir_inactivos)
@@ -48,7 +58,7 @@ def read_users_con_pago(
 def read_user(
     user_id: int,
     db: Session = Depends(database.get_db),
-    admin_user: models.Usuario = Depends(require_admin)
+    staff_user: models.Usuario = Depends(require_admin_or_recepcionista)
 ):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
@@ -59,7 +69,7 @@ def read_user(
 def create_new_user(
     user: schemas.UsuarioCreate,
     db: Session = Depends(database.get_db),
-    admin_user: models.Usuario = Depends(require_admin)
+    staff_user: models.Usuario = Depends(require_admin_or_recepcionista)
 ):
     db_user = crud.get_user_by_login(db, username=user.usuario_login)
     if db_user:
@@ -71,7 +81,7 @@ def update_existing_user(
     user_id: int,
     user_update: schemas.UsuarioUpdate,
     db: Session = Depends(database.get_db),
-    admin_user: models.Usuario = Depends(require_admin)
+    staff_user: models.Usuario = Depends(require_admin_or_recepcionista)
 ):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:

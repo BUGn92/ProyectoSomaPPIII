@@ -783,3 +783,98 @@ def test_lista_clientes_incluye_vencimiento_de_pago(client, db):
     }
     assert vencimientos["30000111"] == str(fecha_fin)
     assert vencimientos["30000222"] is None
+
+
+# ==============================================================================
+# TESTS ADICIONALES: Validación Estricta de DNI y Permisos de Recepcionista
+# ==============================================================================
+def test_validacion_estricta_dni_formato(client, db):
+    """
+    Valida:
+    1. Rechazo de DNIs no numéricos o con caracteres especiales.
+    2. Rechazo de DNIs con menos de 7 dígitos o más de 8 dígitos.
+    3. Aceptación de DNIs válidos de 7 y 8 dígitos.
+    """
+    headers_admin = get_auth_headers("cadmin", "Admin")
+
+    cliente_invalido_letras = {
+        "dni": "35A99888",
+        "nombre": "Juan",
+        "apellido": "Pérez",
+        "primer_pago": {"monto": 15000.0, "metodo_pago": "Efectivo", "meses_abonados": 1}
+    }
+    res_letras = client.post("/api/clientes/", json=cliente_invalido_letras, headers=headers_admin)
+    assert res_letras.status_code == 422
+
+    cliente_invalido_corto = {
+        "dni": "12345",
+        "nombre": "Juan",
+        "apellido": "Pérez",
+        "primer_pago": {"monto": 15000.0, "metodo_pago": "Efectivo", "meses_abonados": 1}
+    }
+    res_corto = client.post("/api/clientes/", json=cliente_invalido_corto, headers=headers_admin)
+    assert res_corto.status_code == 422
+
+    cliente_invalido_largo = {
+        "dni": "1234567890",
+        "nombre": "Juan",
+        "apellido": "Pérez",
+        "primer_pago": {"monto": 15000.0, "metodo_pago": "Efectivo", "meses_abonados": 1}
+    }
+    res_largo = client.post("/api/clientes/", json=cliente_invalido_largo, headers=headers_admin)
+    assert res_largo.status_code == 422
+
+    # DNI válido de 7 dígitos
+    cliente_valido_7 = {
+        "dni": "7654321",
+        "nombre": "Carlos",
+        "apellido": "González",
+        "primer_pago": {"monto": 15000.0, "metodo_pago": "Efectivo", "meses_abonados": 1}
+    }
+    res_7 = client.post("/api/clientes/", json=cliente_valido_7, headers=headers_admin)
+    assert res_7.status_code == 201
+    assert res_7.json()["dni"] == "7654321"
+
+
+def test_recepcionista_puede_crear_usuarios_pero_no_eliminar(client, db):
+    """
+    Valida:
+    1. Que un usuario con rol 'Recepcionista' tiene permiso para crear nuevos usuarios del sistema.
+    2. Que un usuario con rol 'Recepcionista' NO tiene permiso para dar de baja / eliminar usuarios (reservado a Admin).
+    """
+    db.add(models.Usuario(
+        id_usuario=99,
+        nombre="Recepcionista Test",
+        usuario_login="arecepcionista",
+        password=crud.hash_password("clave123"),
+        rol="Recepcionista",
+        debe_cambiar_password=False
+    ))
+    db.commit()
+
+    headers_recep = get_auth_headers("arecepcionista", "Recepcionista")
+
+    nuevo_user = {
+        "nombre": "Entrenador Asistente",
+        "usuario_login": "entrenador_asist",
+        "password": "password123",
+        "rol": "Entrenador"
+    }
+    # 1. Recepcionista crea nuevo usuario con éxito (201)
+    res_crear = client.post("/api/usuarios/", json=nuevo_user, headers=headers_recep)
+    assert res_crear.status_code == 201
+    created_id = res_crear.json()["id_usuario"]
+
+    # 2. Recepcionista consulta lista de usuarios con éxito (200)
+    res_listar = client.get("/api/usuarios/", headers=headers_recep)
+    assert res_listar.status_code == 200
+
+    # 3. Recepcionista intenta dar de baja el usuario recién creado (debe recibir 403 Forbidden)
+    res_delete = client.delete(f"/api/usuarios/{created_id}", headers=headers_recep)
+    assert res_delete.status_code == 403
+
+    # 4. Un Administrador sí puede darlo de baja con éxito (200)
+    headers_admin = get_auth_headers("cadmin", "Admin")
+    res_delete_admin = client.delete(f"/api/usuarios/{created_id}", headers=headers_admin)
+    assert res_delete_admin.status_code == 200
+

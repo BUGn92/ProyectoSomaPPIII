@@ -74,9 +74,12 @@ export function renderUsuarios(users) {
             pagoBadge = `<span class="badge ${pagoClass}"><i class="fa-solid ${pagoIcon}"></i> ${escapeHtml(estadoPago)}</span>${vencTxt}`;
         }
 
-        const accionBtn = esActivo
-            ? `<button type="button" class="btn-icon btn-icon-delete btn-delete" data-id="${u.id_usuario}" title="Dar de baja (borrado lógico)" aria-label="Dar de baja a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-slash"></i></button>`
-            : `<button type="button" class="btn-icon btn-icon-reactivate btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario" aria-label="Reactivar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-check"></i></button>`;
+        const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
+        const accionBtn = esAdmin
+            ? (esActivo
+                ? `<button type="button" class="btn-icon btn-icon-delete btn-delete" data-id="${u.id_usuario}" title="Dar de baja (borrado lógico)" aria-label="Dar de baja a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-slash"></i></button>`
+                : `<button type="button" class="btn-icon btn-icon-reactivate btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario" aria-label="Reactivar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-check"></i></button>`)
+            : `<span style="color: var(--text-secondary); font-size: 0.8rem;" title="Acción reservada para administradores">—</span>`;
 
         tr.innerHTML = `
             <td><strong>#${escapeHtml(u.id_usuario)}</strong></td>
@@ -135,6 +138,11 @@ async function deleteUser(id) {
         showToast("Advertencia", "No puedes dar de baja tu propio usuario en sesión.", "warning");
         return;
     }
+    const roleLower = (state.currentUser?.rol || "").trim().toLowerCase();
+    if (roleLower !== "admin") {
+        showToast("Acceso denegado", "Solo los administradores pueden dar de baja usuarios.", "error");
+        return;
+    }
     const user = state.usuariosData.find(u => u.id_usuario === id);
     const nombre = user ? user.nombre : `#${id}`;
     if (!confirm(`¿Dar de baja a "${nombre}"?\nEl usuario quedará inactivo y no podrá iniciar sesión, pero sus datos se conservan en la base de datos.`)) return;
@@ -149,6 +157,11 @@ async function deleteUser(id) {
 }
 
 async function reactivateUser(id) {
+    const roleLower = (state.currentUser?.rol || "").trim().toLowerCase();
+    if (roleLower !== "admin") {
+        showToast("Acceso denegado", "Solo los administradores pueden reactivar usuarios.", "error");
+        return;
+    }
     const user = state.usuariosData.find(u => u.id_usuario === id);
     const nombre = user ? user.nombre : `#${id}`;
     if (!confirm(`¿Reactivar a "${nombre}"?\nEl usuario podrá volver a iniciar sesión.`)) return;
