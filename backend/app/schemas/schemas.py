@@ -113,6 +113,12 @@ class ClienteResponse(ClienteBase):
     id_direccion: Optional[int] = None
     direccion: Optional[DireccionResponse] = None
 
+    @field_validator("dni", mode="before")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        # En la respuesta permitimos leer registros preexistentes de la base de datos sin fallar en la serialización
+        return str(v) if v is not None else ""
+
     class Config:
         from_attributes = True
 
