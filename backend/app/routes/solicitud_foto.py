@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import shutil
 from typing import List, Optional
@@ -17,6 +18,22 @@ router = APIRouter(tags=["Fotos de Perfil"])
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads", "perfiles")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def normalize_drive_url(url: str) -> str:
+    """
+    Convierte enlaces compartidos de Google Drive al enlace de vista previa directa de miniatura.
+    Ejemplo: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    -> https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000
+    """
+    if not url:
+        return url
+    url_clean = url.strip()
+    match = re.search(r"/file/d/([a-zA-Z0-9_-]+)", url_clean) or re.search(r"[?&]id=([a-zA-Z0-9_-]+)", url_clean)
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+    return url_clean
 
 
 def _save_upload_file(file: UploadFile) -> str:
@@ -45,7 +62,8 @@ def asignar_foto_directa(
     cliente = crud.get_client(db, dni=dni)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    cliente_actualizado = crud.asignar_foto_cliente(db, dni=dni, foto_url=payload.foto_url)
+    foto_normalizada = normalize_drive_url(payload.foto_url)
+    cliente_actualizado = crud.asignar_foto_cliente(db, dni=dni, foto_url=foto_normalizada)
     return cliente_actualizado
 
 
@@ -77,7 +95,8 @@ def solicitar_cambio_foto_url(
     cliente = crud.get_client(db, dni=dni)
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    solicitud = crud.crear_solicitud_foto(db, dni_cliente=dni, foto_propuesta_url=payload.foto_propuesta_url)
+    foto_normalizada = normalize_drive_url(payload.foto_propuesta_url)
+    solicitud = crud.crear_solicitud_foto(db, dni_cliente=dni, foto_propuesta_url=foto_normalizada)
     return solicitud
 
 

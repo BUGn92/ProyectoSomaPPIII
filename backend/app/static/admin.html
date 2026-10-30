@@ -196,17 +196,23 @@
                         <div class="cliente-avatar-upload-card">
                             <div class="avatar-preview-wrapper">
                                 <img id="c-foto-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="Foto de perfil del socio" class="avatar-cliente-preview">
-                                <label for="c-foto-file" class="btn-avatar-camera" title="Cargar / Cambiar foto">
+                                <label for="c-foto-file" class="btn-avatar-camera" title="Cargar / Cambiar foto local">
                                     <i class="fa-solid fa-camera"></i>
                                     <input type="file" id="c-foto-file" accept="image/png, image/jpeg, image/webp" style="display: none;">
                                 </label>
                             </div>
-                            <div class="avatar-info-hint">
+                            <div class="avatar-info-hint" style="flex: 1;">
                                 <strong>Foto de Perfil Oficial</strong>
-                                <p>Formatos: JPG, PNG o WebP. Haz clic en la cámara para subir imagen.</p>
-                                <button type="button" id="btn-eliminar-foto-cliente" class="btn-text-danger hidden">
-                                    <i class="fa-solid fa-trash-can"></i> Quitar foto
-                                </button>
+                                <p style="font-size: 0.8rem; margin-bottom: 0.35rem;">Enlace compartido de Google Drive (o usa la cámara para archivo local):</p>
+                                <div style="display: flex; gap: 0.4rem; align-items: center; max-width: 440px;">
+                                    <input type="url" id="c-foto-url" placeholder="https://drive.google.com/file/d/.../view" style="flex: 1; padding: 0.4rem 0.6rem; font-size: 0.82rem; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-input); color: var(--text-primary);">
+                                    <button type="button" id="btn-c-foto-preview" class="btn-secondary" style="padding: 0.4rem 0.65rem; font-size: 0.8rem;" title="Previsualizar enlace"><i class="fa-solid fa-eye"></i></button>
+                                </div>
+                                <div style="margin-top: 0.4rem;">
+                                    <button type="button" id="btn-eliminar-foto-cliente" class="btn-text-danger hidden">
+                                        <i class="fa-solid fa-trash-can"></i> Quitar foto
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

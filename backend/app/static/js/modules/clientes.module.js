@@ -5,7 +5,7 @@
 import { state } from "../state.js";
 import { ClientesService } from "../services/clientes.service.js";
 import { showToast } from "../utils/toast.js";
-import { escapeHtml } from "../utils/sanitizer.js";
+import { escapeHtml, parseGoogleDriveUrl } from "../utils/sanitizer.js";
 
 import { fetchClientRutina, fetchEjerciciosAux } from "./rutinas.module.js";
 import { fetchClientEvFisica, fetchClientEvDeportiva } from "./evolucion.module.js";
@@ -42,6 +42,8 @@ const modalSolicitudesFoto = document.getElementById("modal-solicitudes-foto");
 const tbodySolicitudesFoto = document.getElementById("tbody-solicitudes-foto");
 const cFotoPreview = document.getElementById("c-foto-preview");
 const cFotoFile = document.getElementById("c-foto-file");
+const cFotoUrl = document.getElementById("c-foto-url");
+const btnCFotoPreview = document.getElementById("btn-c-foto-preview");
 const btnEliminarFotoCliente = document.getElementById("btn-eliminar-foto-cliente");
 
 let selectedClienteFotoFile = null;
@@ -350,6 +352,7 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         selectedClienteFotoFile = null;
         removeClienteFoto = false;
         if (cFotoFile) cFotoFile.value = "";
+        if (cFotoUrl) cFotoUrl.value = "";
         if (cFotoPreview) cFotoPreview.src = DEFAULT_AVATAR_SVG;
         if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.add("hidden");
     } else {
@@ -388,6 +391,7 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         selectedClienteFotoFile = null;
         removeClienteFoto = false;
         if (cFotoFile) cFotoFile.value = "";
+        if (cFotoUrl) cFotoUrl.value = client?.foto_url || "";
 
         if (client) {
             cDni.value = client.dni;
@@ -547,6 +551,10 @@ export function initClientesModule() {
                 };
             }
 
+            if (cFotoUrl && cFotoUrl.value.trim()) {
+                payload.foto_url = parseGoogleDriveUrl(cFotoUrl.value.trim());
+            }
+
             if (removeClienteFoto) {
                 payload.foto_url = null;
             }
@@ -572,12 +580,40 @@ export function initClientesModule() {
     }
 
     // Eventos de Foto en Ficha (SOMA-09)
+    const aplicarPreviewFotoUrl = () => {
+        const raw = cFotoUrl?.value?.trim();
+        if (!raw) return;
+        const direct = parseGoogleDriveUrl(raw);
+        selectedClienteFotoFile = null;
+        removeClienteFoto = false;
+        if (cFotoFile) cFotoFile.value = "";
+        if (cFotoPreview) cFotoPreview.src = direct;
+        if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.remove("hidden");
+    };
+
+    if (cFotoUrl) {
+        cFotoUrl.addEventListener("input", () => {
+            if (cFotoUrl.value.trim().length > 10) {
+                aplicarPreviewFotoUrl();
+            }
+        });
+        cFotoUrl.addEventListener("change", aplicarPreviewFotoUrl);
+    }
+
+    if (btnCFotoPreview) {
+        btnCFotoPreview.addEventListener("click", (e) => {
+            e.preventDefault();
+            aplicarPreviewFotoUrl();
+        });
+    }
+
     if (cFotoFile) {
         cFotoFile.addEventListener("change", (e) => {
             const file = e.target.files?.[0];
             if (file) {
                 selectedClienteFotoFile = file;
                 removeClienteFoto = false;
+                if (cFotoUrl) cFotoUrl.value = "";
                 if (cFotoPreview) cFotoPreview.src = URL.createObjectURL(file);
                 if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.remove("hidden");
             }
@@ -589,6 +625,7 @@ export function initClientesModule() {
             selectedClienteFotoFile = null;
             removeClienteFoto = true;
             if (cFotoFile) cFotoFile.value = "";
+            if (cFotoUrl) cFotoUrl.value = "";
             if (cFotoPreview) cFotoPreview.src = DEFAULT_AVATAR_SVG;
             btnEliminarFotoCliente.classList.add("hidden");
         });

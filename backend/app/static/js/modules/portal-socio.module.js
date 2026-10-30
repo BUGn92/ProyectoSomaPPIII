@@ -8,9 +8,11 @@ import { PagosService } from "../services/pagos.service.js";
 import { NoticiasService } from "../services/noticias.service.js";
 import { showToast } from "../utils/toast.js";
 import { formatCurrency } from "../utils/formatters.js";
-import { escapeHtml } from "../utils/sanitizer.js";
+import { escapeHtml, parseGoogleDriveUrl } from "../utils/sanitizer.js";
 import { renderNoticiasFeed } from "./noticias.module.js";
 import { renderRoutineView } from "./routine-view.module.js";
+
+export { parseGoogleDriveUrl };
 
 const DEFAULT_AVATAR_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
@@ -38,6 +40,8 @@ const formSolicitarFoto = document.getElementById("form-solicitar-foto");
 const bannerSolicitudActiva = document.getElementById("banner-solicitud-activa");
 const textoSolicitudActiva = document.getElementById("texto-solicitud-activa");
 const socioFotoModalPreview = document.getElementById("socio-foto-modal-preview");
+const inputDriveLinkSocio = document.getElementById("input-drive-link-socio");
+const btnPrevisualizarDrive = document.getElementById("btn-previsualizar-drive");
 const inputArchivoFotoSocio = document.getElementById("input-archivo-foto-socio");
 const btnEnviarSolicitudFoto = document.getElementById("btn-enviar-solicitud-foto");
 
@@ -266,6 +270,7 @@ export function initPortalSocioModule() {
         btnAbrirModalFoto.addEventListener("click", () => {
             selectedFotoFile = null;
             if (inputArchivoFotoSocio) inputArchivoFotoSocio.value = "";
+            if (inputDriveLinkSocio) inputDriveLinkSocio.value = "";
             if (btnEnviarSolicitudFoto) btnEnviarSolicitudFoto.disabled = true;
             if (socioFotoModalPreview) {
                 socioFotoModalPreview.src = currentClienteFotoUrl || DEFAULT_AVATAR_SVG;
@@ -278,16 +283,49 @@ export function initPortalSocioModule() {
         if (modalSolicitarFoto) modalSolicitarFoto.classList.remove("active");
         selectedFotoFile = null;
         if (inputArchivoFotoSocio) inputArchivoFotoSocio.value = "";
+        if (inputDriveLinkSocio) inputDriveLinkSocio.value = "";
     };
 
     if (btnCerrarModalFoto) btnCerrarModalFoto.addEventListener("click", cerrarModalFoto);
     if (btnCancelarModalFoto) btnCancelarModalFoto.addEventListener("click", cerrarModalFoto);
+
+    const aplicarPreviewDrive = () => {
+        const rawUrl = inputDriveLinkSocio?.value?.trim();
+        if (!rawUrl) return;
+        const directUrl = parseGoogleDriveUrl(rawUrl);
+        selectedFotoFile = null;
+        if (inputArchivoFotoSocio) inputArchivoFotoSocio.value = "";
+        if (socioFotoModalPreview) socioFotoModalPreview.src = directUrl;
+        if (btnEnviarSolicitudFoto) btnEnviarSolicitudFoto.disabled = false;
+    };
+
+    if (inputDriveLinkSocio) {
+        inputDriveLinkSocio.addEventListener("input", () => {
+            if (inputDriveLinkSocio.value.trim().length > 10) {
+                aplicarPreviewDrive();
+            }
+        });
+        inputDriveLinkSocio.addEventListener("change", aplicarPreviewDrive);
+    }
+
+    if (btnPrevisualizarDrive) {
+        btnPrevisualizarDrive.addEventListener("click", (e) => {
+            e.preventDefault();
+            const rawUrl = inputDriveLinkSocio?.value?.trim();
+            if (!rawUrl) {
+                showToast("Aviso", "Pega primero un enlace de Google Drive en el campo.", "warning");
+                return;
+            }
+            aplicarPreviewDrive();
+        });
+    }
 
     if (inputArchivoFotoSocio) {
         inputArchivoFotoSocio.addEventListener("change", (e) => {
             const file = e.target.files?.[0];
             if (file) {
                 selectedFotoFile = file;
+                if (inputDriveLinkSocio) inputDriveLinkSocio.value = "";
                 const objectUrl = URL.createObjectURL(file);
                 if (socioFotoModalPreview) socioFotoModalPreview.src = objectUrl;
                 if (btnEnviarSolicitudFoto) btnEnviarSolicitudFoto.disabled = false;
@@ -298,8 +336,10 @@ export function initPortalSocioModule() {
     if (formSolicitarFoto) {
         formSolicitarFoto.addEventListener("submit", async (e) => {
             e.preventDefault();
-            if (!selectedFotoFile) {
-                showToast("Atención", "Debes seleccionar una imagen para enviar la solicitud.", "warning");
+            const driveUrl = inputDriveLinkSocio?.value?.trim();
+
+            if (!driveUrl && !selectedFotoFile) {
+                showToast("Atención", "Debes ingresar un enlace de Google Drive o seleccionar un archivo.", "warning");
                 return;
             }
 
@@ -312,7 +352,14 @@ export function initPortalSocioModule() {
             }
 
             try {
-                const res = await ClientesService.solicitarCambioFoto(dni, selectedFotoFile);
+                let res;
+                if (driveUrl) {
+                    const parsedUrl = parseGoogleDriveUrl(driveUrl);
+                    res = await ClientesService.solicitarCambioFotoUrl(dni, parsedUrl);
+                } else {
+                    res = await ClientesService.solicitarCambioFoto(dni, selectedFotoFile);
+                }
+
                 if (res.ok) {
                     showToast("¡Solicitud Enviada!", "Tu nueva foto fue enviada al staff para su aprobación.", "success");
                     cerrarModalFoto();
