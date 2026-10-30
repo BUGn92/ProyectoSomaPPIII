@@ -356,6 +356,7 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         if (cFotoPreview) cFotoPreview.src = DEFAULT_AVATAR_SVG;
         if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.add("hidden");
     } else {
+        const client = (state.clientesData || []).find(c => String(c.dni) === String(dni));
         document.getElementById("modal-cliente-title").textContent = `Ficha del Socio: DNI ${dni}`;
         cDni.setAttribute("disabled", "true");
         cDni.disabled = true;

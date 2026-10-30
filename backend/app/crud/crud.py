@@ -169,9 +169,30 @@ def create_user(db: Session, user: schemas.UsuarioCreate):
         debe_cambiar_password=False
     )
     db.add(db_user)
+    db.flush()
+
+    # Si se crea un usuario de rol Cliente, asegurar ficha de Cliente y asignar rutina sugerida de iniciación
+    if user.rol.strip().lower() == "cliente":
+        cliente_existente = db.query(models.Cliente).filter(models.Cliente.dni == user.usuario_login).first()
+        if not cliente_existente:
+            partes = user.nombre.strip().split(" ", 1)
+            nom = partes[0]
+            ape = partes[1] if len(partes) > 1 else partes[0]
+            db_cli = models.Cliente(
+                dni=user.usuario_login,
+                nombre=nom,
+                apellido=ape,
+                fecha_alta=date.today(),
+                activo=True
+            )
+            db.add(db_cli)
+            db.flush()
+        asignar_rutina_iniciacion_automatica(db, dni_cliente=user.usuario_login)
+
     db.commit()
     db.refresh(db_user)
     return db_user
+
 
 def update_user(db: Session, user_id: int, user_update: schemas.UsuarioUpdate):
     db_user = get_user(db, user_id)
@@ -394,9 +415,13 @@ def create_client(db: Session, client: schemas.ClienteConPagoCreate):
     )
     registrar_pago(db=db, pago_data=pago_inicial, flush_only=True)
 
+    # 5. Asignar automáticamente rutina sugerida de iniciación
+    asignar_rutina_iniciacion_automatica(db, dni_cliente=client.dni)
+
     db.commit()
     db.refresh(db_client)
     return db_client
+
 
 def update_client(db: Session, dni: str, client_update: schemas.ClienteUpdate):
     db_client = get_client(db, dni)
@@ -859,4 +884,67 @@ def get_plantilla_rutina_by_id(db: Session, id_plantilla: int):
         models.PlantillaRutina.id_plantilla == id_plantilla,
         models.PlantillaRutina.activo == True
     ).first()
+
+
+def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuario_entrenador: Optional[int] = None):
+    """
+    Asigna automáticamente la rutina sugerida de iniciación (Plantilla 1 - 3 días)
+    a un cliente nuevo o que no tenga una rutina activa asignada.
+    """
+    # Si el cliente ya tiene una rutina activa, no duplicar
+    rutina_existente = db.query(models.Rutina).filter(
+        models.Rutina.dni_cliente == dni_cliente,
+        models.Rutina.activa == True
+    ).first()
+    if rutina_existente:
+        return rutina_existente
+
+    # Asegurar plantillas sembradas y obtener plantilla de iniciación
+    seed_plantillas_rutina_if_empty(db)
+    plantilla = db.query(models.PlantillaRutina).filter(
+        models.PlantillaRutina.id_plantilla == 1
+    ).first()
+    if not plantilla:
+        return None
+
+    # Entrenador responsable por defecto
+    if not id_usuario_entrenador:
+        trainer = db.query(models.Usuario).filter(models.Usuario.rol == "Entrenador", models.Usuario.activo == True).first()
+        if not trainer:
+            trainer = db.query(models.Usuario).filter(models.Usuario.rol == "Admin", models.Usuario.activo == True).first()
+        id_usuario_entrenador = trainer.id_usuario if trainer else 1
+
+    next_rutina_id = get_next_rutina_id(db)
+    db_rutina = models.Rutina(
+        id_rutina=next_rutina_id,
+        dni_cliente=dni_cliente,
+        fecha_inicio=date.today(),
+        periodo=4,
+        objetivo=plantilla.objetivo,
+        activa=True,
+        observaciones=plantilla.observaciones
+    )
+    db.add(db_rutina)
+    db.flush()
+
+    base_det_id = get_next_detalle_rutina_id(db)
+    detalle_index = 0
+    for det_p in plantilla.detalles:
+        db_det = models.DetalleRutina(
+            id_detalle=base_det_id + detalle_index,
+            id_rutina=next_rutina_id,
+            id_usuario=id_usuario_entrenador,
+            id_ejercicio=det_p.id_ejercicio,
+            dia=det_p.dia,
+            series=det_p.series,
+            repeticiones=det_p.repeticiones,
+            carga=det_p.carga_sugerida,
+            descanso=det_p.descanso
+        )
+        db.add(db_det)
+        detalle_index += 1
+
+    db.flush()
+    return db_rutina
+
 

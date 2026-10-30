@@ -244,6 +244,8 @@ function addRoutineBuilderDay(details = []) {
 }
 
 export async function fetchClientRutina(dni) {
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    canEditRoutine = role === "admin" || role === "entrenador";
     showRoutineEditor(false);
     if (routinePreview) routinePreview.innerHTML = "";
     if (routineManagementActions) routineManagementActions.classList.add("hidden");

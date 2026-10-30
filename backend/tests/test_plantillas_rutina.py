@@ -219,3 +219,65 @@ def test_aplicar_plantilla_iniciacion_a_cliente(client, db):
     assert res_socio.status_code == 200
     socio_data = res_socio.json()
     assert len(socio_data["detalles"]) == len(plantilla["detalles"])
+
+
+def test_auto_asignacion_rutina_al_crear_usuario_cliente(client, db):
+    """
+    Verifica que al crear un usuario con rol 'Cliente' (ej. desde el módulo de usuarios por Admin),
+    se genere automáticamente la rutina sugerida de iniciación.
+    """
+    headers_admin = get_auth_headers("cadmin", "Admin")
+    payload_user = {
+        "nombre": "Ana Principiante",
+        "usuario_login": "43999888",
+        "password": "Password123!",
+        "rol": "Cliente"
+    }
+    res_user = client.post("/api/usuarios/", json=payload_user, headers=headers_admin)
+    assert res_user.status_code == 201
+
+
+    # Consultar la rutina del cliente recién creado
+    headers_socio = get_auth_headers("43999888", "Cliente")
+    res_rutina = client.get("/api/clientes/43999888/rutina", headers=headers_socio)
+    assert res_rutina.status_code == 200
+    rutina = res_rutina.json()
+    assert rutina is not None
+    assert "Iniciación" in rutina["objetivo"]
+    assert len(rutina["dias"]) == 3
+    assert len(rutina["detalles"]) > 0
+
+
+def test_auto_asignacion_rutina_en_lectura_socio_existente_sin_rutina(client, db):
+    """
+    Verifica que si un socio preexistente no tenía rutina activa,
+    al ingresar al portal socio o ser consultado por su entrenador,
+    se le autoasigne la rutina sugerida de iniciación.
+    """
+    cliente_db = models.Cliente(
+        dni="44555666",
+        nombre="Lucio",
+        apellido="Vargas",
+        fecha_alta=date.today(),
+        activo=True
+    )
+    usuario_db = models.Usuario(
+        id_usuario=15,
+        nombre="Lucio Vargas",
+        usuario_login="44555666",
+        password=crud.hash_password("clave123"),
+        rol="Cliente",
+        debe_cambiar_password=False,
+        activo=True
+    )
+    db.add_all([cliente_db, usuario_db])
+    db.commit()
+
+    headers_socio = get_auth_headers("44555666", "Cliente")
+    res_rutina = client.get("/api/clientes/44555666/rutina", headers=headers_socio)
+    assert res_rutina.status_code == 200
+    rutina = res_rutina.json()
+    assert rutina is not None
+    assert "Iniciación" in rutina["objetivo"]
+    assert len(rutina["dias"]) == 3
+
