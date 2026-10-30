@@ -1,4 +1,5 @@
 import hashlib
+from typing import Optional, List
 from datetime import date, timedelta, datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -168,9 +169,30 @@ def create_user(db: Session, user: schemas.UsuarioCreate):
         debe_cambiar_password=False
     )
     db.add(db_user)
+    db.flush()
+
+    # Si se crea un usuario de rol Cliente, asegurar ficha de Cliente y asignar rutina sugerida de iniciación
+    if user.rol.strip().lower() == "cliente":
+        cliente_existente = db.query(models.Cliente).filter(models.Cliente.dni == user.usuario_login).first()
+        if not cliente_existente:
+            partes = user.nombre.strip().split(" ", 1)
+            nom = partes[0]
+            ape = partes[1] if len(partes) > 1 else partes[0]
+            db_cli = models.Cliente(
+                dni=user.usuario_login,
+                nombre=nom,
+                apellido=ape,
+                fecha_alta=date.today(),
+                activo=True
+            )
+            db.add(db_cli)
+            db.flush()
+        asignar_rutina_iniciacion_automatica(db, dni_cliente=user.usuario_login)
+
     db.commit()
     db.refresh(db_user)
     return db_user
+
 
 def update_user(db: Session, user_id: int, user_update: schemas.UsuarioUpdate):
     db_user = get_user(db, user_id)
@@ -393,9 +415,13 @@ def create_client(db: Session, client: schemas.ClienteConPagoCreate):
     )
     registrar_pago(db=db, pago_data=pago_inicial, flush_only=True)
 
+    # 5. Asignar automáticamente rutina sugerida de iniciación
+    asignar_rutina_iniciacion_automatica(db, dni_cliente=client.dni)
+
     db.commit()
     db.refresh(db_client)
     return db_client
+
 
 def update_client(db: Session, dni: str, client_update: schemas.ClienteUpdate):
     db_client = get_client(db, dni)
@@ -694,3 +720,231 @@ def rechazar_solicitud_foto(db: Session, id_solicitud: int, id_usuario_revisor: 
     db.commit()
     db.refresh(solicitud)
     return solicitud
+
+
+# --- CRUD de Plantillas de Rutinas (Iniciación y Objetivos) ---
+
+PLANTILLAS_SEMILLA = [
+    {
+        "id_plantilla": 1,
+        "nombre": "Iniciación y Acondicionamiento (3 Días)",
+        "objetivo": "Iniciación / Acondicionamiento Físico General",
+        "nivel": "Principiante",
+        "dias_semana": 3,
+        "duracion_estimada_min": 50,
+        "observaciones": "Rutina full-body de 3 días para adaptación anatómica y técnica. Calentamiento previo de 8-10 min y vuelta a la calma de 5 min. Cargas moderadas (RPE 6-7).",
+        "activo": True,
+        "detalles": [
+            # Día 1
+            {"dia": 1, "id_ejercicio": 2, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("20.00"), "descanso": "90 seg"},
+            {"dia": 1, "id_ejercicio": 1, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("25.00"), "descanso": "90 seg"},
+            {"dia": 1, "id_ejercicio": 3, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("0.00"), "descanso": "60 seg"},
+            {"dia": 1, "id_ejercicio": 4, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("15.00"), "descanso": "60 seg"},
+            {"dia": 1, "id_ejercicio": 6, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("15.00"), "descanso": "60 seg"},
+            # Día 2
+            {"dia": 2, "id_ejercicio": 7, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("30.00"), "descanso": "90 seg"},
+            {"dia": 2, "id_ejercicio": 3, "series": 3, "repeticiones": 8, "carga_sugerida": Decimal("0.00"), "descanso": "90 seg"},
+            {"dia": 2, "id_ejercicio": 1, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("20.00"), "descanso": "60 seg"},
+            {"dia": 2, "id_ejercicio": 4, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("15.00"), "descanso": "60 seg"},
+            {"dia": 2, "id_ejercicio": 5, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("15.00"), "descanso": "60 seg"},
+            # Día 3
+            {"dia": 3, "id_ejercicio": 2, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("20.00"), "descanso": "90 seg"},
+            {"dia": 3, "id_ejercicio": 1, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("25.00"), "descanso": "90 seg"},
+            {"dia": 3, "id_ejercicio": 3, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("90.00"), "descanso": "90 seg"},
+            {"dia": 3, "id_ejercicio": 5, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("15.00"), "descanso": "60 seg"},
+            {"dia": 3, "id_ejercicio": 6, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("15.00"), "descanso": "60 seg"},
+        ]
+    },
+    {
+        "id_plantilla": 2,
+        "nombre": "Pérdida de Peso y Tonificación (3 Días)",
+        "objetivo": "Pérdida de Peso / Tonificación",
+        "nivel": "Principiante / Intermedio",
+        "dias_semana": 3,
+        "duracion_estimada_min": 45,
+        "observaciones": "Rutina dinámica de alta densidad metabólica para optimizar gasto calórico. Respetar descansos cortos de 45 a 60 segundos.",
+        "activo": True,
+        "detalles": [
+            # Día 1
+            {"dia": 1, "id_ejercicio": 2, "series": 4, "repeticiones": 15, "carga_sugerida": Decimal("20.00"), "descanso": "45 seg"},
+            {"dia": 1, "id_ejercicio": 1, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("20.00"), "descanso": "45 seg"},
+            {"dia": 1, "id_ejercicio": 3, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("0.00"), "descanso": "45 seg"},
+            {"dia": 1, "id_ejercicio": 6, "series": 3, "repeticiones": 15, "carga_sugerida": Decimal("10.00"), "descanso": "45 seg"},
+            # Día 2
+            {"dia": 2, "id_ejercicio": 7, "series": 4, "repeticiones": 12, "carga_sugerida": Decimal("30.00"), "descanso": "60 seg"},
+            {"dia": 2, "id_ejercicio": 4, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("15.00"), "descanso": "45 seg"},
+            {"dia": 2, "id_ejercicio": 5, "series": 3, "repeticiones": 15, "carga_sugerida": Decimal("10.00"), "descanso": "45 seg"},
+            {"dia": 2, "id_ejercicio": 6, "series": 3, "repeticiones": 15, "carga_sugerida": Decimal("10.00"), "descanso": "45 seg"},
+            # Día 3
+            {"dia": 3, "id_ejercicio": 2, "series": 3, "repeticiones": 15, "carga_sugerida": Decimal("25.00"), "descanso": "45 seg"},
+            {"dia": 3, "id_ejercicio": 3, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("0.00"), "descanso": "45 seg"},
+            {"dia": 3, "id_ejercicio": 1, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("20.00"), "descanso": "45 seg"},
+            {"dia": 3, "id_ejercicio": 5, "series": 3, "repeticiones": 15, "carga_sugerida": Decimal("10.00"), "descanso": "45 seg"},
+        ]
+    },
+    {
+        "id_plantilla": 3,
+        "nombre": "Musculación e Hipertrofia (4 Días)",
+        "objetivo": "Hipertrofia Muscular",
+        "nivel": "Intermedio",
+        "dias_semana": 4,
+        "duracion_estimada_min": 55,
+        "observaciones": "Distribución torso/pierna para sobrecarga progresiva y volumen efectivo. Descansos controlados de 90 segundos.",
+        "activo": True,
+        "detalles": [
+            # Día 1: Torso A
+            {"dia": 1, "id_ejercicio": 1, "series": 4, "repeticiones": 8, "carga_sugerida": Decimal("50.00"), "descanso": "90 seg"},
+            {"dia": 1, "id_ejercicio": 3, "series": 4, "repeticiones": 8, "carga_sugerida": Decimal("0.00"), "descanso": "90 seg"},
+            {"dia": 1, "id_ejercicio": 4, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("25.00"), "descanso": "90 seg"},
+            {"dia": 1, "id_ejercicio": 5, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("20.00"), "descanso": "60 seg"},
+            # Día 2: Pierna A
+            {"dia": 2, "id_ejercicio": 2, "series": 4, "repeticiones": 8, "carga_sugerida": Decimal("60.00"), "descanso": "90 seg"},
+            {"dia": 2, "id_ejercicio": 7, "series": 3, "repeticiones": 8, "carga_sugerida": Decimal("60.00"), "descanso": "90 seg"},
+            {"dia": 2, "id_ejercicio": 6, "series": 3, "repeticiones": 12, "carga_sugerida": Decimal("20.00"), "descanso": "60 seg"},
+            # Día 3: Torso B
+            {"dia": 3, "id_ejercicio": 3, "series": 4, "repeticiones": 10, "carga_sugerida": Decimal("0.00"), "descanso": "90 seg"},
+            {"dia": 3, "id_ejercicio": 1, "series": 4, "repeticiones": 10, "carga_sugerida": Decimal("45.00"), "descanso": "90 seg"},
+            {"dia": 3, "id_ejercicio": 4, "series": 3, "repeticiones": 8, "carga_sugerida": Decimal("30.00"), "descanso": "90 seg"},
+            {"dia": 3, "id_ejercicio": 6, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("25.00"), "descanso": "60 seg"},
+            # Día 4: Pierna B
+            {"dia": 4, "id_ejercicio": 7, "series": 4, "repeticiones": 6, "carga_sugerida": Decimal("70.00"), "descanso": "90 seg"},
+            {"dia": 4, "id_ejercicio": 2, "series": 4, "repeticiones": 10, "carga_sugerida": Decimal("50.00"), "descanso": "90 seg"},
+            {"dia": 4, "id_ejercicio": 5, "series": 3, "repeticiones": 10, "carga_sugerida": Decimal("20.00"), "descanso": "60 seg"},
+        ]
+    },
+    {
+        "id_plantilla": 4,
+        "nombre": "Fuerza y Halterofilia (3 Días)",
+        "objetivo": "Fuerza / Halterofilia",
+        "nivel": "Avanzado",
+        "dias_semana": 3,
+        "duracion_estimada_min": 60,
+        "observaciones": "Enfoque en levantamientos básicos pesados multiarticulares. Descansos completos de 2 minutos para reposición energética.",
+        "activo": True,
+        "detalles": [
+            # Día 1
+            {"dia": 1, "id_ejercicio": 2, "series": 5, "repeticiones": 5, "carga_sugerida": Decimal("75.00"), "descanso": "120 seg"},
+            {"dia": 1, "id_ejercicio": 1, "series": 5, "repeticiones": 5, "carga_sugerida": Decimal("65.00"), "descanso": "120 seg"},
+            {"dia": 1, "id_ejercicio": 3, "series": 3, "repeticiones": 6, "carga_sugerida": Decimal("0.00"), "descanso": "90 seg"},
+            # Día 2
+            {"dia": 2, "id_ejercicio": 7, "series": 5, "repeticiones": 5, "carga_sugerida": Decimal("85.00"), "descanso": "120 seg"},
+            {"dia": 2, "id_ejercicio": 4, "series": 5, "repeticiones": 5, "carga_sugerida": Decimal("40.00"), "descanso": "120 seg"},
+            {"dia": 2, "id_ejercicio": 5, "series": 3, "repeticiones": 8, "carga_sugerida": Decimal("25.00"), "descanso": "90 seg"},
+            # Día 3
+            {"dia": 3, "id_ejercicio": 2, "series": 4, "repeticiones": 4, "carga_sugerida": Decimal("80.00"), "descanso": "120 seg"},
+            {"dia": 3, "id_ejercicio": 1, "series": 4, "repeticiones": 4, "carga_sugerida": Decimal("70.00"), "descanso": "120 seg"},
+            {"dia": 3, "id_ejercicio": 7, "series": 3, "repeticiones": 4, "carga_sugerida": Decimal("90.00"), "descanso": "120 seg"},
+        ]
+    }
+]
+
+
+def seed_plantillas_rutina_if_empty(db: Session):
+    count = db.query(models.PlantillaRutina).count()
+    if count == 0:
+        for p in PLANTILLAS_SEMILLA:
+            plantilla_db = models.PlantillaRutina(
+                id_plantilla=p["id_plantilla"],
+                nombre=p["nombre"],
+                objetivo=p["objetivo"],
+                nivel=p["nivel"],
+                dias_semana=p["dias_semana"],
+                duracion_estimada_min=p["duracion_estimada_min"],
+                observaciones=p["observaciones"],
+                activo=p["activo"]
+            )
+            db.add(plantilla_db)
+            db.flush()
+
+            for det in p["detalles"]:
+                detalle_db = models.DetallePlantillaRutina(
+                    id_plantilla=plantilla_db.id_plantilla,
+                    id_ejercicio=det["id_ejercicio"],
+                    dia=det["dia"],
+                    series=det["series"],
+                    repeticiones=det["repeticiones"],
+                    carga_sugerida=det["carga_sugerida"],
+                    descanso=det["descanso"]
+                )
+                db.add(detalle_db)
+        db.commit()
+
+
+def get_plantillas_rutina(db: Session, objetivo: Optional[str] = None):
+    seed_plantillas_rutina_if_empty(db)
+    query = db.query(models.PlantillaRutina).filter(models.PlantillaRutina.activo == True)
+    if objetivo:
+        query = query.filter(models.PlantillaRutina.objetivo.ilike(f"%{objetivo}%"))
+    return query.order_by(models.PlantillaRutina.id_plantilla.asc()).all()
+
+
+def get_plantilla_rutina_by_id(db: Session, id_plantilla: int):
+    seed_plantillas_rutina_if_empty(db)
+    return db.query(models.PlantillaRutina).filter(
+        models.PlantillaRutina.id_plantilla == id_plantilla,
+        models.PlantillaRutina.activo == True
+    ).first()
+
+
+def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuario_entrenador: Optional[int] = None):
+    """
+    Asigna automáticamente la rutina sugerida de iniciación (Plantilla 1 - 3 días)
+    a un cliente nuevo o que no tenga una rutina activa asignada.
+    """
+    # Si el cliente ya tiene una rutina activa, no duplicar
+    rutina_existente = db.query(models.Rutina).filter(
+        models.Rutina.dni_cliente == dni_cliente,
+        models.Rutina.activa == True
+    ).first()
+    if rutina_existente:
+        return rutina_existente
+
+    # Asegurar plantillas sembradas y obtener plantilla de iniciación
+    seed_plantillas_rutina_if_empty(db)
+    plantilla = db.query(models.PlantillaRutina).filter(
+        models.PlantillaRutina.id_plantilla == 1
+    ).first()
+    if not plantilla:
+        return None
+
+    # Entrenador responsable por defecto
+    if not id_usuario_entrenador:
+        trainer = db.query(models.Usuario).filter(models.Usuario.rol == "Entrenador", models.Usuario.activo == True).first()
+        if not trainer:
+            trainer = db.query(models.Usuario).filter(models.Usuario.rol == "Admin", models.Usuario.activo == True).first()
+        id_usuario_entrenador = trainer.id_usuario if trainer else 1
+
+    next_rutina_id = get_next_rutina_id(db)
+    db_rutina = models.Rutina(
+        id_rutina=next_rutina_id,
+        dni_cliente=dni_cliente,
+        fecha_inicio=date.today(),
+        periodo=4,
+        objetivo=plantilla.objetivo,
+        activa=True,
+        observaciones=plantilla.observaciones
+    )
+    db.add(db_rutina)
+    db.flush()
+
+    base_det_id = get_next_detalle_rutina_id(db)
+    detalle_index = 0
+    for det_p in plantilla.detalles:
+        db_det = models.DetalleRutina(
+            id_detalle=base_det_id + detalle_index,
+            id_rutina=next_rutina_id,
+            id_usuario=id_usuario_entrenador,
+            id_ejercicio=det_p.id_ejercicio,
+            dia=det_p.dia,
+            series=det_p.series,
+            repeticiones=det_p.repeticiones,
+            carga=det_p.carga_sugerida,
+            descanso=det_p.descanso
+        )
+        db.add(db_det)
+        detalle_index += 1
+
+    db.flush()
+    return db_rutina
+
+

@@ -172,7 +172,13 @@ def read_client_rutina_activa(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     rutina = crud.get_rutina_activa_cliente(db, dni_cliente=dni)
+    if not rutina:
+        rutina = crud.asignar_rutina_iniciacion_automatica(db, dni_cliente=dni)
+        if rutina:
+            db.commit()
+            db.refresh(rutina)
     return _rutina_response_data(rutina) if rutina else None
+
 
 @router.post("/{dni}/rutina", response_model=schemas.RutinaResponse, status_code=status.HTTP_201_CREATED)
 def assign_or_update_client_rutina(
