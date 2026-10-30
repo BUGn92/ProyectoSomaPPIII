@@ -200,5 +200,25 @@ export const ClientesService = {
             method: "POST",
             body: JSON.stringify({ motivo_rechazo: motivoRechazo })
         });
+    },
+
+    /**
+     * Obtiene el listado de ejercicios disponibles en el historial de rutinas de un socio.
+     */
+    async getEjerciciosProgreso(dni) {
+        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/progreso-rutinas/ejercicios`);
+    },
+
+    /**
+     * Obtiene la serie temporal de progresión de cargas para un ejercicio específico,
+     * con soporte para paginación por año calendario.
+     */
+    async getProgresoEjercicio(dni, idEjercicio, anio = null) {
+        let url = `/api/clientes/${encodeURIComponent(dni)}/progreso-rutinas?id_ejercicio=${encodeURIComponent(idEjercicio)}`;
+        if (anio) {
+            url += `&anio=${encodeURIComponent(anio)}`;
+        }
+        return await apiFetch(url);
     }
 };
+

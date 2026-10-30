@@ -637,6 +637,212 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
     return db_rutina
 
 
+def asegurar_historico_mensual_rutina(db: Session, dni_cliente: str):
+    """
+    Verifica si han transcurrido meses calendario desde la fecha de inicio de la rutina activa
+    y genera automáticamente instantáneas históricas (snapshots mensuales con activa=False)
+    para cada mes transcurrido sin registro de rutina.
+    """
+    rutina_activa = (
+        db.query(models.Rutina)
+        .filter(models.Rutina.dni_cliente == dni_cliente, models.Rutina.activa == True)
+        .order_by(models.Rutina.id_rutina.desc())
+        .first()
+    )
+    if not rutina_activa:
+        return
+
+    rutinas = db.query(models.Rutina).filter(models.Rutina.dni_cliente == dni_cliente).all()
+    meses_registrados = {(r.fecha_inicio.year, r.fecha_inicio.month) for r in rutinas}
+
+    hoy = date.today()
+    y = rutina_activa.fecha_inicio.year
+    m = rutina_activa.fecha_inicio.month
+
+    cambios = False
+    while True:
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+        if (y, m) > (hoy.year, hoy.month):
+            break
+
+        if (y, m) not in meses_registrados:
+            next_rutina_id = get_next_rutina_id(db)
+            snapshot = models.Rutina(
+                id_rutina=next_rutina_id,
+                dni_cliente=dni_cliente,
+                fecha_inicio=date(y, m, 1),
+                periodo=rutina_activa.periodo,
+                objetivo=rutina_activa.objetivo,
+                activa=False,
+                observaciones=f"Instantánea mensual automática ({m:02d}/{y})"
+            )
+            db.add(snapshot)
+            db.flush()
+
+            detalles_activa = db.query(models.DetalleRutina).filter(models.DetalleRutina.id_rutina == rutina_activa.id_rutina).all()
+            base_det_id = get_next_detalle_rutina_id(db)
+            for idx, det in enumerate(detalles_activa):
+                db_det = models.DetalleRutina(
+                    id_detalle=base_det_id + idx,
+                    id_rutina=next_rutina_id,
+                    id_usuario=det.id_usuario,
+                    id_ejercicio=det.id_ejercicio,
+                    dia=det.dia,
+                    series=det.series,
+                    repeticiones=det.repeticiones,
+                    carga=det.carga,
+                    descanso=det.descanso
+                )
+                db.add(db_det)
+
+            meses_registrados.add((y, m))
+            cambios = True
+
+    if cambios:
+        db.commit()
+
+
+def get_ejercicios_historico_rutinas(db: Session, dni_cliente: str):
+    """
+    Retorna la lista de ejercicios que forman parte del historial de rutinas del socio
+    (tanto activas como archivadas/históricas).
+    """
+    asegurar_historico_mensual_rutina(db, dni_cliente)
+
+    ejercicios = (
+        db.query(
+            models.Ejercicio.id_ejercicio,
+            models.Ejercicio.nombre_ejercicio,
+            models.Ejercicio.grupo_muscular
+        )
+        .join(models.DetalleRutina, models.DetalleRutina.id_ejercicio == models.Ejercicio.id_ejercicio)
+        .join(models.Rutina, models.Rutina.id_rutina == models.DetalleRutina.id_rutina)
+        .filter(models.Rutina.dni_cliente == dni_cliente)
+        .distinct()
+        .order_by(models.Ejercicio.nombre_ejercicio.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id_ejercicio": e.id_ejercicio,
+            "nombre_ejercicio": e.nombre_ejercicio,
+            "grupo_muscular": e.grupo_muscular
+        }
+        for e in ejercicios
+    ]
+
+
+def get_progreso_ejercicio_rutinas(db: Session, dni_cliente: str, id_ejercicio: int, anio: Optional[int] = None):
+    """
+    Retorna la evolución mensual del ejercicio seleccionado a partir de las rutinas históricas.
+    Calcula el PR (Personal Record) como el máximo de los últimos 3 meses cargados (si no se
+    alcanza en 3 meses consecutivos, baja automáticamente).
+    Permite paginación por año calendario (máximo 12 meses en pantalla).
+    """
+    asegurar_historico_mensual_rutina(db, dni_cliente)
+
+    ejercicio = db.query(models.Ejercicio).filter(models.Ejercicio.id_ejercicio == id_ejercicio).first()
+    if not ejercicio:
+        return None
+
+    registros = (
+        db.query(
+            models.Rutina.id_rutina,
+            models.Rutina.fecha_inicio,
+            models.Rutina.objetivo,
+            models.Rutina.activa,
+            models.DetalleRutina.carga,
+            models.DetalleRutina.series,
+            models.DetalleRutina.repeticiones
+        )
+        .join(models.DetalleRutina, models.DetalleRutina.id_rutina == models.Rutina.id_rutina)
+        .filter(
+            models.Rutina.dni_cliente == dni_cliente,
+            models.DetalleRutina.id_ejercicio == id_ejercicio
+        )
+        .order_by(models.Rutina.fecha_inicio.asc(), models.Rutina.id_rutina.asc())
+        .all()
+    )
+
+    MESES_ES = {
+        1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+        7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic"
+    }
+
+    puntos_por_mes = {}
+    for r in registros:
+        periodo_mes = f"{r.fecha_inicio.year}-{r.fecha_inicio.month:02d}"
+        etiqueta_mes = f"{MESES_ES.get(r.fecha_inicio.month, '')} {r.fecha_inicio.year}"
+        carga_val = float(r.carga) if r.carga is not None else 0.0
+        volumen = round(carga_val * r.series * r.repeticiones, 2)
+
+        if periodo_mes in puntos_por_mes:
+            prev = puntos_por_mes[periodo_mes]
+            if prev["id_rutina"] == r.id_rutina:
+                if carga_val > prev["carga"]:
+                    prev["carga"] = carga_val
+                    prev["series"] = r.series
+                    prev["repeticiones"] = r.repeticiones
+                    prev["volumen_total"] = volumen
+                continue
+
+        puntos_por_mes[periodo_mes] = {
+            "id_rutina": r.id_rutina,
+            "fecha": r.fecha_inicio,
+            "periodo_mes": periodo_mes,
+            "etiqueta_mes": etiqueta_mes,
+            "carga": carga_val,
+            "series": r.series,
+            "repeticiones": r.repeticiones,
+            "volumen_total": volumen,
+            "objetivo": r.objetivo or "General",
+            "activa": bool(r.activa)
+        }
+
+    puntos_ordenados = [puntos_por_mes[k] for k in sorted(puntos_por_mes.keys())]
+
+    # Calcular PR rodante de los últimos 3 meses para cada punto de la serie histórica
+    for idx, p in enumerate(puntos_ordenados):
+        ventana = puntos_ordenados[max(0, idx - 2) : idx + 1]
+        cargas_ventana = [pt["carga"] for pt in ventana]
+        pr_ventana = max(cargas_ventana) if cargas_ventana else 0.0
+        p["pr_ventana"] = pr_ventana
+        p["es_pr"] = (p["carga"] == pr_ventana and pr_ventana > 0)
+
+    # Calcular PR vigente actual (máximo de los últimos 3 meses registrados)
+    ultimos_3 = puntos_ordenados[-3:] if len(puntos_ordenados) >= 3 else puntos_ordenados
+    pr_vigente = max([pt["carga"] for pt in ultimos_3]) if ultimos_3 else 0.0
+    pr_vigente_mes = next((pt["etiqueta_mes"] for pt in reversed(ultimos_3) if pt["carga"] == pr_vigente), None)
+
+    # Años disponibles para paginación
+    anios_disponibles = sorted(list({p["fecha"].year for p in puntos_ordenados}))
+    if not anios_disponibles:
+        anios_disponibles = [date.today().year]
+
+    if anio is None or anio not in anios_disponibles:
+        anio = anios_disponibles[-1]
+
+    # Filtrar puntos exclusivamente para el año seleccionado (máximo 12 meses en pantalla)
+    puntos_anio = [p for p in puntos_ordenados if p["fecha"].year == anio]
+
+    return {
+        "id_ejercicio": ejercicio.id_ejercicio,
+        "nombre_ejercicio": ejercicio.nombre_ejercicio,
+        "grupo_muscular": ejercicio.grupo_muscular,
+        "anios_disponibles": anios_disponibles,
+        "anio_seleccionado": anio,
+        "pr_vigente": pr_vigente,
+        "pr_vigente_mes": pr_vigente_mes,
+        "puntos": puntos_anio
+    }
+
+
+
+
 # --- CRUD de Fotos de Perfil y Solicitudes (SOMA-09) ---
 
 def asignar_foto_cliente(db: Session, dni: str, foto_url: str):

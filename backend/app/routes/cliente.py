@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.config import database
@@ -238,3 +238,43 @@ def read_cliente_membresia_activa(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return crud.get_membresia_activa_cliente(db, dni_cliente=dni)
+
+
+# --- Endpoints de Progreso Histórico de Rutinas ---
+@router.get("/{dni}/progreso-rutinas/ejercicios", response_model=List[schemas.EjercicioHistorialItem])
+def read_client_ejercicios_historico(
+    dni: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """
+    Retorna la lista de ejercicios que forman parte del historial de rutinas del socio.
+    """
+    check_client_data_access(dni, current_user)
+    db_client = crud.get_client(db, dni=dni)
+    if db_client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return crud.get_ejercicios_historico_rutinas(db, dni_cliente=dni)
+
+
+@router.get("/{dni}/progreso-rutinas", response_model=schemas.ProgresoEjercicioResponse)
+def read_client_progreso_ejercicio(
+    dni: str,
+    id_ejercicio: int = Query(..., description="ID del ejercicio a analizar"),
+    anio: Optional[int] = Query(None, description="Año calendario para filtrar (máximo 12 meses por pantalla)"),
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """
+    Retorna la serie temporal mensual de progresión de cargas para un ejercicio específico
+    en base a las rutinas históricas y la rutina activa, con cálculo de PR y paginación por año.
+    """
+    check_client_data_access(dni, current_user)
+    db_client = crud.get_client(db, dni=dni)
+    if db_client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    resultado = crud.get_progreso_ejercicio_rutinas(db, dni_cliente=dni, id_ejercicio=id_ejercicio, anio=anio)
+    if not resultado:
+        raise HTTPException(status_code=404, detail="Ejercicio no encontrado o sin datos para este socio")
+    return resultado
+

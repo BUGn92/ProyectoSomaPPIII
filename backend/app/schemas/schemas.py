@@ -398,3 +398,36 @@ class SolicitudFotoPerfilResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- Progreso Histórico de Rutinas ---
+class EjercicioHistorialItem(BaseModel):
+    id_ejercicio: int
+    nombre_ejercicio: str
+    grupo_muscular: Optional[str] = None
+
+class PuntoProgresoRutina(BaseModel):
+    id_rutina: int
+    fecha: date
+    periodo_mes: str
+    etiqueta_mes: str
+    carga: float
+    series: int
+    repeticiones: int
+    volumen_total: float
+    objetivo: Optional[str] = None
+    activa: bool
+    es_pr: bool = False
+    pr_ventana: float = 0.0
+
+class ProgresoEjercicioResponse(BaseModel):
+    id_ejercicio: int
+    nombre_ejercicio: str
+    grupo_muscular: Optional[str] = None
+    anios_disponibles: List[int] = Field(default_factory=list)
+    anio_seleccionado: Optional[int] = None
+    pr_vigente: float = 0.0
+    pr_vigente_mes: Optional[str] = None
+    puntos: List[PuntoProgresoRutina]
+
+

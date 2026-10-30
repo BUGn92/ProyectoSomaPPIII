@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Vanilla CSS -->
     <link rel="stylesheet" href="css/style.css?v=2.5">
+    <!-- Chart.js para visualización de progreso -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -102,42 +104,92 @@
                     <h2><i class="fa-solid fa-chart-line"></i> Historial de Evolución</h2>
                     <p>Seguimiento de mediciones físicas y cargas alcanzadas.</p>
                 </div>
-                <div class="portal-progress-grid">
-                    <div class="portal-card">
-                        <h3><i class="fa-solid fa-weight-scale"></i> Mediciones Físicas</h3>
-                        <div class="sub-table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Peso (kg)</th>
-                                        <th>% Grasa</th>
-                                        <th>Observaciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-socio-ev-fisica">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
+
+                <!-- Card de Progreso Histórico por Ejercicio -->
+                <div class="portal-card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+                        <div>
+                            <h3 style="margin: 0 0 0.25rem 0;"><i class="fa-solid fa-chart-area"></i> Progreso de Ejercicios en Rutinas Históricas</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Evolución mensual de cargas planificadas con detección de PR vigente (máximo de los últimos 3 meses).</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                            <!-- Selector de Ejercicio -->
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <label for="select-ejercicio-progreso" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">
+                                    <i class="fa-solid fa-dumbbell"></i> Ejercicio:
+                                </label>
+                                <select id="select-ejercicio-progreso" style="padding: 0.5rem 0.85rem; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; min-width: 220px;">
+                                    <option value="">Selecciona un ejercicio...</option>
+                                </select>
+                            </div>
+
+                            <!-- Paginación por Año Calendario (Máximo 12 meses por pantalla) -->
+                            <div style="display: inline-flex; align-items: center; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 8px; padding: 0.2rem 0.4rem;">
+                                <button type="button" id="btn-progreso-anio-prev" title="Año anterior" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+                                <span id="label-progreso-anio" style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); min-width: 55px; text-align: center; user-select: none;">-</span>
+                                <button type="button" id="btn-progreso-anio-next" title="Año siguiente" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.85rem;">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="portal-card">
-                        <h3><i class="fa-solid fa-dumbbell"></i> Historial de Cargas</h3>
-                        <div class="sub-table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Ejercicio</th>
-                                        <th>Carga (kg)</th>
-                                        <th>Reps</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-socio-ev-deportiva">
-                                    <!-- Dinámico -->
-                                </tbody>
-                            </table>
+
+                    <!-- Métricas resumen del ejercicio seleccionado -->
+                    <div id="progreso-metrics-summary" style="display: none; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <!-- Tarjeta PR Vigente -->
+                        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; padding: 0.75rem 1rem;">
+                            <span style="font-size: 0.75rem; color: #f59e0b; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
+                                <i class="fa-solid fa-trophy"></i> PR Vigente (3 meses)
+                            </span>
+                            <strong id="metric-pr-vigente" style="display: block; font-size: 1.25rem; color: #f59e0b; margin-top: 0.2rem;">-</strong>
+                            <small id="metric-pr-vigente-mes" style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-top: 0.15rem;">-</small>
                         </div>
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 10px; padding: 0.75rem 1rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Carga Actual</span>
+                            <strong id="metric-carga-actual" style="display: block; font-size: 1.25rem; color: var(--accent); margin-top: 0.2rem;">-</strong>
+                            <small style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-top: 0.15rem;">Último mes cargado</small>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 10px; padding: 0.75rem 1rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Progreso del Año</span>
+                            <strong id="metric-progreso-neto" style="display: block; font-size: 1.25rem; color: #10b981; margin-top: 0.2rem;">-</strong>
+                            <small style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-top: 0.15rem;">Diferencia neta anual</small>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 10px; padding: 0.75rem 1rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">Meses Registrados</span>
+                            <strong id="metric-meses-count" style="display: block; font-size: 1.25rem; color: var(--text-primary); margin-top: 0.2rem;">-</strong>
+                            <small style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-top: 0.15rem;">Año seleccionado</small>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico Canvas / Contenedor -->
+                    <div style="position: relative; height: 320px; width: 100%; background: rgba(0, 0, 0, 0.15); border-radius: 12px; padding: 1rem; border: 1px solid var(--border-light); box-sizing: border-box;">
+                        <canvas id="chart-progreso-ejercicio"></canvas>
+                        <div id="progreso-empty-state" class="empty-state" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none;">
+                            <i class="fa-solid fa-chart-line" style="font-size: 2.25rem; color: var(--text-secondary); margin-bottom: 0.6rem; opacity: 0.6;"></i>
+                            <p id="progreso-empty-text" style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Selecciona un ejercicio del menú para visualizar la curva de progreso mensual.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mediciones Físicas Antropométricas -->
+                <div class="portal-card">
+                    <h3><i class="fa-solid fa-weight-scale"></i> Mediciones Físicas</h3>
+                    <div class="sub-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Peso (kg)</th>
+                                    <th>% Grasa</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-socio-ev-fisica">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
