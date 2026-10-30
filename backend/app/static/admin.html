@@ -65,6 +65,11 @@
                     <p id="section-subtitle">Alta de socios con cobro inicial, cuotas, rutinas y fichas.</p>
                 </div>
                 <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button id="btn-solicitudes-foto" class="btn-secondary" title="Solicitudes de cambio de foto" style="position: relative; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem;">
+                        <i class="fa-solid fa-camera-rotate"></i>
+                        <span>Fotos</span>
+                        <span id="badge-solicitudes-count" class="badge-counter hidden">0</span>
+                    </button>
                     <button id="btn-action-add" class="btn-primary">
                         <i class="fa-solid fa-plus"></i>
                         <span id="btn-action-add-text">Nuevo Socio</span>
@@ -188,6 +193,29 @@
                         <span><strong>Modo solo lectura:</strong> Las modificaciones de la ficha general corresponden a Administración o Recepción.</span>
                     </div>
                     <form id="form-cliente">
+                        <div class="cliente-avatar-upload-card">
+                            <div class="avatar-preview-wrapper">
+                                <img id="c-foto-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="Foto de perfil del socio" class="avatar-cliente-preview">
+                                <label for="c-foto-file" class="btn-avatar-camera" title="Cargar / Cambiar foto local">
+                                    <i class="fa-solid fa-camera"></i>
+                                    <input type="file" id="c-foto-file" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                                </label>
+                            </div>
+                            <div class="avatar-info-hint" style="flex: 1;">
+                                <strong>Foto de Perfil Oficial</strong>
+                                <p style="font-size: 0.8rem; margin-bottom: 0.35rem;">Enlace compartido de Google Drive (o usa la cámara para archivo local):</p>
+                                <div style="display: flex; gap: 0.4rem; align-items: center; max-width: 440px;">
+                                    <input type="url" id="c-foto-url" placeholder="https://drive.google.com/file/d/.../view" style="flex: 1; padding: 0.4rem 0.6rem; font-size: 0.82rem; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-input); color: var(--text-primary);">
+                                    <button type="button" id="btn-c-foto-preview" class="btn-secondary" style="padding: 0.4rem 0.65rem; font-size: 0.8rem;" title="Previsualizar enlace"><i class="fa-solid fa-eye"></i></button>
+                                </div>
+                                <div style="margin-top: 0.4rem;">
+                                    <button type="button" id="btn-eliminar-foto-cliente" class="btn-text-danger hidden">
+                                        <i class="fa-solid fa-trash-can"></i> Quitar foto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-grid">
                             <div class="form-section-title">Datos Personales</div>
                             <div class="form-group">
@@ -585,7 +613,41 @@
         </div>
     </div>
 
+    <!-- MODAL SOLICITUDES DE FOTO DE PERFIL (SOMA-09) -->
+    <div id="modal-solicitudes-foto" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-camera-rotate"></i> Solicitudes de Fotos de Perfil</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">
+                    Revisa las solicitudes de cambio de avatar enviadas por los socios. Al aprobar, se actualizará automáticamente la foto oficial en su ficha.
+                </p>
+                <div class="table-responsive">
+                    <table class="solicitudes-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); text-align: left;">
+                                <th style="padding: 0.75rem;">Fecha</th>
+                                <th style="padding: 0.75rem;">Socio</th>
+                                <th style="padding: 0.75rem; text-align: center;">Foto Actual</th>
+                                <th style="padding: 0.75rem; text-align: center;">Foto Propuesta</th>
+                                <th style="padding: 0.75rem; text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-solicitudes-foto">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary modal-close">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script de inicialización de Administración -->
-    <script type="module" src="js/admin-entry.js?v=3.1"></script>
+    <script type="module" src="js/admin-entry.js?v=3.2"></script>
 </body>
 </html>

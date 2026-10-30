@@ -122,5 +122,83 @@ export const ClientesService = {
      */
     async getClienteMembresia(dni) {
         return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/membresia`);
+    },
+
+    /**
+     * Carga directa de foto de perfil por archivo (Admin/Recepción).
+     */
+    async uploadFotoDirecta(dni, file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/subir-foto`, {
+            method: "POST",
+            body: formData
+        });
+    },
+
+    /**
+     * Asignación directa de foto de perfil por URL (Admin/Recepción).
+     */
+    async asignarFotoUrl(dni, fotoUrl) {
+        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/foto`, {
+            method: "POST",
+            body: JSON.stringify({ foto_url: fotoUrl })
+        });
+    },
+
+    /**
+     * Envío de solicitud de cambio de foto con archivo desde el portal del socio.
+     */
+    async solicitarCambioFoto(dni, file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/subir-solicitud-foto`, {
+            method: "POST",
+            body: formData
+        });
+    },
+
+    /**
+     * Envío de solicitud de cambio de foto por URL.
+     */
+    async solicitarCambioFotoUrl(dni, fotoPropuestaUrl) {
+        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/solicitar-cambio-foto`, {
+            method: "POST",
+            body: JSON.stringify({ foto_propuesta_url: fotoPropuestaUrl })
+        });
+    },
+
+    /**
+     * Consulta la solicitud pendiente activa de un socio.
+     */
+    async getSolicitudFotoActiva(dni) {
+        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/solicitud-foto-activa`);
+    },
+
+    /**
+     * Obtiene el listado de solicitudes de fotos (Admin/Recepción).
+     */
+    async getSolicitudesFoto(estado = "Pendiente") {
+        const query = estado ? `?estado=${encodeURIComponent(estado)}` : "";
+        return await apiFetch(`/api/solicitudes-foto/${query}`);
+    },
+
+    /**
+     * Aprueba una solicitud de foto.
+     */
+    async aprobarSolicitudFoto(idSolicitud) {
+        return await apiFetch(`/api/solicitudes-foto/${idSolicitud}/aprobar`, {
+            method: "POST"
+        });
+    },
+
+    /**
+     * Rechaza una solicitud de foto con motivo opcional.
+     */
+    async rechazarSolicitudFoto(idSolicitud, motivoRechazo = "") {
+        return await apiFetch(`/api/solicitudes-foto/${idSolicitud}/rechazar`, {
+            method: "POST",
+            body: JSON.stringify({ motivo_rechazo: motivoRechazo })
+        });
     }
 };

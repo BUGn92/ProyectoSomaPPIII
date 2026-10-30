@@ -24,7 +24,7 @@ export function setUnauthorizedHandler(callback) {
  */
 export async function apiFetch(endpoint, options = {}) {
     const headers = {
-        "Content-Type": "application/json",
+        ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
         ...(options.headers || {})
     };
 
