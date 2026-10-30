@@ -26,3 +26,9 @@
 ## 3. Arquitectura Frontend Modular (ES6)
 - El frontend está desacoplado por módulos bajo `backend/app/static/js/modules/` y servicios en `backend/app/static/js/services/`.
 - Mantener la separación de responsabilidades: los eventos del DOM pertenecen a los módulos (`*.module.js`) y las llamadas HTTP al servicio correspondiente (`*.service.js`) utilizando `apiFetch`.
+
+## 4. Consolidación de Migraciones y Base de Datos
+- **Integración Final de Scripts SQL:** Al finalizar el proyecto, todas las migraciones incrementales de SQL (como `migracion_foto_perfil.sql`, `migracion_dias_rutina.sql`, futuras migraciones de plantillas de rutinas, etc.) deben integrarse y consolidarse en exactamente dos archivos finales:
+  1. **Archivo único de creación de base de datos:** Esquema DDL completo y definitivo con todas las tablas, columnas, índices y foreign keys finales.
+  2. **Archivo único de carga inicial de datos:** Semillas (seeds), usuarios iniciales, catálogos (ejercicios, membresías, etc.) y datos de prueba listos para inicializar el sistema desde cero sin necesidad de correr scripts de migración intermedios.
+

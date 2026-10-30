@@ -4,6 +4,7 @@
 
 import { state } from "../state.js";
 import { ClientesService } from "../services/clientes.service.js";
+import { PlantillasRutinaService } from "../services/plantillas-rutina.service.js";
 import { showToast } from "../utils/toast.js";
 import { escapeHtml } from "../utils/sanitizer.js";
 import { renderRoutineView } from "./routine-view.module.js";
@@ -13,6 +14,8 @@ const rFecha = document.getElementById("r-fecha");
 const rPeriodo = document.getElementById("r-periodo");
 const rObjetivo = document.getElementById("r-objetivo");
 const rObs = document.getElementById("r-obs");
+const selectPlantillaRutina = document.getElementById("select-plantilla-rutina");
+const btnAplicarPlantilla = document.getElementById("btn-aplicar-plantilla");
 const btnAddRoutineRow = document.getElementById("btn-add-routine-row");
 const btnAddRoutineDay = document.getElementById("btn-add-routine-day");
 const routineDayTabs = document.getElementById("routine-day-tabs");
@@ -24,11 +27,13 @@ const btnEditRoutineLabel = document.getElementById("btn-edit-routine-label");
 const btnCancelRoutine = document.getElementById("btn-cancel-routine");
 const selectEdEjercicio = document.getElementById("ed-ejercicio");
 let canEditRoutine = false;
+let cachedPlantillas = [];
 
 function showRoutineEditor(show) {
     if (routinePreview) routinePreview.classList.toggle("hidden", show);
     if (formRutina) formRutina.classList.toggle("hidden", !show);
 }
+
 
 /**
  * Carga el catálogo de ejercicios en memoria y rellena el select de evolución deportiva.
@@ -52,6 +57,62 @@ export async function fetchEjerciciosAux() {
         console.error("Error al cargar catálogo de ejercicios:", err);
     }
 }
+
+/**
+ * Carga el catálogo de plantillas de rutinas prediseñadas en memoria.
+ */
+export async function fetchPlantillasAux() {
+    try {
+        const res = await PlantillasRutinaService.getPlantillas();
+        if (res.ok) {
+            cachedPlantillas = res.data || [];
+            if (selectPlantillaRutina) {
+                selectPlantillaRutina.innerHTML = '<option value="" disabled selected>-- Seleccionar una plantilla predefinida --</option>';
+                cachedPlantillas.forEach(p => {
+                    const opt = document.createElement("option");
+                    opt.value = p.id_plantilla;
+                    opt.textContent = `${p.nombre} (~${p.duracion_estimada_min} min) [${p.nivel}]`;
+                    selectPlantillaRutina.appendChild(opt);
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Error al cargar catálogo de plantillas:", err);
+    }
+}
+
+/**
+ * Aplica una plantilla de rutina seleccionada al constructor interactivo.
+ */
+export function applyPlantillaToBuilder(plantilla) {
+    if (!plantilla) return;
+
+    if (rObjetivo) rObjetivo.value = plantilla.objetivo || "";
+    if (rPeriodo) rPeriodo.value = 4;
+    if (rObs) rObs.value = plantilla.observaciones || "";
+
+    if (routineDayTabs) routineDayTabs.innerHTML = "";
+    if (routineDaysContainer) routineDaysContainer.innerHTML = "";
+
+    const dias = plantilla.dias?.length
+        ? plantilla.dias
+        : [{ detalles: plantilla.detalles || [] }];
+
+    dias.forEach(dia => {
+        const details = (dia.detalles || []).map(d => ({
+            id_ejercicio: d.id_ejercicio,
+            series: d.series,
+            repeticiones: d.repeticiones,
+            carga: d.carga_sugerida !== null && d.carga_sugerida !== undefined ? d.carga_sugerida : "",
+            descanso: d.descanso || "60 seg"
+        }));
+        addRoutineBuilderDay(details);
+    });
+
+    showRoutineDay(0);
+    showToast("Plantilla Cargada", `Se aplicó "${plantilla.nombre}". Puedes ajustar cualquier ejercicio o carga antes de guardar.`);
+}
+
 
 /**
  * Agrega una nueva fila al constructor interactivo de rutinas.
@@ -190,6 +251,10 @@ export async function fetchClientRutina(dni) {
     if (!state.cachedEjercicios || state.cachedEjercicios.length === 0) {
         await fetchEjerciciosAux();
     }
+    if (!cachedPlantillas || cachedPlantillas.length === 0) {
+        await fetchPlantillasAux();
+    }
+
     if (routineDayTabs) routineDayTabs.innerHTML = "";
     if (routineDaysContainer) routineDaysContainer.innerHTML = "";
     if (formRutina) formRutina.reset();
@@ -244,6 +309,21 @@ export function initRutinasModule() {
             if (state.editingDni) fetchClientRutina(state.editingDni);
         });
     }
+
+    if (btnAplicarPlantilla) {
+        btnAplicarPlantilla.addEventListener("click", () => {
+            const selectedId = parseInt(selectPlantillaRutina?.value);
+            if (!selectedId) {
+                showToast("Aviso", "Por favor selecciona una plantilla de la lista.", "warning");
+                return;
+            }
+            const plantilla = cachedPlantillas.find(p => p.id_plantilla === selectedId);
+            if (plantilla) {
+                applyPlantillaToBuilder(plantilla);
+            }
+        });
+    }
+
 
     if (routineDayTabs) {
         routineDayTabs.addEventListener("click", (event) => {

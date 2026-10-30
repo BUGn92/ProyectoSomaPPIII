@@ -188,3 +188,34 @@ class SolicitudFotoPerfil(Base):
     cliente = relationship("Cliente", back_populates="solicitudes_foto")
     revisor = relationship("Usuario")
 
+
+class PlantillaRutina(Base):
+    __tablename__ = "Plantilla_Rutina"
+
+    id_plantilla = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False)
+    objetivo = Column(String(100), nullable=False)
+    nivel = Column(String(50), default="Principiante", nullable=False)
+    dias_semana = Column(Integer, default=3, nullable=False)
+    duracion_estimada_min = Column(Integer, default=50, nullable=False)
+    observaciones = Column(Text, nullable=True)
+    activo = Column(Boolean, default=True, nullable=False)
+
+    detalles = relationship("DetallePlantillaRutina", back_populates="plantilla", cascade="all, delete-orphan", order_by="DetallePlantillaRutina.id_detalle_plantilla")
+
+
+class DetallePlantillaRutina(Base):
+    __tablename__ = "Detalle_Plantilla_Rutina"
+
+    id_detalle_plantilla = Column(Integer, primary_key=True, autoincrement=True)
+    id_plantilla = Column(Integer, ForeignKey("Plantilla_Rutina.id_plantilla", ondelete="CASCADE"), nullable=False)
+    id_ejercicio = Column(Integer, ForeignKey("Ejercicio.id_ejercicio"), nullable=False)
+    dia = Column(Integer, nullable=False, default=1)
+    series = Column(Integer, nullable=False)
+    repeticiones = Column(Integer, nullable=False)
+    carga_sugerida = Column(Numeric(5, 2), nullable=True)
+    descanso = Column(String(50), nullable=True)
+
+    plantilla = relationship("PlantillaRutina", back_populates="detalles")
+    ejercicio = relationship("Ejercicio")
+

@@ -211,6 +211,21 @@
                         </button>
                     </div>
                     <form id="form-rutina" class="evolution-subform hidden">
+                        <!-- Asistente de Plantillas Prediseñadas -->
+                        <div class="routine-template-banner" style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                            <label for="select-plantilla-rutina" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem; color: #cbd5e1;">
+                                <i class="fa-solid fa-wand-magic-sparkles" style="color: #38bdf8;"></i> Asistente de Plantillas Predefinidas (Iniciación y Objetivos)
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <select id="select-plantilla-rutina" class="form-control" style="flex: 1; min-width: 240px; padding: 0.5rem; border-radius: 6px; background: #0f172a; color: #fff; border: 1px solid #334155;">
+                                    <option value="">-- Seleccionar una plantilla predefinida --</option>
+                                </select>
+                                <button type="button" id="btn-aplicar-plantilla" class="btn-secondary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i class="fa-solid fa-file-import"></i> Cargar Plantilla
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="form-section-title">Parámetros de la Rutina</div>
                         <div class="form-grid">
                             <div class="form-group">

@@ -274,6 +274,45 @@ class RutinaResponse(RutinaBase):
         from_attributes = True
 
 
+# --- Plantillas de Rutinas (Iniciación y Objetivos) ---
+class DetallePlantillaRutinaBase(BaseModel):
+    id_ejercicio: int
+    dia: int = 1
+    series: int
+    repeticiones: int
+    carga_sugerida: Optional[Decimal] = None
+    descanso: Optional[str] = None
+
+class DetallePlantillaRutinaResponse(DetallePlantillaRutinaBase):
+    id_detalle_plantilla: int
+    id_plantilla: int
+    ejercicio: Optional[EjercicioResponse] = None
+
+    class Config:
+        from_attributes = True
+
+class DiaPlantillaResponse(BaseModel):
+    numero: int
+    detalles: List[DetallePlantillaRutinaResponse]
+
+class PlantillaRutinaBase(BaseModel):
+    nombre: str
+    objetivo: str
+    nivel: str = "Principiante"
+    dias_semana: int = 3
+    duracion_estimada_min: int = 50
+    observaciones: Optional[str] = None
+    activo: bool = True
+
+class PlantillaRutinaResponse(PlantillaRutinaBase):
+    id_plantilla: int
+    detalles: List[DetallePlantillaRutinaResponse] = Field(default_factory=list)
+    dias: List[DiaPlantillaResponse] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
+
+
 # --- Pagos ---
 class PagoInicialCreate(BaseModel):
     """Datos del primer pago a registrar al dar de alta un socio."""
