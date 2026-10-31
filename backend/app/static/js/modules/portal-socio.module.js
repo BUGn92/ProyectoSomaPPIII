@@ -175,7 +175,6 @@ export async function fetchSocioNoticias() {
 
 export async function fetchSocioProgreso(dni) {
     if (tbodySocioEvFisica) tbodySocioEvFisica.innerHTML = "";
-    if (tbodySocioEvDeportiva) tbodySocioEvDeportiva.innerHTML = "";
 
     const resFis = await ClientesService.getClienteEvFisica(dni);
     if (resFis.ok && tbodySocioEvFisica) {
