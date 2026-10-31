@@ -299,6 +299,9 @@ export function renderClientes(clients) {
 
 export async function openClientModal(mode, dni = null, defaultTab = "tab-general") {
     state.editingDni = dni;
+    const client = mode === "edit"
+        ? state.clientesData.find(c => c.dni === dni)
+        : null;
     if (formCliente) formCliente.reset();
     
     clientModalTabs.forEach(t => t.classList.remove("active"));

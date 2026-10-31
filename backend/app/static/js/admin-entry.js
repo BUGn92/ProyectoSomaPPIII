@@ -13,6 +13,7 @@ import { initEvolucionModule } from "./modules/evolucion.module.js";
 import { initPagosModule, setOnPagoRegistrado } from "./modules/pagos.module.js";
 import { initNoticiasModule, fetchNoticias, openNoticiaModal } from "./modules/noticias.module.js";
 import { initUsuariosModule, fetchUsuarios, openUserModal } from "./modules/usuarios.module.js";
+import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Proteger acceso: Admin, Recepcionista, Secretaria
@@ -81,6 +82,11 @@ document.addEventListener("DOMContentLoaded", () => {
             if (btnActionAdd) btnActionAdd.classList.remove("hidden");
             if (btnActionAddText) btnActionAddText.textContent = "Nuevo Usuario";
             fetchUsuarios();
+        } else if (targetId === "ejercicios-section") {
+            if (sectionTitle) sectionTitle.textContent = "Catálogo de Ejercicios";
+            if (sectionSubtitle) sectionSubtitle.textContent = "Consulta y carga de ejercicios disponibles para las rutinas.";
+            if (btnActionAdd) btnActionAdd.classList.add("hidden");
+            fetchEjerciciosCatalogo();
         }
     }
 
@@ -111,6 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initPagosModule();
     initNoticiasModule();
     initUsuariosModule();
+    initEjerciciosModule();
 
     // 8. Cargar datos iniciales
     fetchEjerciciosAux();

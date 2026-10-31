@@ -11,6 +11,7 @@ import { initClientesModule, fetchClientes } from "./modules/clientes.module.js"
 import { initRutinasModule, fetchEjerciciosAux } from "./modules/rutinas.module.js";
 import { initEvolucionModule } from "./modules/evolucion.module.js";
 import { initNoticiasModule, fetchNoticias } from "./modules/noticias.module.js";
+import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Proteger acceso: Entrenadores (o Admin)
@@ -51,6 +52,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (sectionTitle) sectionTitle.textContent = "Muro de Novedades del Gym";
             if (sectionSubtitle) sectionSubtitle.textContent = "Avisos oficiales y novedades del gimnasio.";
             fetchNoticias();
+        } else if (targetId === "ejercicios-section") {
+            if (sectionTitle) sectionTitle.textContent = "Catálogo de Ejercicios";
+            if (sectionSubtitle) sectionSubtitle.textContent = "Consulta y carga de ejercicios disponibles para las rutinas.";
+            fetchEjerciciosCatalogo();
         }
     }
 
@@ -68,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initRutinasModule();
     initEvolucionModule();
     initNoticiasModule();
+    initEjerciciosModule();
 
     // 7. Cargar datos iniciales
     fetchEjerciciosAux();

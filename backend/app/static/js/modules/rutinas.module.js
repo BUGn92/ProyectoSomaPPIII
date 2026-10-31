@@ -52,6 +52,7 @@ export async function fetchEjerciciosAux() {
                     selectEdEjercicio.appendChild(opt);
                 });
             }
+
         }
     } catch (err) {
         console.error("Error al cargar catálogo de ejercicios:", err);
@@ -123,11 +124,16 @@ export function addRoutineBuilderRow(detail = null, targetTbody = null) {
 
     const tr = document.createElement("tr");
     
-    let optionsHtml = '<option value="" disabled selected>Seleccionar ejercicio...</option>';
-    state.cachedEjercicios.forEach(ej => {
-        const selected = detail && detail.id_ejercicio === ej.id_ejercicio ? "selected" : "";
-        optionsHtml += `<option value="${ej.id_ejercicio}" ${selected}>${escapeHtml(ej.nombre_ejercicio)} (${escapeHtml(ej.grupo_muscular)})</option>`;
-    });
+    const listId = `ejercicios-sugerencias-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const selectedExercise = detail
+        ? state.cachedEjercicios.find(ej => ej.id_ejercicio === detail.id_ejercicio)
+        : null;
+    const selectedLabel = selectedExercise
+        ? `${selectedExercise.nombre_ejercicio} (${selectedExercise.grupo_muscular})`
+        : "";
+    const suggestionsHtml = state.cachedEjercicios
+        .map(ej => `<option value="${escapeHtml(ej.nombre_ejercicio)} (${escapeHtml(ej.grupo_muscular)})"></option>`)
+        .join("");
 
     const seriesVal = detail ? parseInt(detail.series) || 3 : 3;
     const repsVal = detail ? parseInt(detail.repeticiones) || 10 : 10;
@@ -139,7 +145,12 @@ export function addRoutineBuilderRow(detail = null, targetTbody = null) {
             <span class="routine-row-number"></span>
         </td>
         <td data-label="Ejercicio">
-            <select class="rb-ejercicio" required>${optionsHtml}</select>
+            <input type="text" class="rb-ejercicio-search" list="${listId}" required
+                value="${escapeHtml(selectedLabel)}"
+                placeholder="Escribe para buscar un ejercicio..."
+                aria-label="Buscar y seleccionar ejercicio">
+            <datalist id="${listId}">${suggestionsHtml}</datalist>
+            <input type="hidden" class="rb-ejercicio" value="${detail?.id_ejercicio || ""}">
         </td>
         <td data-label="Series">
             <input type="number" min="1" max="20" class="rb-series" required value="${seriesVal}" placeholder="Series">
@@ -163,6 +174,15 @@ export function addRoutineBuilderRow(detail = null, targetTbody = null) {
     `;
 
     routineBuilderTbody.appendChild(tr);
+    const searchInput = tr.querySelector(".rb-ejercicio-search");
+    const exerciseValue = tr.querySelector(".rb-ejercicio");
+    searchInput.addEventListener("input", () => {
+        const query = searchInput.value.toLowerCase().trim();
+        const selected = state.cachedEjercicios.find(ej =>
+            `${ej.nombre_ejercicio} (${ej.grupo_muscular})`.toLowerCase() === query
+        );
+        exerciseValue.value = selected ? selected.id_ejercicio : "";
+    });
     updateRoutineRowNumbers(routineBuilderTbody);
 }
 
@@ -372,7 +392,6 @@ export function initRutinasModule() {
     if (btnAddRoutineRow) {
         btnAddRoutineRow.addEventListener("click", () => addRoutineBuilderRow());
     }
-
     if (btnAddRoutineDay) {
         btnAddRoutineDay.addEventListener("click", () => {
             if (addRoutineBuilderDay()) {
