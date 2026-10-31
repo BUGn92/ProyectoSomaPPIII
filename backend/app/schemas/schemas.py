@@ -170,6 +170,30 @@ class EjercicioResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class EjercicioCreate(BaseModel):
+    nombre_ejercicio: str = Field(..., min_length=2, max_length=100)
+    grupo_muscular: str = Field(..., min_length=2, max_length=50)
+
+    @field_validator("nombre_ejercicio", "grupo_muscular")
+    @classmethod
+    def validar_texto(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("El texto debe contener al menos 2 caracteres.")
+        return value
+
+class EjercicioUpdate(BaseModel):
+    nombre_ejercicio: str = Field(..., min_length=2, max_length=100)
+    grupo_muscular: str = Field(..., min_length=2, max_length=50)
+
+    @field_validator("nombre_ejercicio", "grupo_muscular")
+    @classmethod
+    def validar_texto(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("El texto debe contener al menos 2 caracteres.")
+        return value
+
 # --- Evolución Física ---
 class EvolucionFisicaBase(BaseModel):
     fecha_medicion: date

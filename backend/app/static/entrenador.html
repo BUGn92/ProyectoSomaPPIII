@@ -43,6 +43,9 @@
                     <li data-target="noticias-section" id="nav-noticias-li">
                         <a href="#"><i class="fa-solid fa-bullhorn"></i><span>Novedades del Gym</span></a>
                     </li>
+                    <li data-target="ejercicios-section">
+                        <a href="#"><i class="fa-solid fa-dumbbell"></i><span>Ejercicios</span></a>
+                    </li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -110,6 +113,26 @@
                     </div>
                 </div>
             </section>
+
+            <section id="ejercicios-section" class="crud-section hidden">
+                <div class="table-card">
+                    <div class="table-header-tools">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-ejercicios" placeholder="Buscar por nombre o grupo muscular...">
+                        </div>
+                        <button id="btn-nuevo-ejercicio" class="btn-primary">
+                            <i class="fa-solid fa-plus"></i> Nuevo ejercicio
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Ejercicio</th><th>Grupo muscular</th><th class="actions-col">Acciones</th></tr></thead>
+                            <tbody id="tbody-ejercicios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -120,7 +143,7 @@
                 <h2 id="modal-cliente-title">Ficha del Socio</h2>
                 <button class="modal-close">&times;</button>
             </div>
-            
+
             <!-- Barra de Pestañas -->
             <div class="modal-tabs" id="client-modal-tabs">
                 <button type="button" class="tab-link active" data-tab="tab-general">Datos Personales</button>
@@ -361,7 +384,32 @@
         </div>
     </div>
 
+    <div id="modal-ejercicio" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-ejercicio-title">Agregar ejercicio</h2>
+                <button class="modal-close" type="button">&times;</button>
+            </div>
+            <form id="form-ejercicio">
+                <div class="form-grid" style="padding: 1.5rem;">
+                    <div class="form-group">
+                        <label for="ej-nombre">Nombre *</label>
+                        <input type="text" id="ej-nombre" maxlength="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ej-grupo-muscular">Grupo muscular *</label>
+                        <input type="text" id="ej-grupo-muscular" maxlength="50" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary modal-close">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar ejercicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Script de inicialización del Portal Entrenador -->
-    <script type="module" src="js/entrenador-entry.js?v=3.1"></script>
+    <script type="module" src="js/entrenador-entry.js?v=3.2"></script>
 </body>
 </html>

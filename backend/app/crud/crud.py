@@ -515,6 +515,63 @@ def create_client_registro_entrenamiento(db: Session, dni_cliente: str, registro
 def get_ejercicios(db: Session):
     return db.query(models.Ejercicio).filter(models.Ejercicio.activo == True).order_by(models.Ejercicio.nombre_ejercicio.asc()).all()
 
+def create_ejercicio(db: Session, ejercicio: schemas.EjercicioCreate):
+    nombre = ejercicio.nombre_ejercicio.strip()
+    grupo_muscular = ejercicio.grupo_muscular.strip()
+    existente = db.query(models.Ejercicio).filter(
+        func.lower(models.Ejercicio.nombre_ejercicio) == nombre.lower(),
+        models.Ejercicio.activo == True,
+    ).first()
+    if existente:
+        return None
+
+    max_id = db.query(func.max(models.Ejercicio.id_ejercicio)).scalar()
+    db_ejercicio = models.Ejercicio(
+        id_ejercicio=(max_id or 0) + 1,
+        nombre_ejercicio=nombre,
+        grupo_muscular=grupo_muscular,
+        activo=True,
+    )
+    db.add(db_ejercicio)
+    db.commit()
+    db.refresh(db_ejercicio)
+    return db_ejercicio
+
+def update_ejercicio(db: Session, id_ejercicio: int, ejercicio: schemas.EjercicioUpdate):
+    db_ejercicio = db.query(models.Ejercicio).filter(
+        models.Ejercicio.id_ejercicio == id_ejercicio,
+        models.Ejercicio.activo == True,
+    ).first()
+    if not db_ejercicio:
+        return None
+
+    nombre = ejercicio.nombre_ejercicio.strip()
+    duplicado = db.query(models.Ejercicio).filter(
+        models.Ejercicio.id_ejercicio != id_ejercicio,
+        models.Ejercicio.activo == True,
+        func.lower(models.Ejercicio.nombre_ejercicio) == nombre.lower(),
+    ).first()
+    if duplicado:
+        return False
+
+    db_ejercicio.nombre_ejercicio = nombre
+    db_ejercicio.grupo_muscular = ejercicio.grupo_muscular.strip()
+    db.commit()
+    db.refresh(db_ejercicio)
+    return db_ejercicio
+
+def delete_ejercicio(db: Session, id_ejercicio: int):
+    db_ejercicio = db.query(models.Ejercicio).filter(
+        models.Ejercicio.id_ejercicio == id_ejercicio,
+        models.Ejercicio.activo == True,
+    ).first()
+    if not db_ejercicio:
+        return None
+    db_ejercicio.activo = False
+    db.commit()
+    db.refresh(db_ejercicio)
+    return db_ejercicio
+
 # --- CRUD de Noticias / Muro de Novedades ---
 def get_noticias(db: Session, limit: int = 50):
     limite_vencimiento = date.today() - timedelta(days=60)

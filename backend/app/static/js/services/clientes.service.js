@@ -67,6 +67,29 @@ export const ClientesService = {
     },
 
     /**
+     * Agrega un ejercicio al catálogo.
+     */
+    async createEjercicio(payload) {
+        return await apiFetch("/api/clientes/aux/ejercicios", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async updateEjercicio(idEjercicio, payload) {
+        return await apiFetch(`/api/clientes/aux/ejercicios/${encodeURIComponent(idEjercicio)}`, {
+            method: "PUT",
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async deleteEjercicio(idEjercicio) {
+        return await apiFetch(`/api/clientes/aux/ejercicios/${encodeURIComponent(idEjercicio)}`, {
+            method: "DELETE"
+        });
+    },
+
+    /**
      * Obtiene la rutina activa de un socio.
      */
     async getClienteRutina(dni) {
