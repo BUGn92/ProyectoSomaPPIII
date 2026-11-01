@@ -354,7 +354,10 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.add("hidden");
     } else {
         const client = (state.clientesData || []).find(c => String(c.dni) === String(dni));
-        document.getElementById("modal-cliente-title").textContent = `Ficha del Socio: DNI ${dni}`;
+        const nombreSocio = client
+            ? `${client.nombre || ""} ${client.apellido || ""}`.trim()
+            : "Socio";
+        document.getElementById("modal-cliente-title").textContent = `Ficha del Socio: ${nombreSocio}`;
         cDni.setAttribute("disabled", "true");
         cDni.disabled = true;
         
@@ -521,6 +524,11 @@ export function initClientesModule() {
                     return;
                 }
             }
+            if (!cNombre.value.trim() || !cApellido.value.trim()) {
+                showToast("Datos incompletos", "Ingresa el nombre y apellido del socio.", "error");
+                (cNombre.value.trim() ? cApellido : cNombre).focus();
+                return;
+            }
 
             const payload = {
                 dni: dniVal,
@@ -574,7 +582,10 @@ export function initClientesModule() {
                 if (modalCliente) modalCliente.classList.remove("active");
                 fetchClientes();
             } else {
-                showToast("Error", res.detail || "No se pudo guardar el socio", "error");
+                const detail = Array.isArray(res.detail)
+                    ? res.detail.map(item => item.msg).join(" ")
+                    : res.detail;
+                showToast("Error", detail || "No se pudo guardar el socio", "error");
             }
         });
     }

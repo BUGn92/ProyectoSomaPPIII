@@ -36,7 +36,7 @@ export function renderRoutineView(rutina) {
 
         return `
             <section class="routine-day-sheet">
-                <h3>Día ${dia.numero || dayIndex + 1}</h3>
+                <h3>${escapeHtml(dia.nombre || `Día ${dia.numero || dayIndex + 1}`)}</h3>
                 <div class="routine-sheet-container">
                     <table class="routine-sheet">
                         <thead>

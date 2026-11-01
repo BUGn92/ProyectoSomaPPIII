@@ -4,6 +4,7 @@ from datetime import date, timedelta, datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from sqlalchemy import inspect
 from dateutil.relativedelta import relativedelta
 from app.models import models
 from app.schemas import schemas
@@ -309,11 +310,23 @@ def registrar_pago(db: Session, pago_data: schemas.PagoCreate, flush_only: bool 
         membresia.fecha_fin = nueva_fecha_fin
         membresia.estado = "Activo"
     else:
+        membresia_catalogo = db.query(models.Membresia).order_by(
+            models.Membresia.id_membresia.asc()
+        ).first()
+        if not membresia_catalogo:
+            membresia_catalogo = models.Membresia(
+                id_membresia=(db.query(func.max(models.Membresia.id_membresia)).scalar() or 0) + 1,
+                tipo="Mensual",
+                precio=pago_data.monto,
+                duracion_dias=30,
+            )
+            db.add(membresia_catalogo)
+            db.flush()
         next_cm_id = get_next_cliente_membresia_id(db)
         db_membresia = models.ClienteMembresia(
             id_cliente_membresia=next_cm_id,
             dni_cliente=pago_data.dni_cliente,
-            id_membresia=1,  # Membresía genérica; ajustar si hay catálogo
+            id_membresia=membresia_catalogo.id_membresia,
             fecha_inicio=fecha_hoy,
             fecha_fin=nueva_fecha_fin,
             estado="Activo",
@@ -674,6 +687,12 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
     base_det_id = get_next_detalle_rutina_id(db)
     detalle_index = 0
     for numero_dia, detalles in enumerate(detalles_por_dia, start=1):
+        nombre_dia = (
+            rutina_data.dias[numero_dia - 1].nombre
+            if rutina_data.dias is not None
+            else None
+        )
+        nombre_dia = (nombre_dia or f"Día {numero_dia}").strip()
         for detalle in detalles:
             db_det = models.DetalleRutina(
                 id_detalle=base_det_id + detalle_index,
@@ -681,6 +700,7 @@ def save_or_update_rutina_cliente(db: Session, dni_cliente: str, rutina_data: sc
                 id_usuario=id_usuario_entrenador,
                 id_ejercicio=detalle.id_ejercicio,
                 dia=numero_dia,
+                nombre_dia=nombre_dia.strip(),
                 series=detalle.series,
                 repeticiones=detalle.repeticiones,
                 carga=detalle.carga,
@@ -1103,6 +1123,10 @@ PLANTILLAS_SEMILLA = [
 
 
 def seed_plantillas_rutina_if_empty(db: Session):
+    if db.bind.dialect.name != "sqlite":
+        inspector = inspect(db.bind)
+        if not inspector.has_table("Plantilla_Rutina") or not inspector.has_table("Detalle_Plantilla_Rutina"):
+            return
     count = db.query(models.PlantillaRutina).count()
     if count == 0:
         for p in PLANTILLAS_SEMILLA:
@@ -1120,6 +1144,12 @@ def seed_plantillas_rutina_if_empty(db: Session):
             db.flush()
 
             for det in p["detalles"]:
+                ejercicio_existente = db.query(models.Ejercicio.id_ejercicio).filter(
+                    models.Ejercicio.id_ejercicio == det["id_ejercicio"],
+                    models.Ejercicio.activo == True,
+                ).first()
+                if not ejercicio_existente:
+                    continue
                 detalle_db = models.DetallePlantillaRutina(
                     id_plantilla=plantilla_db.id_plantilla,
                     id_ejercicio=det["id_ejercicio"],
@@ -1154,6 +1184,11 @@ def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuar
     Asigna automáticamente la rutina sugerida de iniciación (Plantilla 1 - 3 días)
     a un cliente nuevo o que no tenga una rutina activa asignada.
     """
+    if db.bind.dialect.name != "sqlite":
+        inspector = inspect(db.bind)
+        if not inspector.has_table("Plantilla_Rutina") or not inspector.has_table("Detalle_Plantilla_Rutina"):
+            return None
+
     # Si el cliente ya tiene una rutina activa, no duplicar
     rutina_existente = db.query(models.Rutina).filter(
         models.Rutina.dni_cliente == dni_cliente,
@@ -1193,6 +1228,12 @@ def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuar
     base_det_id = get_next_detalle_rutina_id(db)
     detalle_index = 0
     for det_p in plantilla.detalles:
+        ejercicio_existente = db.query(models.Ejercicio.id_ejercicio).filter(
+            models.Ejercicio.id_ejercicio == det_p.id_ejercicio,
+            models.Ejercicio.activo == True,
+        ).first()
+        if not ejercicio_existente:
+            continue
         db_det = models.DetalleRutina(
             id_detalle=base_det_id + detalle_index,
             id_rutina=next_rutina_id,
@@ -1209,5 +1250,3 @@ def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuar
 
     db.flush()
     return db_rutina
-
-

@@ -122,6 +122,7 @@ class DetalleRutina(Base):
     id_usuario = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
     id_ejercicio = Column(Integer, ForeignKey("Ejercicio.id_ejercicio"), nullable=False)
     dia = Column(Integer, nullable=False, default=1, server_default="1")
+    nombre_dia = Column(String(100), nullable=True)
     series = Column(Integer, nullable=False)
     repeticiones = Column(Integer, nullable=False)
     carga = Column(Numeric(5, 2))
@@ -211,6 +212,7 @@ class DetallePlantillaRutina(Base):
     id_plantilla = Column(Integer, ForeignKey("Plantilla_Rutina.id_plantilla", ondelete="CASCADE"), nullable=False)
     id_ejercicio = Column(Integer, ForeignKey("Ejercicio.id_ejercicio"), nullable=False)
     dia = Column(Integer, nullable=False, default=1)
+    nombre_dia = Column(String(100), nullable=True)
     series = Column(Integer, nullable=False)
     repeticiones = Column(Integer, nullable=False)
     carga_sugerida = Column(Numeric(5, 2), nullable=True)
@@ -218,4 +220,3 @@ class DetallePlantillaRutina(Base):
 
     plantilla = relationship("PlantillaRutina", back_populates="detalles")
     ejercicio = relationship("Ejercicio")
-
