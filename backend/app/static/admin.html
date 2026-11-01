@@ -174,7 +174,7 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="text" id="search-ejercicios" placeholder="Buscar por nombre o grupo muscular...">
                         </div>
-                        <button id="btn-nuevo-ejercicio" class="btn-primary">
+                        <button type="button" id="btn-nuevo-ejercicio" class="btn-primary">
                             <i class="fa-solid fa-plus"></i> Nuevo ejercicio
                         </button>
                     </div>
@@ -694,6 +694,7 @@
                 <h2 id="modal-ejercicio-title">Agregar ejercicio</h2>
                 <button class="modal-close" type="button">&times;</button>
             </div>
+
             <form id="form-ejercicio">
                 <div class="form-grid" style="padding: 1.5rem;">
                     <div class="form-group">
@@ -702,7 +703,16 @@
                     </div>
                     <div class="form-group">
                         <label for="ej-grupo-muscular">Grupo muscular *</label>
-                        <input type="text" id="ej-grupo-muscular" maxlength="50" required>
+                        <select id="ej-grupo-muscular" required>
+                            <option value="" disabled selected>Selecciona un grupo muscular...</option>
+                            <option value="pecho">Pecho</option>
+                            <option value="espalda">Espalda</option>
+                            <option value="pierna">Pierna</option>
+                            <option value="hombro">Hombro</option>
+                            <option value="biceps">Bíceps</option>
+                            <option value="triceps">Tríceps</option>
+                            <option value="no definido">No definido</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -713,7 +723,21 @@
         </div>
     </div>
 
+    <div id="modal-confirmar-ejercicio" class="modal">
+        <div class="modal-content modal-confirmation">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-triangle-exclamation"></i> Confirmar baja</h2>
+                <button id="btn-cerrar-confirmar-ejercicio" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
+            </div>
+            <p id="confirmar-ejercicio-mensaje"></p>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancelar-eliminar-ejercicio" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-confirmar-eliminar-ejercicio" class="btn-danger">Sí, dar de baja</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script de inicialización de Administración -->
-    <script type="module" src="js/admin-entry.js?v=3.3"></script>
+    <script type="module" src="js/admin-entry.js?v=3.4"></script>
 </body>
 </html>

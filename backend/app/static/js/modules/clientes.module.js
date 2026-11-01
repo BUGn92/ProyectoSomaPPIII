@@ -220,15 +220,13 @@ function renderEstadoPago(fechaVencimiento) {
 export function renderClientes(clients) {
     if (!tbodyClientes) return;
     tbodyClientes.innerHTML = "";
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    const canAdmin = role === "admin";
 
-    const esAdmin = (state.currentUser?.rol || "").toLowerCase() === "admin";
     if (!clients || clients.length === 0) {
-        const columnas = esAdmin ? 8 : 9;
-        tbodyClientes.innerHTML = `<tr><td colspan="${columnas}" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
+        tbodyClientes.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
         return;
     }
-
-    const canAdmin = esAdmin;
 
     clients.forEach(c => {
         const tr = document.createElement("tr");
@@ -241,11 +239,6 @@ export function renderClientes(clients) {
             ? `<span class="badge badge-success">Activo</span>`
             : `<span class="badge badge-inactive">Inactivo</span>`;
         const pagoBadge = renderEstadoPago(c.fecha_vencimiento_cuota);
-        let dirText = "-";
-        if (c.direccion) {
-            dirText = `${c.direccion.calle || ''} ${c.direccion.numero || ''} (${c.direccion.ciudad || ''})`.trim() || "-";
-        }
-
         let actionBtnHtml = "";
         if (canAdmin) {
             actionBtnHtml = c.activo
@@ -266,9 +259,7 @@ export function renderClientes(clients) {
                 </div>
             </td>
             <td>${c.edad ? escapeHtml(c.edad) + ' años' : '-'}</td>
-            ${esAdmin
-                ? `<td>${pagoBadge}</td>`
-                : `<td>${escapeHtml(c.email || c.telefono || '-')}</td><td>${escapeHtml(dirText)}</td>`}
+            <td>${pagoBadge}</td>
             <td>${aptoBadge}</td>
             <td>${estadoBadge}</td>
             <td>${escapeHtml(c.fecha_alta)}</td>
@@ -314,8 +305,11 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
     if (activePanel) activePanel.classList.add("active");
 
     const isTrainer = (state.currentUser?.rol || "").trim().toLowerCase() === "entrenador";
+    const isReceptionist = (state.currentUser?.rol || "").trim().toLowerCase() === "recepcionista";
     const btnGuardarCliente = document.getElementById("btn-guardar-cliente");
     const readonlyNotice = document.getElementById("readonly-trainer-notice");
+    const formEvFisica = document.getElementById("form-ev-fisica");
+    const formEvDeportiva = document.getElementById("form-ev-deportiva");
 
     if (mode === "create") {
         document.getElementById("modal-cliente-title").textContent = "Registrar Nuevo Socio";
@@ -368,6 +362,8 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         tabLinkEvFisica.style.display = "block";
         tabLinkEvDeportiva.style.display = "block";
         if (tabLinkPagos) tabLinkPagos.style.display = "block";
+        if (formEvFisica) formEvFisica.classList.toggle("hidden", isReceptionist);
+        if (formEvDeportiva) formEvDeportiva.classList.toggle("hidden", isReceptionist);
 
         if (groupPagoInicialTitle) groupPagoInicialTitle.style.display = "none";
         if (groupPagoMonto) groupPagoMonto.style.display = "none";

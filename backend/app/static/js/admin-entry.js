@@ -13,7 +13,7 @@ import { initEvolucionModule } from "./modules/evolucion.module.js";
 import { initPagosModule, setOnPagoRegistrado } from "./modules/pagos.module.js";
 import { initNoticiasModule, fetchNoticias, openNoticiaModal } from "./modules/noticias.module.js";
 import { initUsuariosModule, fetchUsuarios, openUserModal } from "./modules/usuarios.module.js";
-import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js";
+import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js?v=3.4";
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Proteger acceso: Admin, Recepcionista, Secretaria

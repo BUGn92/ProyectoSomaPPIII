@@ -61,12 +61,22 @@
             <!-- Header Superior -->
             <header class="top-header">
                 <div class="header-title">
-                    <h1 id="section-title">Alumnos y Rutinas</h1>
-                    <p id="section-subtitle">Consulta de fichas, asignación de rutinas y seguimiento de cargas.</p>
+                    <h1 id="section-title">Gestión de Socios</h1>
+                    <p id="section-subtitle">Alta de socios con cobro inicial, cuotas, rutinas y fichas.</p>
+                </div>
+                <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button id="btn-action-add" class="btn-primary hidden">
+                        <i class="fa-solid fa-plus"></i>
+                        <span id="btn-action-add-text">Nuevo Socio</span>
+                    </button>
+                    <button id="btn-top-logout" class="btn-secondary" title="Cerrar Sesión" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem;">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Salir</span>
+                    </button>
                 </div>
             </header>
 
-            <!-- SECCIÓN 1: ALUMNOS / SOCIOS -->
+            <!-- SECCIÓN 1: SOCIOS / CLIENTES -->
             <section id="clientes-section" class="crud-section">
                 <div class="table-card">
                     <div class="table-header-tools">
@@ -89,8 +99,7 @@
                                     <th>DNI</th>
                                     <th>Nombre Completo</th>
                                     <th>Edad</th>
-                                    <th>Contacto</th>
-                                    <th>Dirección</th>
+                                    <th>Estado de Pago</th>
                                     <th>Apto Médico</th>
                                     <th>Estado</th>
                                     <th>Alta</th>
@@ -121,7 +130,7 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                             <input type="text" id="search-ejercicios" placeholder="Buscar por nombre o grupo muscular...">
                         </div>
-                        <button id="btn-nuevo-ejercicio" class="btn-primary">
+                        <button type="button" id="btn-nuevo-ejercicio" class="btn-primary">
                             <i class="fa-solid fa-plus"></i> Nuevo ejercicio
                         </button>
                     </div>
@@ -405,6 +414,7 @@
                 <h2 id="modal-ejercicio-title">Agregar ejercicio</h2>
                 <button class="modal-close" type="button">&times;</button>
             </div>
+
             <form id="form-ejercicio">
                 <div class="form-grid" style="padding: 1.5rem;">
                     <div class="form-group">
@@ -413,7 +423,16 @@
                     </div>
                     <div class="form-group">
                         <label for="ej-grupo-muscular">Grupo muscular *</label>
-                        <input type="text" id="ej-grupo-muscular" maxlength="50" required>
+                        <select id="ej-grupo-muscular" required>
+                            <option value="" disabled selected>Selecciona un grupo muscular...</option>
+                            <option value="pecho">Pecho</option>
+                            <option value="espalda">Espalda</option>
+                            <option value="pierna">Pierna</option>
+                            <option value="hombro">Hombro</option>
+                            <option value="biceps">Bíceps</option>
+                            <option value="triceps">Tríceps</option>
+                            <option value="no definido">No definido</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -424,7 +443,21 @@
         </div>
     </div>
 
+    <div id="modal-confirmar-ejercicio" class="modal">
+        <div class="modal-content modal-confirmation">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-triangle-exclamation"></i> Confirmar baja</h2>
+                <button id="btn-cerrar-confirmar-ejercicio" class="modal-close" type="button" aria-label="Cerrar">&times;</button>
+            </div>
+            <p id="confirmar-ejercicio-mensaje"></p>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancelar-eliminar-ejercicio" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-confirmar-eliminar-ejercicio" class="btn-danger">Sí, dar de baja</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script de inicialización del Portal Entrenador -->
-    <script type="module" src="js/entrenador-entry.js?v=3.2"></script>
+    <script type="module" src="js/entrenador-entry.js?v=3.4"></script>
 </body>
 </html>

@@ -11,6 +11,20 @@ const nombreEjercicio = document.getElementById("ej-nombre");
 const grupoMuscular = document.getElementById("ej-grupo-muscular");
 const modalEjercicioTitle = document.getElementById("modal-ejercicio-title");
 let editingExerciseId = null;
+const gruposMuscularesValidos = new Set([
+    "pecho",
+    "espalda",
+    "pierna",
+    "hombro",
+    "biceps",
+    "triceps",
+    "no definido"
+]);
+
+function canManageExercises() {
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    return role === "admin" || role === "entrenador";
+}
 
 function renderEjercicios(ejercicios) {
     if (!tbodyEjercicios) return;
@@ -30,12 +44,14 @@ function renderEjercicios(ejercicios) {
             <td>${escapeHtml(ejercicio.nombre_ejercicio)}</td>
             <td>${escapeHtml(ejercicio.grupo_muscular)}</td>
             <td class="actions-col">
-                <button type="button" class="btn-icon btn-icon-edit" data-exercise-id="${ejercicio.id_ejercicio}" title="Editar ejercicio">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                <button type="button" class="btn-icon btn-icon-delete" data-exercise-id="${ejercicio.id_ejercicio}" title="Dar de baja ejercicio">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+                ${canManageExercises() ? `
+                    <button type="button" class="btn-icon btn-icon-edit" data-exercise-id="${ejercicio.id_ejercicio}" title="Editar ejercicio">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button type="button" class="btn-icon btn-icon-delete" data-exercise-id="${ejercicio.id_ejercicio}" title="Dar de baja ejercicio">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                ` : ""}
             </td>
         `;
         tbodyEjercicios.appendChild(row);
@@ -66,7 +82,7 @@ export async function fetchEjerciciosCatalogo() {
 }
 
 function openExerciseModal(ejercicio = null) {
-    if (!modalEjercicio) return;
+    if (!modalEjercicio || !canManageExercises()) return;
     formEjercicio?.reset();
     editingExerciseId = ejercicio?.id_ejercicio || null;
     if (modalEjercicioTitle) {
@@ -74,7 +90,14 @@ function openExerciseModal(ejercicio = null) {
     }
     if (ejercicio) {
         nombreEjercicio.value = ejercicio.nombre_ejercicio;
-        grupoMuscular.value = ejercicio.grupo_muscular;
+        const grupo = ejercicio.grupo_muscular.trim().toLowerCase();
+        const equivalencias = {
+            piernas: "pierna",
+            hombros: "hombro",
+            "bíceps": "biceps",
+            "tríceps": "triceps",
+        };
+        grupoMuscular.value = equivalencias[grupo] || grupo;
     }
     modalEjercicio.classList.add("active", "open");
     nombreEjercicio?.focus();
@@ -86,8 +109,9 @@ function closeExerciseModal() {
 }
 
 async function deleteExercise(idEjercicio) {
+    if (!canManageExercises()) return;
     const ejercicio = state.cachedEjercicios.find(item => item.id_ejercicio === idEjercicio);
-    if (!ejercicio || !confirm(`¿Dar de baja el ejercicio "${ejercicio.nombre_ejercicio}"?`)) return;
+    if (!ejercicio || !(await askDeleteConfirmation(ejercicio.nombre_ejercicio))) return;
 
     const res = await ClientesService.deleteEjercicio(idEjercicio);
     if (!res.ok) {
@@ -98,7 +122,39 @@ async function deleteExercise(idEjercicio) {
     showToast("Ejercicio dado de baja", "Ya no aparecerá en nuevas rutinas.", "success");
 }
 
+function askDeleteConfirmation(nombre) {
+    const modal = document.getElementById("modal-confirmar-ejercicio");
+    const message = document.getElementById("confirmar-ejercicio-mensaje");
+    const accept = document.getElementById("btn-confirmar-eliminar-ejercicio");
+    const cancel = document.getElementById("btn-cancelar-eliminar-ejercicio");
+    const closeButton = document.getElementById("btn-cerrar-confirmar-ejercicio");
+    if (!modal || !message || !accept || !cancel || !closeButton) return Promise.resolve(false);
+
+    message.textContent = `¿Realmente deseas dar de baja el ejercicio "${nombre}"?`;
+    modal.classList.add("active", "open");
+
+    return new Promise((resolve) => {
+        const close = (confirmed) => {
+            modal.classList.remove("active", "open");
+            accept.removeEventListener("click", onAccept);
+            cancel.removeEventListener("click", onCancel);
+            closeButton.removeEventListener("click", onCancel);
+            resolve(confirmed);
+        };
+        const onAccept = () => close(true);
+        const onCancel = () => close(false);
+        accept.addEventListener("click", onAccept);
+        cancel.addEventListener("click", onCancel);
+        closeButton.addEventListener("click", onCancel);
+    });
+}
+
 export function initEjerciciosModule() {
+    const btnNuevoEjercicio = document.getElementById("btn-nuevo-ejercicio");
+    if (btnNuevoEjercicio) {
+        btnNuevoEjercicio.classList.toggle("hidden", !canManageExercises());
+    }
+
     searchEjercicios?.addEventListener("input", (event) => {
         const query = event.target.value.toLowerCase().trim();
         const filtered = state.cachedEjercicios.filter((ejercicio) =>
@@ -108,18 +164,30 @@ export function initEjerciciosModule() {
         renderEjercicios(filtered);
     });
 
-    document.getElementById("btn-nuevo-ejercicio")?.addEventListener("click", openExerciseModal);
+    btnNuevoEjercicio?.addEventListener("click", (event) => {
+        event.preventDefault();
+        openExerciseModal();
+    });
     modalEjercicio?.querySelectorAll(".modal-close").forEach((button) => {
         button.addEventListener("click", closeExerciseModal);
     });
 
     formEjercicio?.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!canManageExercises()) {
+            showToast("Acceso denegado", "El rol Recepcionista no puede agregar ni modificar ejercicios.", "error");
+            return;
+        }
         const isEditing = Boolean(editingExerciseId);
         const payload = {
             nombre_ejercicio: nombreEjercicio.value.trim(),
-            grupo_muscular: grupoMuscular.value.trim()
+            grupo_muscular: grupoMuscular.value.trim().toLowerCase()
         };
+        if (!payload.nombre_ejercicio || !gruposMuscularesValidos.has(payload.grupo_muscular)) {
+            showToast("Datos incompletos", "Selecciona un grupo muscular válido antes de guardar.", "error");
+            grupoMuscular?.focus();
+            return;
+        }
         const res = editingExerciseId
             ? await ClientesService.updateEjercicio(editingExerciseId, payload)
             : await ClientesService.createEjercicio(payload);
