@@ -107,7 +107,7 @@ export function applyPlantillaToBuilder(plantilla) {
             carga: d.carga_sugerida !== null && d.carga_sugerida !== undefined ? d.carga_sugerida : "",
             descanso: d.descanso || "60 seg"
         }));
-        addRoutineBuilderDay(details);
+        addRoutineBuilderDay(details, dia.nombre);
     });
 
     showRoutineDay(0);
@@ -203,7 +203,8 @@ function updateRoutineDayControls() {
         const button = tab.querySelector("[data-day-index]");
         const removeButton = tab.querySelector("[data-remove-day]");
         button.dataset.dayIndex = index;
-        button.textContent = `Día ${index + 1}`;
+        const nameInput = panels[index].querySelector(".rb-day-name");
+        button.textContent = nameInput?.value.trim() || `Día ${index + 1}`;
         button.classList.toggle("active", !panels[index].classList.contains("hidden"));
         button.setAttribute("aria-selected", String(!panels[index].classList.contains("hidden")));
         removeButton.dataset.dayIndex = index;
@@ -219,7 +220,7 @@ function showRoutineDay(index) {
     updateRoutineDayControls();
 }
 
-function addRoutineBuilderDay(details = []) {
+function addRoutineBuilderDay(details = [], dayName = "") {
     const tabsCount = routineDayTabs?.querySelectorAll(".routine-day-tab").length || 0;
     if (!routineDayTabs || !routineDaysContainer || tabsCount >= 7) return false;
 
@@ -240,6 +241,12 @@ function addRoutineBuilderDay(details = []) {
     panel.className = `routine-day-panel${index === 0 ? "" : " hidden"}`;
     panel.dataset.dayIndex = index;
     panel.innerHTML = `
+        <div class="routine-day-name-field">
+            <label for="rb-day-name-${index}">Nombre del día</label>
+            <input id="rb-day-name-${index}" class="rb-day-name" type="text"
+                maxlength="100" required value="${escapeHtml(dayName || `Día ${index + 1}`)}"
+                placeholder="Ej: Torso A, Pierna, Full body">
+        </div>
         <div class="routine-builder-container">
             <table class="routine-builder-table">
                 <thead>
@@ -258,6 +265,7 @@ function addRoutineBuilderDay(details = []) {
         </div>
     `;
     routineDaysContainer.appendChild(panel);
+    panel.querySelector(".rb-day-name").addEventListener("input", updateRoutineDayControls);
     details.forEach(detail => addRoutineBuilderRow(detail, panel.querySelector("tbody")));
     updateRoutineDayControls();
     return true;
@@ -313,7 +321,7 @@ export async function fetchClientRutina(dni) {
         const dias = rutina.dias?.length
             ? rutina.dias
             : [{ detalles: rutina.detalles }];
-        dias.forEach(dia => addRoutineBuilderDay(dia.detalles || []));
+        dias.forEach(dia => addRoutineBuilderDay(dia.detalles || [], dia.nombre));
     } else {
         addRoutineBuilderDay();
         addRoutineBuilderRow();
@@ -417,6 +425,8 @@ export function initRutinasModule() {
             dayBodies.forEach(tbody => {
                 const rows = tbody.querySelectorAll("tr");
                 if (rows.length === 0) valid = false;
+                const nombre = tbody.closest(".routine-day-panel").querySelector(".rb-day-name").value.trim();
+                if (!nombre) valid = false;
                 const detalles = [];
                 rows.forEach(row => {
                     const idEj = parseInt(row.querySelector(".rb-ejercicio").value);
@@ -438,7 +448,7 @@ export function initRutinasModule() {
                         });
                     }
                 });
-                dias.push({ detalles });
+                dias.push({ nombre, detalles });
             });
 
             if (!valid) {

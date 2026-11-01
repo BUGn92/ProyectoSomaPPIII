@@ -155,7 +155,11 @@ def _rutina_response_data(rutina: models.Rutina) -> dict:
         "observaciones": rutina.observaciones,
         "detalles": rutina.detalles,
         "dias": [
-            {"numero": numero_dia, "detalles": detalles}
+            {
+                "numero": numero_dia,
+                "nombre": (detalles[0].nombre_dia if detalles and detalles[0].nombre_dia else f"Día {numero_dia}"),
+                "detalles": detalles
+            }
             for numero_dia, detalles in sorted(detalles_por_dia.items())
         ],
     }

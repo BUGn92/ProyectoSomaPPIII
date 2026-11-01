@@ -305,6 +305,7 @@ class RutinaBase(BaseModel):
     activa: Optional[bool] = True
 
 class DiaRutinaCreate(BaseModel):
+    nombre: Optional[str] = Field(default=None, max_length=100)
     detalles: List[DetalleRutinaCreate] = Field(min_length=1)
 
 class RutinaCreate(RutinaBase):
@@ -313,6 +314,7 @@ class RutinaCreate(RutinaBase):
 
 class DiaRutinaResponse(BaseModel):
     numero: int
+    nombre: str
     detalles: List[DetalleRutinaResponse]
 
 class RutinaResponse(RutinaBase):
@@ -344,6 +346,7 @@ class DetallePlantillaRutinaResponse(DetallePlantillaRutinaBase):
 
 class DiaPlantillaResponse(BaseModel):
     numero: int
+    nombre: str
     detalles: List[DetallePlantillaRutinaResponse]
 
 class PlantillaRutinaBase(BaseModel):
@@ -480,4 +483,3 @@ class ProgresoEjercicioResponse(BaseModel):
     pr_vigente: float = 0.0
     pr_vigente_mes: Optional[str] = None
     puntos: List[PuntoProgresoRutina]
-
