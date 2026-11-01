@@ -107,7 +107,7 @@ def create_client_evolucion_fisica(
     dni: str,
     evolucion: schemas.EvolucionFisicaCreate,
     db: Session = Depends(database.get_db),
-    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador", "Recepcionista"]))
+    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador"]))
 ):
     db_client = crud.get_client(db, dni=dni)
     if db_client is None:
@@ -316,4 +316,3 @@ def read_client_progreso_ejercicio(
     if not resultado:
         raise HTTPException(status_code=404, detail="Ejercicio no encontrado o sin datos para este socio")
     return resultado
-

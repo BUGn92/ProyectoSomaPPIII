@@ -11,7 +11,7 @@ import { initClientesModule, fetchClientes } from "./modules/clientes.module.js"
 import { initRutinasModule, fetchEjerciciosAux } from "./modules/rutinas.module.js";
 import { initEvolucionModule } from "./modules/evolucion.module.js";
 import { initNoticiasModule, fetchNoticias } from "./modules/noticias.module.js";
-import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js";
+import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js?v=3.4";
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Proteger acceso: Entrenadores (o Admin)
@@ -35,6 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const crudSections = document.querySelectorAll(".crud-section");
     const sectionTitle = document.getElementById("section-title");
     const sectionSubtitle = document.getElementById("section-subtitle");
+    const btnTopLogout = document.getElementById("btn-top-logout");
+    if (btnTopLogout) btnTopLogout.addEventListener("click", logout);
 
     function switchSection(targetId) {
         navItems.forEach(item => {
@@ -45,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (targetId === "clientes-section") {
-            if (sectionTitle) sectionTitle.textContent = "Alumnos y Rutinas";
+            if (sectionTitle) sectionTitle.textContent = "Gestión de Socios";
             if (sectionSubtitle) sectionSubtitle.textContent = "Consulta de fichas, asignación de rutinas y seguimiento de cargas.";
             fetchClientes();
         } else if (targetId === "noticias-section") {

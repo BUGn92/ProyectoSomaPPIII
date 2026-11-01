@@ -161,6 +161,23 @@ class ConfirmarReseteoRequest(BaseModel):
     confirmar_password: str
 
 # --- Ejercicio ---
+GRUPOS_MUSCULARES = (
+    "pecho",
+    "espalda",
+    "pierna",
+    "hombro",
+    "biceps",
+    "triceps",
+    "no definido",
+)
+
+def validar_grupo_muscular(value: str) -> str:
+    value = value.strip().lower()
+    if value not in GRUPOS_MUSCULARES:
+        opciones = ", ".join(GRUPOS_MUSCULARES)
+        raise ValueError(f"El grupo muscular debe ser uno de: {opciones}.")
+    return value
+
 class EjercicioResponse(BaseModel):
     id_ejercicio: int
     nombre_ejercicio: str
@@ -182,6 +199,11 @@ class EjercicioCreate(BaseModel):
             raise ValueError("El texto debe contener al menos 2 caracteres.")
         return value
 
+    @field_validator("grupo_muscular")
+    @classmethod
+    def validar_grupo(cls, value: str) -> str:
+        return validar_grupo_muscular(value)
+
 class EjercicioUpdate(BaseModel):
     nombre_ejercicio: str = Field(..., min_length=2, max_length=100)
     grupo_muscular: str = Field(..., min_length=2, max_length=50)
@@ -193,6 +215,11 @@ class EjercicioUpdate(BaseModel):
         if len(value) < 2:
             raise ValueError("El texto debe contener al menos 2 caracteres.")
         return value
+
+    @field_validator("grupo_muscular")
+    @classmethod
+    def validar_grupo(cls, value: str) -> str:
+        return validar_grupo_muscular(value)
 
 # --- Evolución Física ---
 class EvolucionFisicaBase(BaseModel):
@@ -453,5 +480,4 @@ class ProgresoEjercicioResponse(BaseModel):
     pr_vigente: float = 0.0
     pr_vigente_mes: Optional[str] = None
     puntos: List[PuntoProgresoRutina]
-
 

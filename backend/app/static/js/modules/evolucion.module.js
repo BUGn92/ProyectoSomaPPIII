@@ -21,6 +21,11 @@ const edEjercicio = document.getElementById("ed-ejercicio");
 const edCarga = document.getElementById("ed-carga");
 const edReps = document.getElementById("ed-reps");
 
+function canRegisterEvolution() {
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    return role === "admin" || role === "entrenador";
+}
+
 export async function fetchClientEvFisica(dni) {
     if (!tbodyEvFisica) return;
     tbodyEvFisica.innerHTML = "";
@@ -77,6 +82,10 @@ export function initEvolucionModule() {
     if (formEvFisica) {
         formEvFisica.addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (!canRegisterEvolution()) {
+                showToast("Acceso denegado", "El rol Recepcionista no puede registrar mediciones físicas.", "error");
+                return;
+            }
             if (!state.editingDni) return;
 
             const payload = {
@@ -101,6 +110,10 @@ export function initEvolucionModule() {
     if (formEvDeportiva) {
         formEvDeportiva.addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (!canRegisterEvolution()) {
+                showToast("Acceso denegado", "El rol Recepcionista no puede registrar cargas logradas.", "error");
+                return;
+            }
             if (!state.editingDni) return;
 
             const payload = {
