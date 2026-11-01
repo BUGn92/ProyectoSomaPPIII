@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, Date, Time, Text, ForeignKey
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, Numeric, Date, Time, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.config.database import Base
 
@@ -59,11 +60,13 @@ class Cliente(Base):
     activo = Column(Boolean, default=True)
     apto_medico_vigente = Column(Boolean, default=False)
     fecha_vencimiento_apto = Column(Date)
+    foto_url = Column(String(255), nullable=True)
 
     direccion = relationship("Direccion", back_populates="clientes")
     cliente_membresias = relationship("ClienteMembresia", back_populates="cliente")
     pagos = relationship("Pago", back_populates="cliente")
     rutinas = relationship("Rutina", back_populates="cliente")
+    solicitudes_foto = relationship("SolicitudFotoPerfil", back_populates="cliente")
 
 
 class ClienteMembresia(Base):
@@ -119,6 +122,7 @@ class DetalleRutina(Base):
     id_usuario = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=False)
     id_ejercicio = Column(Integer, ForeignKey("Ejercicio.id_ejercicio"), nullable=False)
     dia = Column(Integer, nullable=False, default=1, server_default="1")
+    nombre_dia = Column(String(100), nullable=True)
     series = Column(Integer, nullable=False)
     repeticiones = Column(Integer, nullable=False)
     carga = Column(Numeric(5, 2))
@@ -169,3 +173,50 @@ class Noticia(Base):
 
     autor = relationship("Usuario")
 
+
+class SolicitudFotoPerfil(Base):
+    __tablename__ = "Solicitud_Foto_Perfil"
+
+    id_solicitud = Column(Integer, primary_key=True, autoincrement=True)
+    dni_cliente = Column(String(20), ForeignKey("Cliente.dni", ondelete="CASCADE"), nullable=False)
+    foto_propuesta_url = Column(String(255), nullable=False)
+    fecha_solicitud = Column(DateTime, nullable=False, default=datetime.utcnow)
+    estado = Column(String(20), default="Pendiente", nullable=False)
+    motivo_rechazo = Column(String(255), nullable=True)
+    id_usuario_revisor = Column(Integer, ForeignKey("Usuario.id_usuario"), nullable=True)
+    fecha_resolucion = Column(DateTime, nullable=True)
+
+    cliente = relationship("Cliente", back_populates="solicitudes_foto")
+    revisor = relationship("Usuario")
+
+
+class PlantillaRutina(Base):
+    __tablename__ = "Plantilla_Rutina"
+
+    id_plantilla = Column(Integer, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False)
+    objetivo = Column(String(100), nullable=False)
+    nivel = Column(String(50), default="Principiante", nullable=False)
+    dias_semana = Column(Integer, default=3, nullable=False)
+    duracion_estimada_min = Column(Integer, default=50, nullable=False)
+    observaciones = Column(Text, nullable=True)
+    activo = Column(Boolean, default=True, nullable=False)
+
+    detalles = relationship("DetallePlantillaRutina", back_populates="plantilla", cascade="all, delete-orphan", order_by="DetallePlantillaRutina.id_detalle_plantilla")
+
+
+class DetallePlantillaRutina(Base):
+    __tablename__ = "Detalle_Plantilla_Rutina"
+
+    id_detalle_plantilla = Column(Integer, primary_key=True, autoincrement=True)
+    id_plantilla = Column(Integer, ForeignKey("Plantilla_Rutina.id_plantilla", ondelete="CASCADE"), nullable=False)
+    id_ejercicio = Column(Integer, ForeignKey("Ejercicio.id_ejercicio"), nullable=False)
+    dia = Column(Integer, nullable=False, default=1)
+    nombre_dia = Column(String(100), nullable=True)
+    series = Column(Integer, nullable=False)
+    repeticiones = Column(Integer, nullable=False)
+    carga_sugerida = Column(Numeric(5, 2), nullable=True)
+    descanso = Column(String(50), nullable=True)
+
+    plantilla = relationship("PlantillaRutina", back_populates="detalles")
+    ejercicio = relationship("Ejercicio")

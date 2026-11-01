@@ -28,3 +28,19 @@ export function sanitizeAlphaNum(input) {
     if (!input) return "";
     return String(input).replace(/[^a-zA-Z0-9_-]/g, "");
 }
+
+/**
+ * Convierte un enlace compartido de Google Drive en una URL directa de imagen (thumbnail).
+ * Soporta formatos: /file/d/{id}/..., ?id={id}, open?id={id}, uc?id={id}, etc.
+ * @param {string} url
+ * @returns {string}
+ */
+export function parseGoogleDriveUrl(url) {
+    if (!url) return "";
+    const cleanUrl = String(url).trim();
+    const driveMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) {
+        return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
+    }
+    return cleanUrl;
+}

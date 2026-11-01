@@ -5,11 +5,13 @@
 import { state } from "../state.js";
 import { ClientesService } from "../services/clientes.service.js";
 import { showToast } from "../utils/toast.js";
-import { escapeHtml } from "../utils/sanitizer.js";
+import { escapeHtml, parseGoogleDriveUrl } from "../utils/sanitizer.js";
 
 import { fetchClientRutina, fetchEjerciciosAux } from "./rutinas.module.js";
 import { fetchClientEvFisica, fetchClientEvDeportiva } from "./evolucion.module.js";
 import { fetchClientPagos, fetchClientMembresia } from "./pagos.module.js";
+
+const DEFAULT_AVATAR_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
 const tbodyClientes = document.getElementById("tbody-clientes");
 const searchClientesInput = document.getElementById("search-clientes");
@@ -32,6 +34,20 @@ const cActivo = document.getElementById("c-activo");
 const cApto = document.getElementById("c-apto");
 const cVencimiento = document.getElementById("c-vencimiento");
 const groupVencimientoApto = document.getElementById("group-vencimiento-apto");
+
+// Elementos de Fotos de Perfil (SOMA-09)
+const btnSolicitudesFoto = document.getElementById("btn-solicitudes-foto");
+const badgeSolicitudesCount = document.getElementById("badge-solicitudes-count");
+const modalSolicitudesFoto = document.getElementById("modal-solicitudes-foto");
+const tbodySolicitudesFoto = document.getElementById("tbody-solicitudes-foto");
+const cFotoPreview = document.getElementById("c-foto-preview");
+const cFotoFile = document.getElementById("c-foto-file");
+const cFotoUrl = document.getElementById("c-foto-url");
+const btnCFotoPreview = document.getElementById("btn-c-foto-preview");
+const btnEliminarFotoCliente = document.getElementById("btn-eliminar-foto-cliente");
+
+let selectedClienteFotoFile = null;
+let removeClienteFoto = false;
 
 // Pestañas
 const clientModalTabs = document.querySelectorAll("#client-modal-tabs .tab-link");
@@ -58,9 +74,122 @@ export async function fetchClientes() {
     if (res.ok) {
         state.clientesData = res.data || [];
         renderClientes(state.clientesData);
+        actualizarBadgeSolicitudes();
     } else {
         showToast("Error", res.detail || "No se pudo cargar la lista de socios", "error");
     }
+}
+
+export async function actualizarBadgeSolicitudes() {
+    if (!badgeSolicitudesCount) return;
+    const rol = (state.currentUser?.rol || "").trim().toLowerCase();
+    if (rol !== "admin" && rol !== "recepcionista") {
+        if (btnSolicitudesFoto) btnSolicitudesFoto.classList.add("hidden");
+        return;
+    }
+    if (btnSolicitudesFoto) btnSolicitudesFoto.classList.remove("hidden");
+
+    try {
+        const res = await ClientesService.getSolicitudesFoto("Pendiente");
+        if (res.ok && Array.isArray(res.data)) {
+            const count = res.data.length;
+            badgeSolicitudesCount.textContent = count;
+            if (count > 0) {
+                badgeSolicitudesCount.classList.remove("hidden");
+            } else {
+                badgeSolicitudesCount.classList.add("hidden");
+            }
+        }
+    } catch (e) {
+        console.error("Error al actualizar contador de solicitudes de fotos:", e);
+    }
+}
+
+export async function cargarYRenderizarSolicitudesFoto() {
+    if (!tbodySolicitudesFoto) return;
+    tbodySolicitudesFoto.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando solicitudes...</td></tr>`;
+
+    const res = await ClientesService.getSolicitudesFoto("Pendiente");
+    if (!res.ok) {
+        tbodySolicitudesFoto.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--danger);">Error al cargar solicitudes: ${escapeHtml(res.detail || 'desconocido')}</td></tr>`;
+        return;
+    }
+
+    const solicitudes = res.data || [];
+    if (solicitudes.length === 0) {
+        tbodySolicitudesFoto.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i> No hay solicitudes de cambio de foto pendientes.</td></tr>`;
+        return;
+    }
+
+    tbodySolicitudesFoto.innerHTML = "";
+    solicitudes.forEach(sol => {
+        const socio = state.clientesData.find(c => c.dni === sol.dni_cliente);
+        const nombreSocio = socio ? `${socio.nombre} ${socio.apellido}` : "Socio";
+        const fotoActual = socio?.foto_url || DEFAULT_AVATAR_SVG;
+        const fechaStr = sol.fecha_solicitud ? new Date(sol.fecha_solicitud).toLocaleString() : "-";
+
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border-light)";
+        tr.innerHTML = `
+            <td style="padding: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">${escapeHtml(fechaStr)}</td>
+            <td style="padding: 0.75rem;">
+                <strong>${escapeHtml(nombreSocio)}</strong><br>
+                <small style="color: var(--text-secondary);">DNI: ${escapeHtml(sol.dni_cliente)}</small>
+            </td>
+            <td style="padding: 0.75rem; text-align: center;">
+                <img src="${escapeHtml(fotoActual)}" class="avatar-table-preview" alt="Foto Actual" title="Foto Actual">
+            </td>
+            <td style="padding: 0.75rem; text-align: center;">
+                <img src="${escapeHtml(sol.foto_propuesta_url)}" class="avatar-table-preview proposed" alt="Propuesta" title="Foto Propuesta">
+            </td>
+            <td style="padding: 0.75rem; text-align: center;">
+                <div style="display: inline-flex; gap: 0.5rem;">
+                    <button class="btn-icon btn-icon-approve btn-aprobar-sol" data-id="${sol.id_solicitud}" title="Aprobar Foto">
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                    <button class="btn-icon btn-icon-reject btn-rechazar-sol" data-id="${sol.id_solicitud}" title="Rechazar Foto">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbodySolicitudesFoto.appendChild(tr);
+    });
+
+    tbodySolicitudesFoto.querySelectorAll(".btn-aprobar-sol").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            btn.disabled = true;
+            const res = await ClientesService.aprobarSolicitudFoto(id);
+            if (res.ok) {
+                showToast("Foto Aprobada", "El avatar del socio ha sido actualizado.", "success");
+                await cargarYRenderizarSolicitudesFoto();
+                await actualizarBadgeSolicitudes();
+                await fetchClientes();
+            } else {
+                showToast("Error", res.detail || "No se pudo aprobar la foto", "error");
+                btn.disabled = false;
+            }
+        });
+    });
+
+    tbodySolicitudesFoto.querySelectorAll(".btn-rechazar-sol").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            const motivo = prompt("Indica el motivo de rechazo (opcional):", "La foto no es clara o no corresponde al socio.");
+            if (motivo === null) return;
+            btn.disabled = true;
+            const res = await ClientesService.rechazarSolicitudFoto(id, motivo);
+            if (res.ok) {
+                showToast("Foto Rechazada", "La solicitud fue rechazada.", "info");
+                await cargarYRenderizarSolicitudesFoto();
+                await actualizarBadgeSolicitudes();
+            } else {
+                showToast("Error", res.detail || "No se pudo rechazar la solicitud", "error");
+                btn.disabled = false;
+            }
+        });
+    });
 }
 
 function renderEstadoPago(fechaVencimiento) {
@@ -91,15 +220,13 @@ function renderEstadoPago(fechaVencimiento) {
 export function renderClientes(clients) {
     if (!tbodyClientes) return;
     tbodyClientes.innerHTML = "";
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    const canAdmin = role === "admin";
 
-    const esAdmin = (state.currentUser?.rol || "").toLowerCase() === "admin";
     if (!clients || clients.length === 0) {
-        const columnas = esAdmin ? 8 : 9;
-        tbodyClientes.innerHTML = `<tr><td colspan="${columnas}" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
+        tbodyClientes.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
         return;
     }
-
-    const canAdmin = esAdmin;
 
     clients.forEach(c => {
         const tr = document.createElement("tr");
@@ -112,11 +239,6 @@ export function renderClientes(clients) {
             ? `<span class="badge badge-success">Activo</span>`
             : `<span class="badge badge-inactive">Inactivo</span>`;
         const pagoBadge = renderEstadoPago(c.fecha_vencimiento_cuota);
-        let dirText = "-";
-        if (c.direccion) {
-            dirText = `${c.direccion.calle || ''} ${c.direccion.numero || ''} (${c.direccion.ciudad || ''})`.trim() || "-";
-        }
-
         let actionBtnHtml = "";
         if (canAdmin) {
             actionBtnHtml = c.activo
@@ -124,13 +246,20 @@ export function renderClientes(clients) {
                 : `<button class="btn-icon btn-icon-reactivate" data-dni="${escapeHtml(c.dni)}" title="Reactivar socio"><i class="fa-solid fa-user-check"></i></button>`;
         }
 
+        const avatarHtml = c.foto_url 
+            ? `<img src="${escapeHtml(c.foto_url)}" class="avatar-cell-img" alt="Foto">`
+            : `<div class="avatar-cell-placeholder"><i class="fa-solid fa-user"></i></div>`;
+
         tr.innerHTML = `
             <td><strong>${escapeHtml(c.dni)}</strong></td>
-            <td>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</td>
+            <td>
+                <div class="user-cell-flex">
+                    ${avatarHtml}
+                    <span>${escapeHtml(c.nombre)} ${escapeHtml(c.apellido)}</span>
+                </div>
+            </td>
             <td>${c.edad ? escapeHtml(c.edad) + ' años' : '-'}</td>
-            ${esAdmin
-                ? `<td>${pagoBadge}</td>`
-                : `<td>${escapeHtml(c.email || c.telefono || '-')}</td><td>${escapeHtml(dirText)}</td>`}
+            <td>${pagoBadge}</td>
             <td>${aptoBadge}</td>
             <td>${estadoBadge}</td>
             <td>${escapeHtml(c.fecha_alta)}</td>
@@ -161,6 +290,9 @@ export function renderClientes(clients) {
 
 export async function openClientModal(mode, dni = null, defaultTab = "tab-general") {
     state.editingDni = dni;
+    const client = mode === "edit"
+        ? state.clientesData.find(c => c.dni === dni)
+        : null;
     if (formCliente) formCliente.reset();
     
     clientModalTabs.forEach(t => t.classList.remove("active"));
@@ -173,8 +305,11 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
     if (activePanel) activePanel.classList.add("active");
 
     const isTrainer = (state.currentUser?.rol || "").trim().toLowerCase() === "entrenador";
+    const isReceptionist = (state.currentUser?.rol || "").trim().toLowerCase() === "recepcionista";
     const btnGuardarCliente = document.getElementById("btn-guardar-cliente");
     const readonlyNotice = document.getElementById("readonly-trainer-notice");
+    const formEvFisica = document.getElementById("form-ev-fisica");
+    const formEvDeportiva = document.getElementById("form-ev-deportiva");
 
     if (mode === "create") {
         document.getElementById("modal-cliente-title").textContent = "Registrar Nuevo Socio";
@@ -210,8 +345,19 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         if (groupPagoMeses) groupPagoMeses.style.display = "block";
         if (groupPagoDescripcion) groupPagoDescripcion.style.display = "block";
         if (piMonto) piMonto.required = true;
+
+        selectedClienteFotoFile = null;
+        removeClienteFoto = false;
+        if (cFotoFile) cFotoFile.value = "";
+        if (cFotoUrl) cFotoUrl.value = "";
+        if (cFotoPreview) cFotoPreview.src = DEFAULT_AVATAR_SVG;
+        if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.add("hidden");
     } else {
-        document.getElementById("modal-cliente-title").textContent = `Ficha del Socio: DNI ${dni}`;
+        const client = (state.clientesData || []).find(c => String(c.dni) === String(dni));
+        const nombreSocio = client
+            ? `${client.nombre || ""} ${client.apellido || ""}`.trim()
+            : "Socio";
+        document.getElementById("modal-cliente-title").textContent = `Ficha del Socio: ${nombreSocio}`;
         cDni.setAttribute("disabled", "true");
         cDni.disabled = true;
         
@@ -219,6 +365,8 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         tabLinkEvFisica.style.display = "block";
         tabLinkEvDeportiva.style.display = "block";
         if (tabLinkPagos) tabLinkPagos.style.display = "block";
+        if (formEvFisica) formEvFisica.classList.toggle("hidden", isReceptionist);
+        if (formEvDeportiva) formEvDeportiva.classList.toggle("hidden", isReceptionist);
 
         if (groupPagoInicialTitle) groupPagoInicialTitle.style.display = "none";
         if (groupPagoMonto) groupPagoMonto.style.display = "none";
@@ -243,7 +391,11 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         if (btnGuardarCliente) btnGuardarCliente.classList.toggle("hidden", isTrainer);
         if (readonlyNotice) readonlyNotice.classList.toggle("hidden", !isTrainer);
 
-        const client = state.clientesData.find(c => c.dni === dni);
+        selectedClienteFotoFile = null;
+        removeClienteFoto = false;
+        if (cFotoFile) cFotoFile.value = "";
+        if (cFotoUrl) cFotoUrl.value = client?.foto_url || "";
+
         if (client) {
             cDni.value = client.dni;
             cNombre.value = client.nombre;
@@ -254,6 +406,13 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
             cActivo.checked = client.activo;
             cApto.checked = client.apto_medico_vigente;
             cVencimiento.value = client.fecha_vencimiento_apto || "";
+
+            if (cFotoPreview) {
+                cFotoPreview.src = client.foto_url || DEFAULT_AVATAR_SVG;
+            }
+            if (btnEliminarFotoCliente) {
+                btnEliminarFotoCliente.classList.toggle("hidden", !client.foto_url);
+            }
             
             if (client.direccion) {
                 cCalle.value = client.direccion.calle || "";
@@ -329,6 +488,12 @@ export function initClientesModule() {
         toggleInactivosClientes.addEventListener("change", () => fetchClientes());
     }
 
+    if (cDni) {
+        cDni.addEventListener("input", (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "").slice(0, 8);
+        });
+    }
+
     if (cApto) {
         cApto.addEventListener("change", (e) => {
             if (e.target.checked) {
@@ -351,8 +516,22 @@ export function initClientesModule() {
                 return;
             }
 
+            const dniVal = cDni.value.trim();
+            if (!state.editingDni) {
+                if (!/^\d{7,8}$/.test(dniVal)) {
+                    showToast("DNI Inválido", "El DNI debe contener exactamente 7 u 8 dígitos numéricos (sin puntos ni letras).", "error");
+                    cDni.focus();
+                    return;
+                }
+            }
+            if (!cNombre.value.trim() || !cApellido.value.trim()) {
+                showToast("Datos incompletos", "Ingresa el nombre y apellido del socio.", "error");
+                (cNombre.value.trim() ? cApellido : cNombre).focus();
+                return;
+            }
+
             const payload = {
-                dni: cDni.value.trim(),
+                dni: dniVal,
                 nombre: cNombre.value.trim(),
                 apellido: cApellido.value.trim(),
                 edad: cEdad.value ? parseInt(cEdad.value) : null,
@@ -380,19 +559,99 @@ export function initClientesModule() {
                 };
             }
 
+            if (cFotoUrl && cFotoUrl.value.trim()) {
+                payload.foto_url = parseGoogleDriveUrl(cFotoUrl.value.trim());
+            }
+
+            if (removeClienteFoto) {
+                payload.foto_url = null;
+            }
+
             const res = state.editingDni
                 ? await ClientesService.updateCliente(state.editingDni, payload)
                 : await ClientesService.createCliente(payload);
 
             if (res.ok) {
+                const targetDni = state.editingDni || payload.dni;
+                if (selectedClienteFotoFile) {
+                    await ClientesService.uploadFotoDirecta(targetDni, selectedClienteFotoFile);
+                }
                 showToast("Éxito", state.editingDni 
                     ? "Datos del socio actualizados" 
                     : `Socio registrado. Cuenta autogenerada (Login: ${payload.dni}, Clave: clave1234)`);
                 if (modalCliente) modalCliente.classList.remove("active");
                 fetchClientes();
             } else {
-                showToast("Error", res.detail || "No se pudo guardar el socio", "error");
+                const detail = Array.isArray(res.detail)
+                    ? res.detail.map(item => item.msg).join(" ")
+                    : res.detail;
+                showToast("Error", detail || "No se pudo guardar el socio", "error");
             }
+        });
+    }
+
+    // Eventos de Foto en Ficha (SOMA-09)
+    const aplicarPreviewFotoUrl = () => {
+        const raw = cFotoUrl?.value?.trim();
+        if (!raw) return;
+        const direct = parseGoogleDriveUrl(raw);
+        selectedClienteFotoFile = null;
+        removeClienteFoto = false;
+        if (cFotoFile) cFotoFile.value = "";
+        if (cFotoPreview) cFotoPreview.src = direct;
+        if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.remove("hidden");
+    };
+
+    if (cFotoUrl) {
+        cFotoUrl.addEventListener("input", () => {
+            if (cFotoUrl.value.trim().length > 10) {
+                aplicarPreviewFotoUrl();
+            }
+        });
+        cFotoUrl.addEventListener("change", aplicarPreviewFotoUrl);
+    }
+
+    if (btnCFotoPreview) {
+        btnCFotoPreview.addEventListener("click", (e) => {
+            e.preventDefault();
+            aplicarPreviewFotoUrl();
+        });
+    }
+
+    if (cFotoFile) {
+        cFotoFile.addEventListener("change", (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+                selectedClienteFotoFile = file;
+                removeClienteFoto = false;
+                if (cFotoUrl) cFotoUrl.value = "";
+                if (cFotoPreview) cFotoPreview.src = URL.createObjectURL(file);
+                if (btnEliminarFotoCliente) btnEliminarFotoCliente.classList.remove("hidden");
+            }
+        });
+    }
+
+    if (btnEliminarFotoCliente) {
+        btnEliminarFotoCliente.addEventListener("click", () => {
+            selectedClienteFotoFile = null;
+            removeClienteFoto = true;
+            if (cFotoFile) cFotoFile.value = "";
+            if (cFotoUrl) cFotoUrl.value = "";
+            if (cFotoPreview) cFotoPreview.src = DEFAULT_AVATAR_SVG;
+            btnEliminarFotoCliente.classList.add("hidden");
+        });
+    }
+
+    if (btnSolicitudesFoto && modalSolicitudesFoto) {
+        btnSolicitudesFoto.addEventListener("click", () => {
+            modalSolicitudesFoto.classList.add("active");
+            cargarYRenderizarSolicitudesFoto();
+        });
+
+        modalSolicitudesFoto.querySelectorAll(".modal-close").forEach(btn => {
+            btn.addEventListener("click", () => {
+                modalSolicitudesFoto.classList.remove("active", "open");
+            });
         });
     }
 }

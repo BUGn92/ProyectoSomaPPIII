@@ -4,6 +4,7 @@
 
 import { state } from "../state.js";
 import { ClientesService } from "../services/clientes.service.js";
+import { PlantillasRutinaService } from "../services/plantillas-rutina.service.js";
 import { showToast } from "../utils/toast.js";
 import { escapeHtml } from "../utils/sanitizer.js";
 import { renderRoutineView } from "./routine-view.module.js";
@@ -13,6 +14,8 @@ const rFecha = document.getElementById("r-fecha");
 const rPeriodo = document.getElementById("r-periodo");
 const rObjetivo = document.getElementById("r-objetivo");
 const rObs = document.getElementById("r-obs");
+const selectPlantillaRutina = document.getElementById("select-plantilla-rutina");
+const btnAplicarPlantilla = document.getElementById("btn-aplicar-plantilla");
 const btnAddRoutineRow = document.getElementById("btn-add-routine-row");
 const btnAddRoutineDay = document.getElementById("btn-add-routine-day");
 const routineDayTabs = document.getElementById("routine-day-tabs");
@@ -24,11 +27,13 @@ const btnEditRoutineLabel = document.getElementById("btn-edit-routine-label");
 const btnCancelRoutine = document.getElementById("btn-cancel-routine");
 const selectEdEjercicio = document.getElementById("ed-ejercicio");
 let canEditRoutine = false;
+let cachedPlantillas = [];
 
 function showRoutineEditor(show) {
     if (routinePreview) routinePreview.classList.toggle("hidden", show);
     if (formRutina) formRutina.classList.toggle("hidden", !show);
 }
+
 
 /**
  * Carga el catálogo de ejercicios en memoria y rellena el select de evolución deportiva.
@@ -47,11 +52,68 @@ export async function fetchEjerciciosAux() {
                     selectEdEjercicio.appendChild(opt);
                 });
             }
+
         }
     } catch (err) {
         console.error("Error al cargar catálogo de ejercicios:", err);
     }
 }
+
+/**
+ * Carga el catálogo de plantillas de rutinas prediseñadas en memoria.
+ */
+export async function fetchPlantillasAux() {
+    try {
+        const res = await PlantillasRutinaService.getPlantillas();
+        if (res.ok) {
+            cachedPlantillas = res.data || [];
+            if (selectPlantillaRutina) {
+                selectPlantillaRutina.innerHTML = '<option value="" disabled selected>-- Seleccionar una plantilla predefinida --</option>';
+                cachedPlantillas.forEach(p => {
+                    const opt = document.createElement("option");
+                    opt.value = p.id_plantilla;
+                    opt.textContent = `${p.nombre} (~${p.duracion_estimada_min} min) [${p.nivel}]`;
+                    selectPlantillaRutina.appendChild(opt);
+                });
+            }
+        }
+    } catch (err) {
+        console.error("Error al cargar catálogo de plantillas:", err);
+    }
+}
+
+/**
+ * Aplica una plantilla de rutina seleccionada al constructor interactivo.
+ */
+export function applyPlantillaToBuilder(plantilla) {
+    if (!plantilla) return;
+
+    if (rObjetivo) rObjetivo.value = plantilla.objetivo || "";
+    if (rPeriodo) rPeriodo.value = 4;
+    if (rObs) rObs.value = plantilla.observaciones || "";
+
+    if (routineDayTabs) routineDayTabs.innerHTML = "";
+    if (routineDaysContainer) routineDaysContainer.innerHTML = "";
+
+    const dias = plantilla.dias?.length
+        ? plantilla.dias
+        : [{ detalles: plantilla.detalles || [] }];
+
+    dias.forEach(dia => {
+        const details = (dia.detalles || []).map(d => ({
+            id_ejercicio: d.id_ejercicio,
+            series: d.series,
+            repeticiones: d.repeticiones,
+            carga: d.carga_sugerida !== null && d.carga_sugerida !== undefined ? d.carga_sugerida : "",
+            descanso: d.descanso || "60 seg"
+        }));
+        addRoutineBuilderDay(details, dia.nombre);
+    });
+
+    showRoutineDay(0);
+    showToast("Plantilla Cargada", `Se aplicó "${plantilla.nombre}". Puedes ajustar cualquier ejercicio o carga antes de guardar.`);
+}
+
 
 /**
  * Agrega una nueva fila al constructor interactivo de rutinas.
@@ -62,11 +124,16 @@ export function addRoutineBuilderRow(detail = null, targetTbody = null) {
 
     const tr = document.createElement("tr");
     
-    let optionsHtml = '<option value="" disabled selected>Seleccionar ejercicio...</option>';
-    state.cachedEjercicios.forEach(ej => {
-        const selected = detail && detail.id_ejercicio === ej.id_ejercicio ? "selected" : "";
-        optionsHtml += `<option value="${ej.id_ejercicio}" ${selected}>${escapeHtml(ej.nombre_ejercicio)} (${escapeHtml(ej.grupo_muscular)})</option>`;
-    });
+    const listId = `ejercicios-sugerencias-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const selectedExercise = detail
+        ? state.cachedEjercicios.find(ej => ej.id_ejercicio === detail.id_ejercicio)
+        : null;
+    const selectedLabel = selectedExercise
+        ? `${selectedExercise.nombre_ejercicio} (${selectedExercise.grupo_muscular})`
+        : "";
+    const suggestionsHtml = state.cachedEjercicios
+        .map(ej => `<option value="${escapeHtml(ej.nombre_ejercicio)} (${escapeHtml(ej.grupo_muscular)})"></option>`)
+        .join("");
 
     const seriesVal = detail ? parseInt(detail.series) || 3 : 3;
     const repsVal = detail ? parseInt(detail.repeticiones) || 10 : 10;
@@ -78,7 +145,12 @@ export function addRoutineBuilderRow(detail = null, targetTbody = null) {
             <span class="routine-row-number"></span>
         </td>
         <td data-label="Ejercicio">
-            <select class="rb-ejercicio" required>${optionsHtml}</select>
+            <input type="text" class="rb-ejercicio-search" list="${listId}" required
+                value="${escapeHtml(selectedLabel)}"
+                placeholder="Escribe para buscar un ejercicio..."
+                aria-label="Buscar y seleccionar ejercicio">
+            <datalist id="${listId}">${suggestionsHtml}</datalist>
+            <input type="hidden" class="rb-ejercicio" value="${detail?.id_ejercicio || ""}">
         </td>
         <td data-label="Series">
             <input type="number" min="1" max="20" class="rb-series" required value="${seriesVal}" placeholder="Series">
@@ -102,6 +174,15 @@ export function addRoutineBuilderRow(detail = null, targetTbody = null) {
     `;
 
     routineBuilderTbody.appendChild(tr);
+    const searchInput = tr.querySelector(".rb-ejercicio-search");
+    const exerciseValue = tr.querySelector(".rb-ejercicio");
+    searchInput.addEventListener("input", () => {
+        const query = searchInput.value.toLowerCase().trim();
+        const selected = state.cachedEjercicios.find(ej =>
+            `${ej.nombre_ejercicio} (${ej.grupo_muscular})`.toLowerCase() === query
+        );
+        exerciseValue.value = selected ? selected.id_ejercicio : "";
+    });
     updateRoutineRowNumbers(routineBuilderTbody);
 }
 
@@ -122,7 +203,8 @@ function updateRoutineDayControls() {
         const button = tab.querySelector("[data-day-index]");
         const removeButton = tab.querySelector("[data-remove-day]");
         button.dataset.dayIndex = index;
-        button.textContent = `Día ${index + 1}`;
+        const nameInput = panels[index].querySelector(".rb-day-name");
+        button.textContent = nameInput?.value.trim() || `Día ${index + 1}`;
         button.classList.toggle("active", !panels[index].classList.contains("hidden"));
         button.setAttribute("aria-selected", String(!panels[index].classList.contains("hidden")));
         removeButton.dataset.dayIndex = index;
@@ -138,7 +220,7 @@ function showRoutineDay(index) {
     updateRoutineDayControls();
 }
 
-function addRoutineBuilderDay(details = []) {
+function addRoutineBuilderDay(details = [], dayName = "") {
     const tabsCount = routineDayTabs?.querySelectorAll(".routine-day-tab").length || 0;
     if (!routineDayTabs || !routineDaysContainer || tabsCount >= 7) return false;
 
@@ -159,6 +241,12 @@ function addRoutineBuilderDay(details = []) {
     panel.className = `routine-day-panel${index === 0 ? "" : " hidden"}`;
     panel.dataset.dayIndex = index;
     panel.innerHTML = `
+        <div class="routine-day-name-field">
+            <label for="rb-day-name-${index}">Nombre del día</label>
+            <input id="rb-day-name-${index}" class="rb-day-name" type="text"
+                maxlength="100" required value="${escapeHtml(dayName || `Día ${index + 1}`)}"
+                placeholder="Ej: Torso A, Pierna, Full body">
+        </div>
         <div class="routine-builder-container">
             <table class="routine-builder-table">
                 <thead>
@@ -177,12 +265,15 @@ function addRoutineBuilderDay(details = []) {
         </div>
     `;
     routineDaysContainer.appendChild(panel);
+    panel.querySelector(".rb-day-name").addEventListener("input", updateRoutineDayControls);
     details.forEach(detail => addRoutineBuilderRow(detail, panel.querySelector("tbody")));
     updateRoutineDayControls();
     return true;
 }
 
 export async function fetchClientRutina(dni) {
+    const role = (state.currentUser?.rol || "").trim().toLowerCase();
+    canEditRoutine = role === "admin" || role === "entrenador";
     showRoutineEditor(false);
     if (routinePreview) routinePreview.innerHTML = "";
     if (routineManagementActions) routineManagementActions.classList.add("hidden");
@@ -190,6 +281,10 @@ export async function fetchClientRutina(dni) {
     if (!state.cachedEjercicios || state.cachedEjercicios.length === 0) {
         await fetchEjerciciosAux();
     }
+    if (!cachedPlantillas || cachedPlantillas.length === 0) {
+        await fetchPlantillasAux();
+    }
+
     if (routineDayTabs) routineDayTabs.innerHTML = "";
     if (routineDaysContainer) routineDaysContainer.innerHTML = "";
     if (formRutina) formRutina.reset();
@@ -226,7 +321,7 @@ export async function fetchClientRutina(dni) {
         const dias = rutina.dias?.length
             ? rutina.dias
             : [{ detalles: rutina.detalles }];
-        dias.forEach(dia => addRoutineBuilderDay(dia.detalles || []));
+        dias.forEach(dia => addRoutineBuilderDay(dia.detalles || [], dia.nombre));
     } else {
         addRoutineBuilderDay();
         addRoutineBuilderRow();
@@ -244,6 +339,21 @@ export function initRutinasModule() {
             if (state.editingDni) fetchClientRutina(state.editingDni);
         });
     }
+
+    if (btnAplicarPlantilla) {
+        btnAplicarPlantilla.addEventListener("click", () => {
+            const selectedId = parseInt(selectPlantillaRutina?.value);
+            if (!selectedId) {
+                showToast("Aviso", "Por favor selecciona una plantilla de la lista.", "warning");
+                return;
+            }
+            const plantilla = cachedPlantillas.find(p => p.id_plantilla === selectedId);
+            if (plantilla) {
+                applyPlantillaToBuilder(plantilla);
+            }
+        });
+    }
+
 
     if (routineDayTabs) {
         routineDayTabs.addEventListener("click", (event) => {
@@ -290,7 +400,6 @@ export function initRutinasModule() {
     if (btnAddRoutineRow) {
         btnAddRoutineRow.addEventListener("click", () => addRoutineBuilderRow());
     }
-
     if (btnAddRoutineDay) {
         btnAddRoutineDay.addEventListener("click", () => {
             if (addRoutineBuilderDay()) {
@@ -316,6 +425,8 @@ export function initRutinasModule() {
             dayBodies.forEach(tbody => {
                 const rows = tbody.querySelectorAll("tr");
                 if (rows.length === 0) valid = false;
+                const nombre = tbody.closest(".routine-day-panel").querySelector(".rb-day-name").value.trim();
+                if (!nombre) valid = false;
                 const detalles = [];
                 rows.forEach(row => {
                     const idEj = parseInt(row.querySelector(".rb-ejercicio").value);
@@ -337,7 +448,7 @@ export function initRutinasModule() {
                         });
                     }
                 });
-                dias.push({ detalles });
+                dias.push({ nombre, detalles });
             });
 
             if (!valid) {

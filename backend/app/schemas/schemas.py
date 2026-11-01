@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field
+import re
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
-from datetime import date, time
+from datetime import date, time, datetime
 from decimal import Decimal
 
 # --- Dirección ---
@@ -66,7 +67,7 @@ class CambioPasswordRequest(BaseModel):
 
 # --- Cliente ---
 class ClienteBase(BaseModel):
-    dni: str
+    dni: str = Field(..., description="DNI numérico de 7 u 8 dígitos")
     nombre: str
     apellido: str
     edad: Optional[int] = None
@@ -75,6 +76,17 @@ class ClienteBase(BaseModel):
     activo: Optional[bool] = True
     apto_medico_vigente: Optional[bool] = False
     fecha_vencimiento_apto: Optional[date] = None
+    foto_url: Optional[str] = None
+
+    @field_validator("dni")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        if not isinstance(v, str):
+            v = str(v)
+        v_clean = v.strip()
+        if not re.match(r"^\d{7,8}$", v_clean):
+            raise ValueError("El DNI debe ser numérico y contener entre 7 y 8 dígitos.")
+        return v_clean
 
 class ClienteCreate(ClienteBase):
     calle: Optional[str] = None
@@ -93,12 +105,19 @@ class ClienteUpdate(BaseModel):
     calle: Optional[str] = None
     numero: Optional[str] = None
     ciudad: Optional[str] = None
+    foto_url: Optional[str] = None
 
 class ClienteResponse(ClienteBase):
     fecha_alta: date
     fecha_vencimiento_cuota: Optional[date] = None
     id_direccion: Optional[int] = None
     direccion: Optional[DireccionResponse] = None
+
+    @field_validator("dni", mode="before")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        # En la respuesta permitimos leer registros preexistentes de la base de datos sin fallar en la serialización
+        return str(v) if v is not None else ""
 
     class Config:
         from_attributes = True
@@ -142,6 +161,23 @@ class ConfirmarReseteoRequest(BaseModel):
     confirmar_password: str
 
 # --- Ejercicio ---
+GRUPOS_MUSCULARES = (
+    "pecho",
+    "espalda",
+    "pierna",
+    "hombro",
+    "biceps",
+    "triceps",
+    "no definido",
+)
+
+def validar_grupo_muscular(value: str) -> str:
+    value = value.strip().lower()
+    if value not in GRUPOS_MUSCULARES:
+        opciones = ", ".join(GRUPOS_MUSCULARES)
+        raise ValueError(f"El grupo muscular debe ser uno de: {opciones}.")
+    return value
+
 class EjercicioResponse(BaseModel):
     id_ejercicio: int
     nombre_ejercicio: str
@@ -150,6 +186,40 @@ class EjercicioResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class EjercicioCreate(BaseModel):
+    nombre_ejercicio: str = Field(..., min_length=2, max_length=100)
+    grupo_muscular: str = Field(..., min_length=2, max_length=50)
+
+    @field_validator("nombre_ejercicio", "grupo_muscular")
+    @classmethod
+    def validar_texto(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("El texto debe contener al menos 2 caracteres.")
+        return value
+
+    @field_validator("grupo_muscular")
+    @classmethod
+    def validar_grupo(cls, value: str) -> str:
+        return validar_grupo_muscular(value)
+
+class EjercicioUpdate(BaseModel):
+    nombre_ejercicio: str = Field(..., min_length=2, max_length=100)
+    grupo_muscular: str = Field(..., min_length=2, max_length=50)
+
+    @field_validator("nombre_ejercicio", "grupo_muscular")
+    @classmethod
+    def validar_texto(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 2:
+            raise ValueError("El texto debe contener al menos 2 caracteres.")
+        return value
+
+    @field_validator("grupo_muscular")
+    @classmethod
+    def validar_grupo(cls, value: str) -> str:
+        return validar_grupo_muscular(value)
 
 # --- Evolución Física ---
 class EvolucionFisicaBase(BaseModel):
@@ -235,6 +305,7 @@ class RutinaBase(BaseModel):
     activa: Optional[bool] = True
 
 class DiaRutinaCreate(BaseModel):
+    nombre: Optional[str] = Field(default=None, max_length=100)
     detalles: List[DetalleRutinaCreate] = Field(min_length=1)
 
 class RutinaCreate(RutinaBase):
@@ -243,6 +314,7 @@ class RutinaCreate(RutinaBase):
 
 class DiaRutinaResponse(BaseModel):
     numero: int
+    nombre: str
     detalles: List[DetalleRutinaResponse]
 
 class RutinaResponse(RutinaBase):
@@ -250,6 +322,46 @@ class RutinaResponse(RutinaBase):
     dni_cliente: str
     detalles: List[DetalleRutinaResponse] = Field(default_factory=list)
     dias: List[DiaRutinaResponse] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
+
+
+# --- Plantillas de Rutinas (Iniciación y Objetivos) ---
+class DetallePlantillaRutinaBase(BaseModel):
+    id_ejercicio: int
+    dia: int = 1
+    series: int
+    repeticiones: int
+    carga_sugerida: Optional[Decimal] = None
+    descanso: Optional[str] = None
+
+class DetallePlantillaRutinaResponse(DetallePlantillaRutinaBase):
+    id_detalle_plantilla: int
+    id_plantilla: int
+    ejercicio: Optional[EjercicioResponse] = None
+
+    class Config:
+        from_attributes = True
+
+class DiaPlantillaResponse(BaseModel):
+    numero: int
+    nombre: str
+    detalles: List[DetallePlantillaRutinaResponse]
+
+class PlantillaRutinaBase(BaseModel):
+    nombre: str
+    objetivo: str
+    nivel: str = "Principiante"
+    dias_semana: int = 3
+    duracion_estimada_min: int = 50
+    observaciones: Optional[str] = None
+    activo: bool = True
+
+class PlantillaRutinaResponse(PlantillaRutinaBase):
+    id_plantilla: int
+    detalles: List[DetallePlantillaRutinaResponse] = Field(default_factory=list)
+    dias: List[DiaPlantillaResponse] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -269,6 +381,16 @@ class PagoCreate(BaseModel):
     metodo_pago: str  # Efectivo, Transferencia, Débito, Crédito
     meses_abonados: int = 1
     descripcion: Optional[str] = None
+
+    @field_validator("dni_cliente")
+    @classmethod
+    def validar_dni_cliente(cls, v: str) -> str:
+        if not isinstance(v, str):
+            v = str(v)
+        v_clean = v.strip()
+        if not re.match(r"^\d{7,8}$", v_clean):
+            raise ValueError("El DNI del cliente debe ser numérico y contener entre 7 y 8 dígitos.")
+        return v_clean
 
 class PagoResponse(BaseModel):
     id_pago: int
@@ -304,3 +426,60 @@ class ClienteMembresiaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- Solicitud Foto de Perfil (SOMA-09) ---
+class SolicitudFotoPerfilBase(BaseModel):
+    foto_propuesta_url: str
+
+class SolicitudFotoPerfilCreate(SolicitudFotoPerfilBase):
+    pass
+
+class SolicitudFotoRechazoRequest(BaseModel):
+    motivo_rechazo: Optional[str] = None
+
+class CargaFotoDirectaRequest(BaseModel):
+    foto_url: str
+
+class SolicitudFotoPerfilResponse(BaseModel):
+    id_solicitud: int
+    dni_cliente: str
+    foto_propuesta_url: str
+    fecha_solicitud: datetime
+    estado: str
+    motivo_rechazo: Optional[str] = None
+    id_usuario_revisor: Optional[int] = None
+    fecha_resolucion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# --- Progreso Histórico de Rutinas ---
+class EjercicioHistorialItem(BaseModel):
+    id_ejercicio: int
+    nombre_ejercicio: str
+    grupo_muscular: Optional[str] = None
+
+class PuntoProgresoRutina(BaseModel):
+    id_rutina: int
+    fecha: date
+    periodo_mes: str
+    etiqueta_mes: str
+    carga: float
+    series: int
+    repeticiones: int
+    volumen_total: float
+    objetivo: Optional[str] = None
+    activa: bool
+    es_pr: bool = False
+    pr_ventana: float = 0.0
+
+class ProgresoEjercicioResponse(BaseModel):
+    id_ejercicio: int
+    nombre_ejercicio: str
+    grupo_muscular: Optional[str] = None
+    anios_disponibles: List[int] = Field(default_factory=list)
+    anio_seleccionado: Optional[int] = None
+    pr_vigente: float = 0.0
+    pr_vigente_mes: Optional[str] = None
+    puntos: List[PuntoProgresoRutina]

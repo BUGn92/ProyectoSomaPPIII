@@ -96,6 +96,7 @@ CREATE TABLE Detalle_Rutina (
     id_usuario INT NOT NULL, -- El entrenador que asignó el ejercicio
     id_ejercicio INT NOT NULL,
     dia INT NOT NULL DEFAULT 1,
+    nombre_dia VARCHAR(100) NULL,
     series INT NOT NULL,
     repeticiones INT NOT NULL,
     carga DECIMAL(5, 2), -- Peso a levantar, si aplica

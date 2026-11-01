@@ -3,10 +3,9 @@
    ========================================================================== */
 
 export function closeAllModals() {
-    const modalIds = ["modal-cliente", "modal-noticia", "modal-usuario", "modal-cambiar-password", "modal-recuperar-password"];
-    modalIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove("active", "open");
+    const modals = document.querySelectorAll(".modal");
+    modals.forEach(el => {
+        el.classList.remove("active", "open");
     });
 }
 
@@ -17,11 +16,9 @@ export function initModalsModule() {
     });
 
     window.addEventListener("click", (e) => {
-        const backdropModals = ["modal-cliente", "modal-noticia", "modal-usuario"];
-        backdropModals.forEach(id => {
-            const el = document.getElementById(id);
-            if (e.target === el) closeAllModals();
-        });
+        if (e.target && e.target.classList && e.target.classList.contains("modal")) {
+            closeAllModals();
+        }
     });
 
     // Pestañas internas de la ficha del socio (General, Rutina, Evolución Física, Cargas, Pagos)

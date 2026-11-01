@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.config import database
@@ -107,7 +107,7 @@ def create_client_evolucion_fisica(
     dni: str,
     evolucion: schemas.EvolucionFisicaCreate,
     db: Session = Depends(database.get_db),
-    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador", "Recepcionista"]))
+    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador"]))
 ):
     db_client = crud.get_client(db, dni=dni)
     if db_client is None:
@@ -155,7 +155,11 @@ def _rutina_response_data(rutina: models.Rutina) -> dict:
         "observaciones": rutina.observaciones,
         "detalles": rutina.detalles,
         "dias": [
-            {"numero": numero_dia, "detalles": detalles}
+            {
+                "numero": numero_dia,
+                "nombre": (detalles[0].nombre_dia if detalles and detalles[0].nombre_dia else f"Día {numero_dia}"),
+                "detalles": detalles
+            }
             for numero_dia, detalles in sorted(detalles_por_dia.items())
         ],
     }
@@ -172,7 +176,13 @@ def read_client_rutina_activa(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     rutina = crud.get_rutina_activa_cliente(db, dni_cliente=dni)
+    if not rutina:
+        rutina = crud.asignar_rutina_iniciacion_automatica(db, dni_cliente=dni)
+        if rutina:
+            db.commit()
+            db.refresh(rutina)
     return _rutina_response_data(rutina) if rutina else None
+
 
 @router.post("/{dni}/rutina", response_model=schemas.RutinaResponse, status_code=status.HTTP_201_CREATED)
 def assign_or_update_client_rutina(
@@ -215,6 +225,45 @@ def read_ejercicios(
 ):
     return crud.get_ejercicios(db)
 
+@router.post("/aux/ejercicios", response_model=schemas.EjercicioResponse, status_code=status.HTTP_201_CREATED)
+def create_ejercicio(
+    ejercicio: schemas.EjercicioCreate,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador"])),
+):
+    creado = crud.create_ejercicio(db, ejercicio)
+    if creado is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya existe un ejercicio activo con ese nombre.",
+        )
+    return creado
+
+@router.put("/aux/ejercicios/{id_ejercicio}", response_model=schemas.EjercicioResponse)
+def update_ejercicio(
+    id_ejercicio: int,
+    ejercicio: schemas.EjercicioUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador"])),
+):
+    actualizado = crud.update_ejercicio(db, id_ejercicio, ejercicio)
+    if actualizado is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ejercicio no encontrado.")
+    if actualizado is False:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ya existe otro ejercicio activo con ese nombre.")
+    return actualizado
+
+@router.delete("/aux/ejercicios/{id_ejercicio}", response_model=schemas.EjercicioResponse)
+def delete_ejercicio(
+    id_ejercicio: int,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(require_roles(["Admin", "Entrenador"])),
+):
+    eliminado = crud.delete_ejercicio(db, id_ejercicio)
+    if eliminado is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ejercicio no encontrado.")
+    return eliminado
+
 # --- Endpoint de Membresía Activa (para preview de vencimiento y portal del socio) ---
 @router.get("/{dni}/membresia", response_model=Optional[schemas.ClienteMembresiaResponse])
 def read_cliente_membresia_activa(
@@ -232,3 +281,42 @@ def read_cliente_membresia_activa(
     if db_client is None:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return crud.get_membresia_activa_cliente(db, dni_cliente=dni)
+
+
+# --- Endpoints de Progreso Histórico de Rutinas ---
+@router.get("/{dni}/progreso-rutinas/ejercicios", response_model=List[schemas.EjercicioHistorialItem])
+def read_client_ejercicios_historico(
+    dni: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """
+    Retorna la lista de ejercicios que forman parte del historial de rutinas del socio.
+    """
+    check_client_data_access(dni, current_user)
+    db_client = crud.get_client(db, dni=dni)
+    if db_client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return crud.get_ejercicios_historico_rutinas(db, dni_cliente=dni)
+
+
+@router.get("/{dni}/progreso-rutinas", response_model=schemas.ProgresoEjercicioResponse)
+def read_client_progreso_ejercicio(
+    dni: str,
+    id_ejercicio: int = Query(..., description="ID del ejercicio a analizar"),
+    anio: Optional[int] = Query(None, description="Año calendario para filtrar (máximo 12 meses por pantalla)"),
+    db: Session = Depends(database.get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """
+    Retorna la serie temporal mensual de progresión de cargas para un ejercicio específico
+    en base a las rutinas históricas y la rutina activa, con cálculo de PR y paginación por año.
+    """
+    check_client_data_access(dni, current_user)
+    db_client = crud.get_client(db, dni=dni)
+    if db_client is None:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    resultado = crud.get_progreso_ejercicio_rutinas(db, dni_cliente=dni, id_ejercicio=id_ejercicio, anio=anio)
+    if not resultado:
+        raise HTTPException(status_code=404, detail="Ejercicio no encontrado o sin datos para este socio")
+    return resultado
