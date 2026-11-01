@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `Detalle_Plantilla_Rutina` (
     `id_plantilla` INT NOT NULL,
     `id_ejercicio` INT NOT NULL,
     `dia` INT NOT NULL DEFAULT 1,
+    `nombre_dia` VARCHAR(100) NULL,
     `series` INT NOT NULL,
     `repeticiones` INT NOT NULL,
     `carga_sugerida` DECIMAL(5, 2) NULL,
@@ -39,6 +40,20 @@ CREATE TABLE IF NOT EXISTS `Detalle_Plantilla_Rutina` (
     FOREIGN KEY (`id_plantilla`) REFERENCES `Plantilla_Rutina`(`id_plantilla`) ON DELETE CASCADE,
     FOREIGN KEY (`id_ejercicio`) REFERENCES `Ejercicio`(`id_ejercicio`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SET @ddl_nombre_plantilla = IF(
+    EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'Detalle_Plantilla_Rutina'
+          AND COLUMN_NAME = 'nombre_dia'
+    ),
+    'SELECT 1',
+    'ALTER TABLE `Detalle_Plantilla_Rutina` ADD COLUMN `nombre_dia` VARCHAR(100) NULL AFTER `dia`'
+);
+PREPARE migracion_nombre_plantilla_stmt FROM @ddl_nombre_plantilla;
+EXECUTE migracion_nombre_plantilla_stmt;
+DEALLOCATE PREPARE migracion_nombre_plantilla_stmt;
 
 -- 3. Carga Semilla de las 4 Plantillas Base (si no existen)
 INSERT IGNORE INTO `Plantilla_Rutina` (`id_plantilla`, `nombre`, `objetivo`, `nivel`, `dias_semana`, `duracion_estimada_min`, `observaciones`, `activo`) VALUES

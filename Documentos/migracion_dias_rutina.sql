@@ -17,6 +17,20 @@ PREPARE migracion_stmt FROM @ddl;
 EXECUTE migracion_stmt;
 DEALLOCATE PREPARE migracion_stmt;
 
+SET @ddl_nombre = IF(
+    EXISTS (
+        SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'Detalle_Rutina'
+          AND COLUMN_NAME = 'nombre_dia'
+    ),
+    'SELECT 1',
+    'ALTER TABLE `Detalle_Rutina` ADD COLUMN `nombre_dia` VARCHAR(100) NULL AFTER `dia`'
+);
+PREPARE migracion_nombre_stmt FROM @ddl_nombre;
+EXECUTE migracion_nombre_stmt;
+DEALLOCATE PREPARE migracion_nombre_stmt;
+
 DROP PROCEDURE IF EXISTS migrar_dias_rutina;
 DELIMITER //
 CREATE PROCEDURE migrar_dias_rutina()
