@@ -54,24 +54,16 @@ export function renderUsuarios(users) {
             : `<span class="badge badge-inactive">Inactivo</span>`;
 
         let pagoBadge = `<span style="color: var(--text-secondary); font-size: 0.8rem;">—</span>`;
-        if (rolLower === "cliente" && u.estado_pago) {
-            const estadoPago = u.estado_pago;
-            let pagoClass = "badge-primary";
-            let pagoIcon = "fa-circle-check";
-            if (estadoPago === "Vencido") {
-                pagoClass = "badge-danger";
-                pagoIcon = "fa-circle-exclamation";
-            } else if (estadoPago === "Sin membresía") {
-                pagoClass = "badge-inactive";
-                pagoIcon = "fa-circle-minus";
-            } else if (estadoPago === "Al día") {
-                pagoClass = "badge-success";
-                pagoIcon = "fa-circle-check";
-            }
+        if (rolLower === "cliente") {
+            const estadoPago = (u.estado_pago || "").trim().toLowerCase();
+            const esAlDia = estadoPago === "al día" || estadoPago === "al dia";
+            const badgeClass = esAlDia ? "badge-success" : "badge-danger";
+            const badgeIcon = esAlDia ? "fa-circle-check" : "fa-circle-xmark";
+            const badgeTexto = esAlDia ? "Al día" : "Atrasado";
             const vencTxt = u.fecha_vencimiento_cuota
-                ? ` <small style="opacity:0.75;">(vence: ${escapeHtml(u.fecha_vencimiento_cuota)})</small>`
+                ? ` <small style="opacity:0.75;">(${escapeHtml(u.fecha_vencimiento_cuota)})</small>`
                 : "";
-            pagoBadge = `<span class="badge ${pagoClass}"><i class="fa-solid ${pagoIcon}"></i> ${escapeHtml(estadoPago)}</span>${vencTxt}`;
+            pagoBadge = `<span class="badge ${badgeClass}"><i class="fa-solid ${badgeIcon}"></i> ${badgeTexto}</span>${vencTxt}`;
         }
 
         const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
