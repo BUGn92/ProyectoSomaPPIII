@@ -49,6 +49,9 @@
                     <li data-target="ejercicios-section">
                         <a href="#"><i class="fa-solid fa-dumbbell"></i><span>Ejercicios</span></a>
                     </li>
+                    <li data-target="asistencias-section" id="nav-asistencias-li">
+                        <a href="#"><i class="fa-solid fa-clipboard-user"></i><span>Asistencias & Kiosco</span></a>
+                    </li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -68,6 +71,10 @@
                     <p id="section-subtitle">Alta de socios con cobro inicial, cuotas, rutinas y fichas.</p>
                 </div>
                 <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                    <a href="checkin.html" target="_blank" class="btn-secondary" title="Abrir terminal tablet de autoservicio" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem; text-decoration: none;">
+                        <i class="fa-solid fa-tablet-screen-button" style="color: var(--primary);"></i>
+                        <span>Kiosco Tablet</span>
+                    </a>
                     <button id="btn-solicitudes-foto" class="btn-secondary" title="Solicitudes de cambio de foto" style="position: relative; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.9rem;">
                         <i class="fa-solid fa-camera-rotate"></i>
                         <span>Fotos</span>
@@ -183,6 +190,128 @@
                             <thead><tr><th>Ejercicio</th><th>Grupo muscular</th><th class="actions-col">Acciones</th></tr></thead>
                             <tbody id="tbody-ejercicios"></tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 5: ASISTENCIAS Y CONTROL DE INACTIVIDAD -->
+            <section id="asistencias-section" class="crud-section hidden">
+                <!-- Métricas Resumen -->
+                <div class="stats-overview-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="metric-card" style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(16, 185, 129, 0.15); color: var(--primary); width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Ingresos Hoy</div>
+                            <div id="stat-asist-hoy" style="font-size: 1.6rem; font-weight: 700; color: var(--text-primary);">0</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card" style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                            <i class="fa-solid fa-chart-simple"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Últimos 7 días</div>
+                            <div id="stat-asist-semana" style="font-size: 1.6rem; font-weight: 700; color: var(--text-primary);">0</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card" style="background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Últimos 30 días</div>
+                            <div id="stat-asist-mes" style="font-size: 1.6rem; font-weight: 700; color: var(--text-primary);">0</div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card" style="background: var(--bg-card); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: rgba(239, 68, 68, 0.15); color: var(--danger); width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Inactivos (+15 días)</div>
+                            <div id="stat-socios-inactivos" style="font-size: 1.6rem; font-weight: 700; color: var(--danger);">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta con Sub-Pestañas -->
+                <div class="table-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+                        <div class="modal-tabs" style="border: none; padding: 0; margin: 0; gap: 0.5rem;">
+                            <button type="button" class="tab-link asistencias-subtab-btn active" data-tab="tab-ingresos-hoy">
+                                <i class="fa-solid fa-user-clock"></i> Ingresos de Hoy
+                            </button>
+                            <button type="button" class="tab-link asistencias-subtab-btn" data-tab="tab-socios-inactivos">
+                                <i class="fa-solid fa-user-xmark"></i> Alerta de Inactividad (Seguimiento)
+                            </button>
+                        </div>
+
+                        <a href="checkin.html" target="_blank" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                            <i class="fa-solid fa-tablet-screen-button"></i> Abrir Tablet Check-in
+                        </a>
+                    </div>
+
+                    <!-- Sub-panel 1: Ingresos de Hoy -->
+                    <div id="tab-ingresos-hoy" class="asistencias-tab-panel">
+                        <div class="table-header-tools" style="margin-bottom: 1rem;">
+                            <div class="search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="search-asistencias-hoy" placeholder="Buscar por DNI o Nombre de socio...">
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="table-asistencias-hoy">
+                                <thead>
+                                    <tr>
+                                        <th>Socio</th>
+                                        <th>Hora Ingreso</th>
+                                        <th>Estado Cuota</th>
+                                        <th>Apto Médico</th>
+                                        <th>Estado Registro</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-asistencias-hoy"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sub-panel 2: Socios Inactivos (+15 días) -->
+                    <div id="tab-socios-inactivos" class="asistencias-tab-panel hidden">
+                        <div class="table-header-tools" style="margin-bottom: 1rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                            <div class="search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="search-socios-inactivos" placeholder="Buscar socio ausente...">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <label for="select-dias-inactividad" style="font-size: 0.85rem; color: var(--text-secondary);">Ausentes por más de:</label>
+                                <select id="select-dias-inactividad" style="background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-light); border-radius: 6px; padding: 0.4rem 0.65rem; font-size: 0.85rem;">
+                                    <option value="15" selected>15 días</option>
+                                    <option value="30">30 días (1 mes)</option>
+                                    <option value="45">45 días</option>
+                                    <option value="60">60 días (2 meses)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="table-socios-inactivos">
+                                <thead>
+                                    <tr>
+                                        <th>Socio</th>
+                                        <th>Tiempo sin Asistir</th>
+                                        <th>Última Asistencia</th>
+                                        <th>Estado Cuota</th>
+                                        <th>Teléfono</th>
+                                        <th>Acción de Fidelización</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-socios-inactivos"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
