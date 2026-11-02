@@ -81,6 +81,11 @@ export function renderUsuarios(users) {
                 : `<button type="button" class="btn-icon btn-icon-reactivate btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario" aria-label="Reactivar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-check"></i></button>`)
             : `<span style="color: var(--text-secondary); font-size: 0.8rem;" title="Acción reservada para administradores">—</span>`;
 
+        const puedeEditar = esAdmin || rolLower !== "admin";
+        const editBtn = puedeEditar
+            ? `<button type="button" class="btn-icon btn-icon-edit btn-edit" data-id="${u.id_usuario}" title="Editar Usuario" aria-label="Editar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-pen-to-square"></i></button>`
+            : `<span style="color: var(--text-secondary); font-size: 0.8rem;" title="Los recepcionistas no pueden editar administradores">—</span>`;
+
         tr.innerHTML = `
             <td><strong>#${escapeHtml(u.id_usuario)}</strong></td>
             <td>${escapeHtml(u.nombre)}</td>
@@ -90,7 +95,7 @@ export function renderUsuarios(users) {
             <td>${pagoBadge}</td>
             <td class="actions-col">
                 <div class="table-actions">
-                    <button type="button" class="btn-icon btn-icon-edit btn-edit" data-id="${u.id_usuario}" title="Editar Usuario" aria-label="Editar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-pen-to-square"></i></button>
+                    ${editBtn}
                     ${accionBtn}
                 </div>
             </td>
@@ -110,8 +115,34 @@ export function renderUsuarios(users) {
 }
 
 export function openUserModal(mode, id = null) {
+    const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
+
+    // Si es recepcionista e intenta editar a un admin, bloquear
+    if (mode === "edit" && id) {
+        const user = state.usuariosData.find(u => u.id_usuario === id);
+        if (user && (user.rol || "").toLowerCase() === "admin" && !esAdmin) {
+            showToast("Acceso denegado", "El personal de recepción no puede editar usuarios administradores.", "error");
+            return;
+        }
+    }
+
     state.editingUserId = id;
     if (formUsuario) formUsuario.reset();
+
+    // Gestionar opción Admin según rol en sesión
+    if (uRol) {
+        Array.from(uRol.options).forEach(opt => {
+            if (opt.value.toLowerCase() === "admin") {
+                opt.disabled = !esAdmin;
+                opt.hidden = !esAdmin;
+            }
+        });
+        // Si no es admin y el valor por defecto era Admin, cambiar al primer rol disponible
+        if (!esAdmin && uRol.value.toLowerCase() === "admin") {
+            const firstAvailable = Array.from(uRol.options).find(opt => !opt.disabled);
+            if (firstAvailable) uRol.value = firstAvailable.value;
+        }
+    }
     
     if (mode === "create") {
         document.getElementById("modal-usuario-title").textContent = "Nuevo Usuario";
@@ -194,6 +225,12 @@ export function initUsuariosModule() {
     if (formUsuario) {
         formUsuario.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
+            if (!esAdmin && uRol.value.toLowerCase() === "admin") {
+                showToast("Operación no permitida", "El personal de recepción no puede crear ni asignar usuarios administradores.", "warning");
+                return;
+            }
+
             const payload = {
                 nombre: uNombre.value.trim(),
                 usuario_login: uLogin.value.trim(),
