@@ -128,9 +128,9 @@ def get_users_con_estado_pago(db: Session, skip: int = 0, limit: int = 100, incl
         if u.rol.lower() == "cliente":
             membresia = get_membresia_activa_cliente(db, u.usuario_login)
             if membresia is None:
-                estado_pago = "Sin membresía"
+                estado_pago = "Atrasado"
             elif membresia.fecha_fin < hoy:
-                estado_pago = "Vencido"
+                estado_pago = "Atrasado"
                 fecha_venc = membresia.fecha_fin
             else:
                 estado_pago = "Al día"

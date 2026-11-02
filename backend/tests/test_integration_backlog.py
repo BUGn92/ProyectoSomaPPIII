@@ -1019,3 +1019,81 @@ def test_recepcionista_edicion_usuarios_y_restricciones_admin(client, db):
     assert res_edit_admin_ok.json()["nombre"] == "Co-Administrador Modificado"
 
 
+def test_visualizacion_estado_cuota_cliente_roles(client, db):
+    """
+    Valida el contrato de visualización del estado de cuota de usuarios tipo cliente:
+    1. Cliente con cuota vigente -> 'Al día'.
+    2. Cliente sin cuota o vencida -> 'Atrasado'.
+    3. Recepcionista, Admin y Entrenador pueden acceder a la información de clientes.
+    """
+    hoy = date.today()
+
+    db.add(models.Membresia(id_membresia=1, tipo="Pase Libre", precio=15000.0, duracion_dias=30))
+
+    # 1. Crear cliente con membresía al día
+    cli_aldia = models.Cliente(dni="31000111", nombre="Socio", apellido="AlDia", fecha_alta=hoy, activo=True)
+    user_aldia = models.Usuario(
+        id_usuario=101,
+        nombre="Socio AlDia",
+        usuario_login="31000111",
+        password=crud.hash_password("clave123"),
+        rol="Cliente",
+        activo=True
+    )
+    memb_aldia = models.ClienteMembresia(
+        id_cliente_membresia=101,
+        dni_cliente="31000111",
+        id_membresia=1,
+        fecha_inicio=hoy - timedelta(days=5),
+        fecha_fin=hoy + timedelta(days=25),
+        estado="Activa"
+    )
+
+    # 2. Crear cliente con cuota atrasada (vencida)
+    cli_atrasado = models.Cliente(dni="31000222", nombre="Socio", apellido="Atrasado", fecha_alta=hoy, activo=True)
+    user_atrasado = models.Usuario(
+        id_usuario=102,
+        nombre="Socio Atrasado",
+        usuario_login="31000222",
+        password=crud.hash_password("clave123"),
+        rol="Cliente",
+        activo=True
+    )
+    memb_atrasada = models.ClienteMembresia(
+        id_cliente_membresia=102,
+        dni_cliente="31000222",
+        id_membresia=1,
+        fecha_inicio=hoy - timedelta(days=60),
+        fecha_fin=hoy - timedelta(days=10),
+        estado="Vencida"
+    )
+
+    db.add_all([cli_aldia, user_aldia, memb_aldia, cli_atrasado, user_atrasado, memb_atrasada])
+    db.commit()
+
+    headers_admin = get_auth_headers("cadmin", "Admin")
+    headers_trainer = get_auth_headers("mfuerte", "Entrenador")
+
+    # 3. Validar consulta de clientes desde Admin
+    res_admin = client.get("/api/clientes/", headers=headers_admin)
+    assert res_admin.status_code == 200
+    clientes_admin = {c["dni"]: c for c in res_admin.json()}
+    assert clientes_admin["31000111"]["fecha_vencimiento_cuota"] is not None
+    assert clientes_admin["31000222"]["fecha_vencimiento_cuota"] is not None
+
+    # 4. Validar consulta de clientes desde Entrenador
+    res_trainer = client.get("/api/clientes/", headers=headers_trainer)
+    assert res_trainer.status_code == 200
+    clientes_trainer = {c["dni"]: c for c in res_trainer.json()}
+    assert "31000111" in clientes_trainer
+    assert "31000222" in clientes_trainer
+
+    # 5. Validar estado de cuota enriquecido en usuarios con pago (Admin y Recepcionista)
+    res_con_pago = client.get("/api/usuarios/con-pago", headers=headers_admin)
+    assert res_con_pago.status_code == 200
+    usuarios_dict = {u["usuario_login"]: u for u in res_con_pago.json()}
+    assert usuarios_dict["31000111"]["estado_pago"] == "Al día"
+    assert usuarios_dict["31000222"]["estado_pago"] == "Atrasado"
+
+
+
