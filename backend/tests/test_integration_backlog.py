@@ -931,3 +931,91 @@ def test_recepcionista_puede_crear_usuarios_pero_no_eliminar(client, db):
     res_delete_admin = client.delete(f"/api/usuarios/{created_id}", headers=headers_admin)
     assert res_delete_admin.status_code == 200
 
+
+def test_recepcionista_edicion_usuarios_y_restricciones_admin(client, db):
+    """
+    Valida las reglas de permisos del CRUD de usuarios:
+    1. Recepcionista puede editar los registros de cualquier usuario normal (200 OK).
+    2. Recepcionista NO puede editar a un usuario con rol 'Admin' (403 Forbidden).
+    3. Recepcionista NO puede crear un usuario con rol 'Admin' (403 Forbidden).
+    4. Recepcionista NO puede ascender un usuario existente a rol 'Admin' (403 Forbidden).
+    5. Administrador sí puede editar usuarios administradores y crear administradores (200 OK y 201 Created).
+    """
+    db.add(models.Usuario(
+        id_usuario=88,
+        nombre="Recepcionista Operador",
+        usuario_login="recep_operador",
+        password=crud.hash_password("clave123"),
+        rol="Recepcionista",
+        debe_cambiar_password=False
+    ))
+    db.commit()
+
+    headers_recep = get_auth_headers("recep_operador", "Recepcionista")
+    headers_admin = get_auth_headers("cadmin", "Admin")
+
+    # 1. Recepcionista edita un usuario existente no-admin (Entrenador con id_usuario=2)
+    res_edit_trainer = client.put(
+        "/api/usuarios/2",
+        json={"nombre": "Mario Fuerte Actualizado"},
+        headers=headers_recep
+    )
+    assert res_edit_trainer.status_code == 200
+    assert res_edit_trainer.json()["nombre"] == "Mario Fuerte Actualizado"
+
+    # 2. Recepcionista intenta editar a un usuario Administrador (id_usuario=1) -> 403 Forbidden
+    res_edit_admin = client.put(
+        "/api/usuarios/1",
+        json={"nombre": "Intento Modificar Admin"},
+        headers=headers_recep
+    )
+    assert res_edit_admin.status_code == 403
+    assert "El personal de recepción no puede editar a un usuario administrador" in res_edit_admin.json()["detail"]
+
+    # 3. Recepcionista intenta crear un usuario con rol 'Admin' -> 403 Forbidden
+    res_crear_admin = client.post(
+        "/api/usuarios/",
+        json={
+            "nombre": "Admin Ilegítimo",
+            "usuario_login": "fake_admin",
+            "password": "password123",
+            "rol": "Admin"
+        },
+        headers=headers_recep
+    )
+    assert res_crear_admin.status_code == 403
+    assert "El personal de recepción no puede crear usuarios administradores" in res_crear_admin.json()["detail"]
+
+    # 4. Recepcionista intenta ascender al Entrenador a rol 'Admin' -> 403 Forbidden
+    res_promote_admin = client.put(
+        "/api/usuarios/2",
+        json={"rol": "Admin"},
+        headers=headers_recep
+    )
+    assert res_promote_admin.status_code == 403
+    assert "El personal de recepción no puede asignar el rol administrador" in res_promote_admin.json()["detail"]
+
+    # 5. Administrador SÍ puede crear otro usuario Administrador legítimo -> 201 Created
+    res_crear_admin_ok = client.post(
+        "/api/usuarios/",
+        json={
+            "nombre": "Nuevo Co-Administrador",
+            "usuario_login": "coadmin",
+            "password": "password123",
+            "rol": "Admin"
+        },
+        headers=headers_admin
+    )
+    assert res_crear_admin_ok.status_code == 201
+    nuevo_admin_id = res_crear_admin_ok.json()["id_usuario"]
+
+    # 6. Administrador SÍ puede editar a otro usuario Administrador -> 200 OK
+    res_edit_admin_ok = client.put(
+        f"/api/usuarios/{nuevo_admin_id}",
+        json={"nombre": "Co-Administrador Modificado"},
+        headers=headers_admin
+    )
+    assert res_edit_admin_ok.status_code == 200
+    assert res_edit_admin_ok.json()["nombre"] == "Co-Administrador Modificado"
+
+
