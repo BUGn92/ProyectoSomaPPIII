@@ -8,7 +8,7 @@ DB_NAME ?= GimnasioDB
 SQL_SCHEMA ?= Documentos/Creacion_de_BD_v1.1.sql
 SQL_SEED ?= Documentos/carga_de_datos_v1.1.sql
 
-.PHONY: help venv install db seed run test clean
+.PHONY: help venv install db seed pdf run test clean
 
 help:
 	@echo "================================================================="
@@ -20,6 +20,7 @@ help:
 	@echo "                 desde los scripts SQL unificados (usuario: $(DB_USER))."
 	@echo "  make seed      Regenera el dataset de 42 socios (12 meses de"
 	@echo "                 historial) con fechas al dia y recarga MySQL."
+	@echo "  make pdf       Renderiza los documentos Markdown + Mermaid a PDF."
 	@echo "  make run       Inicia el servidor FastAPI en http://localhost:8000"
 	@echo "  make test      Ejecuta toda la suite de pruebas con pytest."
 	@echo "  make clean     Elimina archivos temporales y caches de Python."
@@ -53,6 +54,10 @@ db:
 seed:
 	@echo "-> Regenerando semilla de datos (42 socios, 12 meses de historial) y aplicando en MySQL..."
 	DB_USER=$(DB_USER) DB_NAME=$(DB_NAME) $(VENV)/bin/python backend/scripts/seed_db.py --apply
+
+pdf:
+	@echo "-> Exportando documentacion Markdown + Mermaid a HTML y PDF..."
+	$(PYTHON) backend/scripts/export_pdf.py
 
 run:
 	@echo "-> Iniciando servidor SOMA Gym en http://localhost:8000 ..."
