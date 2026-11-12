@@ -14,7 +14,6 @@ import { initPagosModule, setOnPagoRegistrado } from "./modules/pagos.module.js"
 import { initNoticiasModule, fetchNoticias, openNoticiaModal } from "./modules/noticias.module.js";
 import { initUsuariosModule, fetchUsuarios, openUserModal } from "./modules/usuarios.module.js";
 import { initEjerciciosModule, fetchEjerciciosCatalogo } from "./modules/ejercicios.module.js?v=3.4";
-import { initAsistenciasModule, fetchAsistenciasSection } from "./modules/asistencias.module.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Proteger acceso: Admin, Recepcionista, Secretaria
@@ -88,11 +87,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (sectionSubtitle) sectionSubtitle.textContent = "Consulta y carga de ejercicios disponibles para las rutinas.";
             if (btnActionAdd) btnActionAdd.classList.add("hidden");
             fetchEjerciciosCatalogo();
-        } else if (targetId === "asistencias-section") {
-            if (sectionTitle) sectionTitle.textContent = "Control de Asistencias & Inactividad";
-            if (sectionSubtitle) sectionSubtitle.textContent = "Registro en tiempo real de ingresos por check-in y detección de socios ausentes (+15 días).";
-            if (btnActionAdd) btnActionAdd.classList.add("hidden");
-            fetchAsistenciasSection();
         }
     }
 
@@ -124,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initNoticiasModule();
     initUsuariosModule();
     initEjerciciosModule();
-    initAsistenciasModule();
 
     // 8. Cargar datos iniciales
     fetchEjerciciosAux();

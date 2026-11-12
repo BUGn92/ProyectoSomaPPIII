@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, Date, Time, DateTime, Text, ForeignKey, desc
+from sqlalchemy import Column, Integer, String, Boolean, Numeric, Date, Time, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.config.database import Base
 
@@ -67,7 +67,6 @@ class Cliente(Base):
     pagos = relationship("Pago", back_populates="cliente")
     rutinas = relationship("Rutina", back_populates="cliente")
     solicitudes_foto = relationship("SolicitudFotoPerfil", back_populates="cliente")
-    asistencias = relationship("Asistencia", back_populates="cliente", cascade="all, delete-orphan", order_by="desc(Asistencia.fecha_hora)")
 
 
 class ClienteMembresia(Base):
@@ -221,16 +220,3 @@ class DetallePlantillaRutina(Base):
 
     plantilla = relationship("PlantillaRutina", back_populates="detalles")
     ejercicio = relationship("Ejercicio")
-
-
-class Asistencia(Base):
-    __tablename__ = "Asistencia"
-
-    id_asistencia = Column(Integer, primary_key=True, autoincrement=True)
-    dni_cliente = Column(String(20), ForeignKey("Cliente.dni", ondelete="CASCADE"), nullable=False)
-    fecha_hora = Column(DateTime, nullable=False, default=datetime.utcnow)
-    estado_cuota = Column(String(50), nullable=True)
-    apto_medico_vigente = Column(Boolean, default=False, nullable=False)
-
-    cliente = relationship("Cliente", back_populates="asistencias")
-

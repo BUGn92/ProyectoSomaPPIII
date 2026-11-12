@@ -20,7 +20,6 @@
 | **SOMA-07** | Módulo de Pagos y Registro de Cuotas de Gimnasio | `feat/modulo-pagos-administracion` | Finanzas / Pagos | 🔴 Alta | 8 SP | 📝 Backlog | Equipo |
 | **SOMA-08** | Indicador de Vencimiento y Adelanto de Cuotas (Portal Socio) | `feat/estado-cuota-portal-socio` | Portal Socio / Cuotas | 🔴 Alta | 5 SP | 📝 Backlog | Equipo |
 | **SOMA-09** | Carga de Foto de Perfil y Flujo de Aprobación de Cambios | `feat/foto-perfil-cliente-aprobacion` | Clientes / Perfil | 🟡 Media | 5 SP | 📝 Backlog | Equipo |
-| **SOMA-10** | Check-in Digital en Tablet, Registro de Asistencias y Alerta de Inactividad | `feat/checkin-asistencias` | Asistencias / Kiosco | 🔴 Alta | 8 SP | ✅ Completado | Equipo |
 
 ---
 
@@ -346,33 +345,6 @@ graph TD
 
 ---
 
-### 🔹 SOMA-10: Check-in Digital en Tablet, Registro de Asistencias y Alerta de Inactividad
-
-* **Rama Git:** `feat/checkin-asistencias`
-* **Módulo:** Asistencias / Kiosco Tablet
-* **Prioridad:** 🔴 Alta
-* **Historia de Usuario:**  
-  *Como socio del gimnasio, quiero ingresar mi DNI en la tablet de recepción al entrar para registrar mi asistencia de forma rápida y conocer al instante el estado de mi cuota y apto médico sin generar filas ni demoras.*  
-  *Como administrador/recepcionista, quiero monitorear los ingresos en tiempo real y disponer de una lista de socios ausentes por más de 15 días con enlace directo a WhatsApp para contactarlos y prevenir el abandono.*
-
-#### Requerimientos y Necesidades:
-1. **Terminal Kiosco para Tablet (`checkin.html`):**
-   - Interfaz táctil con teclado numérico en pantalla y soporte para teclado físico.
-   - Reloj y fecha en vivo sincronizados.
-   - Modal con feedback visual y sonoro (Web Audio API): tarjeta de bienvenida con foto, nombre, badges de cuota (Al día / Atrasado) y apto médico (Vigente / Vencido).
-   - Temporizador de auto-cierre en 5 segundos o botón rápido "Siguiente Socio".
-2. **Backend & Base de Datos:**
-   - Script SQL `migracion_asistencias.sql` y modelo `Asistencia`.
-   - Endpoint público `POST /api/asistencias/checkin` con validación de DNI numérico (7-8 dígitos).
-   - Endpoints de gestión: `GET /api/asistencias/hoy`, `GET /api/asistencias/inactivos?dias=15` y `GET /api/asistencias/estadisticas`.
-3. **Panel Administrativo:**
-   - Pestaña "Asistencias & Kiosco" en `admin.html` con KPIs de ingresos (hoy, 7 días, 30 días, inactivos).
-   - Tabla de ingresos de hoy en tiempo real.
-   - Tabla de socios inactivos con selector de días (15, 30, 45, 60) y botón directo de contacto por WhatsApp.
-
-
----
-
 ## 🧪 4. Especificación y Matriz de Pruebas de Integración
 
 Para validar la correcta implementación de cada tarea sin depender de una base de datos MySQL externa durante el desarrollo continuo, se provee el archivo de pruebas de integración automatizado:
@@ -389,7 +361,6 @@ Para validar la correcta implementación de cada tarea sin depender de una base 
 | `test_tarea_07_modulo_pagos_extension_cuota_multimes` | **SOMA-07** | Registro de cobros simples y adelantos de múltiples meses con cálculo acumulativo. |
 | `test_tarea_08_portal_socio_indicador_estado_cuota` | **SOMA-08** | Verificación del semáforo de vencimiento, días restantes y cuotas adelantadas en el portal. |
 | `test_tarea_09_foto_perfil_cliente_flujo_aprobacion` | **SOMA-09** | Carga directa por admin, envío de solicitud por el socio y aprobación por el staff. |
-| `test_checkin_asistencias_e_inactividad` | **SOMA-10** | Check-in en tablet, validación de alertas, listado de asistencias de hoy y detección de inactivos. |
 
 ### 🚀 Cómo ejecutar las pruebas de integración:
 

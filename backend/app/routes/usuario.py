@@ -71,13 +71,6 @@ def create_new_user(
     db: Session = Depends(database.get_db),
     staff_user: models.Usuario = Depends(require_admin_or_recepcionista)
 ):
-    is_admin = (staff_user.rol or "").lower() == "admin"
-    if not is_admin and (user.rol or "").lower() == "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Operación no permitida: El personal de recepción no puede crear usuarios administradores"
-        )
-
     db_user = crud.get_user_by_login(db, username=user.usuario_login)
     if db_user:
         raise HTTPException(status_code=400, detail="El nombre de usuario ya está registrado")
@@ -93,21 +86,6 @@ def update_existing_user(
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    is_admin = (staff_user.rol or "").lower() == "admin"
-    # Si no es admin, no puede modificar a un usuario de rol Admin
-    if not is_admin and (db_user.rol or "").lower() == "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Operación no permitida: El personal de recepción no puede editar a un usuario administrador"
-        )
-
-    # Si no es admin, no puede asignar/promover al rol Admin
-    if not is_admin and user_update.rol and user_update.rol.lower() == "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Operación no permitida: El personal de recepción no puede asignar el rol administrador"
-        )
         
     # Validar unicidad del login si se intenta cambiar
     if user_update.usuario_login and user_update.usuario_login != db_user.usuario_login:
