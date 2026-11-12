@@ -124,23 +124,6 @@ export const ClientesService = {
     },
 
     /**
-     * Obtiene el historial deportivo de cargas por ejercicio.
-     */
-    async getClienteEvDeportiva(dni) {
-        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/registro-entrenamiento`);
-    },
-
-    /**
-     * Registra una nueva carga deportiva.
-     */
-    async saveClienteEvDeportiva(dni, payload) {
-        return await apiFetch(`/api/clientes/${encodeURIComponent(dni)}/registro-entrenamiento`, {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
-    },
-
-    /**
      * Consulta el estado de membresía activa y fecha de fin.
      */
     async getClienteMembresia(dni) {

@@ -303,7 +303,6 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
     const btnGuardarCliente = document.getElementById("btn-guardar-cliente");
     const readonlyNotice = document.getElementById("readonly-trainer-notice");
     const formEvFisica = document.getElementById("form-ev-fisica");
-    const formEvDeportiva = document.getElementById("form-ev-deportiva");
 
     if (mode === "create") {
         document.getElementById("modal-cliente-title").textContent = "Registrar Nuevo Socio";
@@ -360,7 +359,6 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         tabLinkEvDeportiva.style.display = "block";
         if (tabLinkPagos) tabLinkPagos.style.display = "block";
         if (formEvFisica) formEvFisica.classList.toggle("hidden", isReceptionist);
-        if (formEvDeportiva) formEvDeportiva.classList.toggle("hidden", isReceptionist);
 
         if (groupPagoInicialTitle) groupPagoInicialTitle.style.display = "none";
         if (groupPagoMonto) groupPagoMonto.style.display = "none";
