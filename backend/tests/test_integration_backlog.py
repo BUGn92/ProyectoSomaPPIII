@@ -507,10 +507,22 @@ def test_tarea_05_noticias_subida_foto_y_vencimiento_60_dias(client, db):
         titulo="Mantenimiento de Duchas Pasado",
         contenido="El día 15 no habrá agua caliente.",
         categoria="Mantenimiento",
+        permanente=False,
         fecha_publicacion=date.today() - timedelta(days=75),
         id_usuario_autor=1
     )
-    db.add_all([noticia_reciente, noticia_vencida])
+
+    # 2.1 Sembrar noticia antigua pero PERMANENTE (hace 90 días)
+    noticia_permanente_antigua = models.Noticia(
+        id_noticia=3,
+        titulo="Reglamento General de Convivencia",
+        contenido="Uso obligatorio de toalla y calzado limpio.",
+        categoria="General",
+        permanente=True,
+        fecha_publicacion=date.today() - timedelta(days=90),
+        id_usuario_autor=1
+    )
+    db.add_all([noticia_reciente, noticia_vencida, noticia_permanente_antigua])
     db.commit()
 
     # 3. Crear nueva noticia con imagen mediante la API
@@ -518,12 +530,14 @@ def test_tarea_05_noticias_subida_foto_y_vencimiento_60_dias(client, db):
     nueva_noticia_payload = {
         "titulo": "Nueva Sala de Musculación",
         "contenido": "Equipamiento de última generación disponible.",
-        "categoria": "Institucional"
+        "categoria": "Institucional",
+        "permanente": True
     }
     create_resp = client.post("/api/noticias/", json=nueva_noticia_payload, headers=headers_admin)
     assert create_resp.status_code == 201
+    assert create_resp.json()["permanente"] is True
 
-    # 4. Validar que la consulta liste las noticias activas
+    # 4. Validar que la consulta liste las noticias activas y las permanentes (aunque tengan > 60 días)
     list_resp = client.get("/api/noticias/", headers=headers_admin)
     assert list_resp.status_code == 200
     noticias = list_resp.json()
@@ -531,14 +545,14 @@ def test_tarea_05_noticias_subida_foto_y_vencimiento_60_dias(client, db):
 
     assert "Torneo de Press de Banca 2026" in titulos
     assert "Nueva Sala de Musculación" in titulos
+    assert "Reglamento General de Convivencia" in titulos
+    assert "Mantenimiento de Duchas Pasado" not in titulos
 
-    # 5. Validar la regla de negocio de vencimiento a 60 días
-    limite_60_dias = date.today() - timedelta(days=60)
-    for n in noticias:
-        fecha_pub = datetime.strptime(n["fecha_publicacion"], "%Y-%m-%d").date()
-        # En la lógica de negocio final de 60 días, ninguna noticia devuelta debe ser más vieja que limite_60_dias
-        # (El test verifica que el filtro de fecha sea computable de forma determinística)
-        assert isinstance(fecha_pub, date)
+    # 5. Validar que la limpieza de noticias vencidas no elimine las permanentes
+    clean_resp = client.delete("/api/noticias/limpiar-vencidas", headers=headers_admin)
+    assert clean_resp.status_code == 200
+    assert clean_resp.json()["eliminadas"] == 1
+    assert db.query(models.Noticia).filter_by(titulo="Reglamento General de Convivencia").first() is not None
 
 
 # ==============================================================================

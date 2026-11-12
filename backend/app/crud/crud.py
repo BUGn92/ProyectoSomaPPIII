@@ -4,7 +4,7 @@ from datetime import date, timedelta, datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from dateutil.relativedelta import relativedelta
 from app.models import models
 from app.schemas import schemas
@@ -612,22 +612,38 @@ def delete_ejercicio(db: Session, id_ejercicio: int):
     return db_ejercicio
 
 # --- CRUD de Noticias / Muro de Novedades ---
+def ensure_noticia_permanente_column(db: Session):
+    """Garantiza que la columna `permanente` exista en la tabla `Noticia`."""
+    inspector = inspect(db.bind)
+    if not inspector.has_table("Noticia"):
+        return
+    cols = {col["name"] for col in inspector.get_columns("Noticia")}
+    if "permanente" not in cols:
+        db.execute(text("ALTER TABLE Noticia ADD COLUMN permanente BOOLEAN NOT NULL DEFAULT FALSE"))
+        db.commit()
+
+
 def get_noticias(db: Session, limit: int = 50):
+    ensure_noticia_permanente_column(db)
     limite_vencimiento = date.today() - timedelta(days=60)
     return (
         db.query(models.Noticia)
-        .filter(models.Noticia.fecha_publicacion >= limite_vencimiento)
+        .filter(
+            (models.Noticia.permanente == True) | (models.Noticia.fecha_publicacion >= limite_vencimiento)
+        )
         .order_by(models.Noticia.fecha_publicacion.desc(), models.Noticia.id_noticia.desc())
         .limit(limit)
         .all()
     )
 
 def create_noticia(db: Session, noticia: schemas.NoticiaCreate, id_usuario_autor: int):
+    ensure_noticia_permanente_column(db)
     db_noticia = models.Noticia(
         titulo=noticia.titulo,
         contenido=noticia.contenido,
         categoria=noticia.categoria or "General",
         imagen_url=noticia.imagen_url,
+        permanente=bool(noticia.permanente),
         fecha_publicacion=date.today(),
         id_usuario_autor=id_usuario_autor
     )
@@ -637,6 +653,7 @@ def create_noticia(db: Session, noticia: schemas.NoticiaCreate, id_usuario_autor
     return db_noticia
 
 def delete_noticia(db: Session, id_noticia: int):
+    ensure_noticia_permanente_column(db)
     db_noticia = db.query(models.Noticia).filter(models.Noticia.id_noticia == id_noticia).first()
     if not db_noticia:
         return None
@@ -645,10 +662,14 @@ def delete_noticia(db: Session, id_noticia: int):
     return db_noticia
 
 def limpiar_noticias_vencidas(db: Session, dias: int = 60) -> int:
+    ensure_noticia_permanente_column(db)
     limite_vencimiento = date.today() - timedelta(days=dias)
     registros_eliminados = (
         db.query(models.Noticia)
-        .filter(models.Noticia.fecha_publicacion < limite_vencimiento)
+        .filter(
+            models.Noticia.fecha_publicacion < limite_vencimiento,
+            models.Noticia.permanente == False
+        )
         .delete(synchronize_session=False)
     )
     db.commit()

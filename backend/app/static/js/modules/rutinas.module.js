@@ -8,6 +8,7 @@ import { PlantillasRutinaService } from "../services/plantillas-rutina.service.j
 import { showToast } from "../utils/toast.js";
 import { escapeHtml } from "../utils/sanitizer.js";
 import { renderRoutineView } from "./routine-view.module.js";
+import { fetchClientEvDeportiva } from "./evolucion.module.js";
 
 const formRutina = document.getElementById("form-rutina");
 const rFecha = document.getElementById("r-fecha");
@@ -25,7 +26,6 @@ const routineManagementActions = document.getElementById("routine-management-act
 const btnEditRoutine = document.getElementById("btn-edit-routine");
 const btnEditRoutineLabel = document.getElementById("btn-edit-routine-label");
 const btnCancelRoutine = document.getElementById("btn-cancel-routine");
-const selectEdEjercicio = document.getElementById("ed-ejercicio");
 let canEditRoutine = false;
 let cachedPlantillas = [];
 
@@ -36,23 +36,13 @@ function showRoutineEditor(show) {
 
 
 /**
- * Carga el catálogo de ejercicios en memoria y rellena el select de evolución deportiva.
+ * Carga el catálogo de ejercicios en memoria.
  */
 export async function fetchEjerciciosAux() {
     try {
         const res = await ClientesService.getEjerciciosAux();
         if (res.ok) {
             state.cachedEjercicios = res.data || [];
-            if (selectEdEjercicio) {
-                selectEdEjercicio.innerHTML = '<option value="" disabled selected>Selecciona un ejercicio...</option>';
-                state.cachedEjercicios.forEach(ej => {
-                    const opt = document.createElement("option");
-                    opt.value = ej.id_ejercicio;
-                    opt.textContent = `${ej.nombre_ejercicio} (${ej.grupo_muscular})`;
-                    selectEdEjercicio.appendChild(opt);
-                });
-            }
-
         }
     } catch (err) {
         console.error("Error al cargar catálogo de ejercicios:", err);
@@ -469,6 +459,7 @@ export function initRutinasModule() {
             if (res.ok) {
                 showToast("Rutina Asignada", `La rutina fue asignada exitosamente al socio ${state.editingDni}.`);
                 await fetchClientRutina(state.editingDni);
+                await fetchClientEvDeportiva(state.editingDni);
             } else {
                 showToast("Error", res.detail || "No se pudo guardar la rutina.", "error");
             }
