@@ -8,4 +8,5 @@
 USE GimnasioDB;
 
 ALTER TABLE Noticia 
-    ADD COLUMN imagen_url VARCHAR(255) NULL AFTER categoria;
+    ADD COLUMN imagen_url VARCHAR(255) NULL AFTER categoria,
+    ADD COLUMN permanente BOOLEAN NOT NULL DEFAULT FALSE AFTER imagen_url;
