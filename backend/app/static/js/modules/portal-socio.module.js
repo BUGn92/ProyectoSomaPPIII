@@ -85,12 +85,27 @@ export async function fetchSocioData() {
             }
 
             if (socioAptoBadge && socioAptoText) {
-                if (client.apto_medico_vigente) {
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                let aptoVigente = Boolean(client.apto_medico_vigente);
+                if (aptoVigente && client.fecha_vencimiento_apto) {
+                    const partesApto = String(client.fecha_vencimiento_apto).split("T")[0].split("-");
+                    if (partesApto.length === 3) {
+                        const fechaVencApto = new Date(Number(partesApto[0]), Number(partesApto[1]) - 1, Number(partesApto[2]));
+                        if (fechaVencApto < hoy) {
+                            aptoVigente = false;
+                        }
+                    }
+                }
+
+                if (aptoVigente) {
                     socioAptoBadge.className = "badge-apto-header vigente";
                     socioAptoText.textContent = `Apto Vigente (Vence: ${client.fecha_vencimiento_apto || 'S/D'})`;
                 } else {
                     socioAptoBadge.className = "badge-apto-header vencido";
-                    socioAptoText.textContent = "Apto Médico Vencido / Pendiente";
+                    socioAptoText.textContent = client.fecha_vencimiento_apto
+                        ? `Apto Médico Vencido (${client.fecha_vencimiento_apto})`
+                        : "Apto Médico Vencido / Pendiente";
                 }
             }
         }
@@ -125,19 +140,22 @@ export async function fetchSocioMembresia(dni) {
             const membresia = resMem.data;
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
-            const partes = membresia.fecha_fin.split("-");
+            const fechaFinIso = String(membresia.fecha_fin).split("T")[0];
+            const partes = fechaFinIso.split("-");
             const fechaFin = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+            const estadoNorm = (membresia.estado || "").trim().toLowerCase();
+            const esCancelada = estadoNorm === "cancelado" || estadoNorm === "cancelada";
 
-            if (fechaFin >= hoy && membresia.estado === "Activo") {
+            if (fechaFin >= hoy && !esCancelada) {
                 socioCuotaBadge.className = "badge-apto-header vigente";
-                if (socioCuotaText) socioCuotaText.textContent = `Cuota al día (Vence: ${membresia.fecha_fin})`;
+                if (socioCuotaText) socioCuotaText.textContent = `Cuota al día (Vence: ${fechaFinIso})`;
                 if (socioMembresiaEstado) socioMembresiaEstado.innerHTML = `<span class="badge badge-success"><i class="fa-solid fa-check"></i> Al Día</span>`;
-                if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = membresia.fecha_fin;
+                if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = fechaFinIso;
             } else {
                 socioCuotaBadge.className = "badge-apto-header vencido";
-                if (socioCuotaText) socioCuotaText.textContent = `Cuota Vencida (${membresia.fecha_fin})`;
+                if (socioCuotaText) socioCuotaText.textContent = `Cuota Vencida (${fechaFinIso})`;
                 if (socioMembresiaEstado) socioMembresiaEstado.innerHTML = `<span class="badge badge-danger"><i class="fa-solid fa-circle-exclamation"></i> Vencida</span>`;
-                if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = membresia.fecha_fin;
+                if (socioMembresiaVencimiento) socioMembresiaVencimiento.textContent = fechaFinIso;
             }
         } else {
             socioCuotaBadge.className = "badge-apto-header vencido";
@@ -217,7 +235,7 @@ export async function fetchSocioPagos(dni) {
                 <td><strong>${escapeHtml(p.fecha_pago)}</strong></td>
                 <td>${escapeHtml(p.descripcion || 'Cuota mensual')}</td>
                 <td style="text-align:center;">${p.meses_abonados || 1}</td>
-                <td><span class="badge badge-info">${escapeHtml(p.fecha_vencimiento_cuota || '-')}</span></td>
+                <td><span class="badge badge-success">${escapeHtml(p.fecha_vencimiento_cuota || '-')}</span></td>
                 <td>${escapeHtml(p.metodo_pago || '-')}</td>
                 <td><strong style="color: var(--accent);">${formatCurrency(p.monto)}</strong></td>
             `;
