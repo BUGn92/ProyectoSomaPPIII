@@ -8,7 +8,7 @@ Sistema integral para la administración, control de accesos, seguimiento de sal
 
 * **Backend**: Python 3.11+, [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://www.sqlalchemy.org/) (ORM), [Pydantic](https://docs.pydantic.dev/) v2, [PyJWT](https://pyjwt.readthedocs.io/) (Autenticación JWT).
 * **Base de Datos**: MySQL 8.0+ relacional con driver `PyMySQL` y `Cryptography`.
-* **Frontend**: Single Page Application (SPA) en Vanilla HTML5, CSS3 moderno (paleta oscura premium, CSS Grid/Flexbox, Glassmorphism) y JavaScript nativo asíncrono (`fetch` API).
+* **Frontend**: Single Page Application (SPA) en Vanilla HTML5, CSS3 moderno (paleta oscura premium, CSS Grid/Flexbox, Glassmorphism) y JavaScript nativo modular ES6 (`fetch` API).
 * **Documentación Interactiva**: [Swagger UI / OpenAPI](http://localhost:8000/docs).
 
 ---
@@ -18,40 +18,49 @@ Sistema integral para la administración, control de accesos, seguimiento de sal
 Asegúrate de contar con los siguientes programas instalados en tu sistema local:
 1. **Python 3.10 o superior** (con soporte para `venv` y `pip`).
 2. **Servidor MySQL** (MySQL Server 8.0+, MariaDB o XAMPP/WampServer) corriendo localmente en el puerto `3306`.
-3. *(Opcional)* Un cliente visual de base de datos como **DBeaver**, **MySQL Workbench** o **TablePlus**.
+3. **GNU Make** (`make`) para utilizar los comandos simplificados de instalación, ejecución y pruebas.
+4. *(Opcional)* Un cliente visual de base de datos como **DBeaver**, **MySQL Workbench** o **TablePlus**.
 
 ---
 
-## 🚀 Guía de Instalación y Ejecución Local
+## ⚡ Inicio Rápido con Makefile (Recomendado)
 
-Sigue estos pasos ordenados para levantar el entorno de desarrollo localmente:
+Desde la raíz del repositorio puedes configurar todo el entorno, inicializar la base de datos, levantar el servidor y correr los tests usando `make`:
+
+```bash
+# 1. Crear entorno virtual (.venv), instalar dependencias y generar backend/.env
+make install
+
+# 2. Crear la base de datos GimnasioDB y cargar los datos iniciales en MySQL
+make db
+
+# 3. Iniciar el servidor de desarrollo en http://localhost:8000
+make run
+```
+
+Otros comandos disponibles en el `Makefile`:
+* `make help`: Muestra el listado de comandos disponibles.
+* `make test`: Ejecuta toda la suite de pruebas automatizadas (`pytest`).
+* `make clean`: Elimina archivos temporales (`__pycache__`, `.pytest_cache`).
+
+---
+
+## 🚀 Guía de Instalación y Ejecución Manual
+
+Si prefieres ejecutar cada paso de forma manual sin utilizar `make`:
 
 ### Paso 1: Configurar la Base de Datos en MySQL
 
 1. Abre tu terminal o cliente SQL (DBeaver / MySQL Workbench / Consola MySQL).
 2. Ejecuta el script de creación del esquema y las tablas ubicado en:
    ```bash
-   # Desde la consola de MySQL:
    mysql -u root < "Documentos/Creacion_de_BD_v1.1.sql"
    ```
 3. Ejecuta el script de siembra de datos de prueba iniciales:
    ```bash
    mysql -u root GimnasioDB < "Documentos/carga_de_datos_v1.1.sql"
    ```
-   *(Esto creará la base de datos `GimnasioDB` con los usuarios, ejercicios, clientes y membresías de prueba).*
-
-   El esquema de creación incluye los campos que usa el alta de socios (`Usuario.debe_cambiar_password`, `Pago.meses_abonados` y `Pago.fecha_vencimiento_cuota`) y el día de cada ejercicio (`Detalle_Rutina.dia`). Si ya habías creado la base de datos con una versión anterior, no vuelvas a ejecutar los scripts de creación y carga: aplica las migraciones que correspondan antes de iniciar la aplicación:
-   ```bash
-   mysql -u root GimnasioDB < "Documentos/migracion_alta_socio.sql"
-   mysql -u root GimnasioDB < "Documentos/migracion_dias_rutina.sql"
-   ```
-   La migración de días agrega `Detalle_Rutina.dia` (día 1 para registros existentes) y convierte los marcadores temporales de rutinas de varios días a sus valores de día reales.
-   Si además tu base de datos es anterior al borrado lógico de usuarios y no tiene `Usuario.activo`, aplica también:
-   ```bash
-   mysql -u root GimnasioDB < "Documentos/migracion_borrado_logico_usuarios.sql"
-   ```
-   La migración de alta de socios conserva los datos y se puede ejecutar más de una vez. El alta también requiere que exista la membresía con `id_membresia = 1`; el script de carga inicial la crea.
-   *(Si MySQL requiere contraseña, agrega `-p` al comando.)*
+   *(Esto creará la base de datos `GimnasioDB` con los usuarios, ejercicios, clientes y membresías de prueba. Si MySQL requiere contraseña, agrega `-p` al comando).*
 
 ---
 
@@ -77,14 +86,13 @@ Sigue estos pasos ordenados para levantar el entorno de desarrollo localmente:
 4. Instala todas las dependencias del proyecto:
    ```bash
    pip install -r requirements.txt
-   pip install pyjwt email-validator httpx
    ```
 
 ---
 
 ### Paso 3: Configurar las Variables de Entorno
 
-1. Verifica que exista el archivo `.env` dentro de la carpeta `backend/`. Si no existe, puedes crearlo copiando `.env.example`:
+1. Verifica que exista el archivo `.env` dentro de la carpeta `backend/`. Si no existe, créalo copiando `.env.example`:
    ```bash
    cp .env.example .env
    ```
@@ -102,12 +110,11 @@ Sigue estos pasos ordenados para levantar el entorno de desarrollo localmente:
 
 ### Paso 4: Iniciar el Servidor de Desarrollo
 
-Estando dentro del directorio `backend` y con el entorno virtual activado, ejecuta el servidor:
-
+Con el comando rápido desde la raíz:
 ```bash
-python3 -m app.main
+make run
 ```
-o alternativamente con Uvicorn en modo recarga activa (*hot-reload*):
+O manualmente dentro del directorio `backend` con el entorno virtual activado:
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -130,10 +137,10 @@ La base de datos viene precargada con los siguientes usuarios para probar los di
 
 | Usuario (Login) | Contraseña | Rol | Permisos |
 | :--- | :--- | :--- | :--- |
-| **`cadmin`** | `hash_falso_123` | **Admin** | CRUD de Clientes, rutinas de hasta 7 días, Evolución y Usuarios |
-| **`alopez`** | `hash_falso_456` | **Recepcionista** | Gestión de clientes, cuotas y check-in |
-| **`mfuerte`** | `hash_falso_789` | **Entrenador** | Asignación y edición de rutinas de hasta 7 días y registro de cargas |
-| **`lfit`** | `hash_falso_101` | **Entrenador** | Asignación y edición de rutinas de hasta 7 días y registro de cargas |
+| **`cadmin`** | `hash_falso_123` | **Admin** | CRUD completo de Clientes, Rutinas, Plantillas, Evolución, Noticias y Usuarios |
+| **`alopez`** | `hash_falso_456` | **Recepcionista** | Gestión de fichas de clientes, cobro de cuotas, altas de personal y check-in |
+| **`mfuerte`** | `hash_falso_789` | **Entrenador** | Asignación de rutinas, plantillas, evolución física/deportiva y noticias |
+| **`lfit`** | `hash_falso_101` | **Entrenador** | Asignación de rutinas, plantillas, evolución física/deportiva y noticias |
 
 ---
 
@@ -141,21 +148,24 @@ La base de datos viene precargada con los siguientes usuarios para probar los di
 
 ```text
 Soma/
+├── Makefile                    # Comandos automatizados (install, db, run, test, clean)
 ├── backend/
 │   ├── .env                    # Configuración de base de datos y JWT (Ignorado en Git)
+│   ├── .env.example            # Plantilla base de variables de entorno
 │   ├── requirements.txt        # Dependencias de Python
-│   ├── app/
-│   │   ├── main.py             # Punto de entrada de FastAPI y montaje estático
-│   │   ├── config/             # Conexión SQLAlchemy (database.py)
-│   │   ├── models/             # Modelos relacionales ORM (models.py)
-│   │   ├── schemas/            # Validación de datos Pydantic (schemas.py)
-│   │   ├── crud/               # Lógica de persistencia en base de datos (crud.py)
-│   │   ├── routes/             # Endpoints API (auth.py, cliente.py, usuario.py)
-│   │   └── static/             # Frontend integrado SPA (index.html, css/, js/)
-├── Documentos/                 # Documentación de la materia, casos de uso y scripts SQL
+│   ├── tests/                  # Suite de pruebas automatizadas con Pytest
+│   └── app/
+│       ├── main.py             # Punto de entrada de FastAPI y montaje estático
+│       ├── config/             # Conexión SQLAlchemy (database.py)
+│       ├── models/             # Modelos relacionales ORM (models.py)
+│       ├── schemas/            # Validación de datos Pydantic (schemas.py)
+│       ├── crud/               # Lógica de persistencia en base de datos (crud.py)
+│       ├── routes/             # Endpoints API
+│       └── static/             # Frontend integrado SPA (HTML, CSS, JS modular ES6)
+├── Documentos/                 # Documentación de la materia y scripts SQL
 │   ├── Creacion_de_BD_v1.1.sql # DDL de la base de datos GimnasioDB
 │   ├── carga_de_datos_v1.1.sql # Script de siembra (seed) de datos iniciales
-│   └── Consultas_v1.1.sql     # Consultas SQL analíticas
+│   └── Consultas_v1.1.sql      # Consultas SQL analíticas
 └── README.md                   # Esta guía de instalación y uso
 ```
 
@@ -163,9 +173,14 @@ Soma/
 
 ## 🧪 Ejecución de Pruebas Automatizadas
 
-El proyecto incluye un script de prueba de integración de API que valida el flujo completo (Login JWT, CRUD de clientes, control de apto médico, registro de evolución física y registro de cargas deportivas):
+Para ejecutar toda la suite de pruebas automatizadas con `pytest`:
 
 ```bash
-# Estando en la carpeta backend y con el entorno virtual activo:
-python3 "/home/agustin/.gemini/antigravity-ide/brain/f172e223-2063-49d6-a484-75d8a5d4e74b/scratch/verify_api.py"
+make test
+```
+
+O ejecutando `pytest` directamente sobre el archivo de pruebas de integración:
+
+```bash
+./backend/.venv/bin/pytest backend/tests/test_integration_backlog.py
 ```
