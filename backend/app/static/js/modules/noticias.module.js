@@ -14,6 +14,7 @@ const nTitulo = document.getElementById("n-titulo");
 const nCategoria = document.getElementById("n-categoria");
 const nContenido = document.getElementById("n-contenido");
 const nImagenUrl = document.getElementById("n-imagen-url");
+const nPermanente = document.getElementById("n-permanente");
 const nImgPreviewContainer = document.getElementById("noticia-img-preview-container");
 const nImgPreview = document.getElementById("noticia-img-preview");
 
@@ -123,9 +124,16 @@ export function renderNoticiasFeed(container, canDelete = false) {
             </div>
         ` : "";
 
+        const permanenteBadge = n.permanente
+            ? `<span class="news-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);"><i class="fa-solid fa-thumbtack"></i> Permanente</span>`
+            : "";
+
         card.innerHTML = `
             <div class="news-header">
-                <span class="news-badge"><i class="fa-solid fa-tag"></i> ${escapeHtml(n.categoria)}</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <span class="news-badge"><i class="fa-solid fa-tag"></i> ${escapeHtml(n.categoria)}</span>
+                    ${permanenteBadge}
+                </div>
                 ${deleteBtn}
             </div>
             ${imageHtml}
@@ -205,7 +213,8 @@ export function initNoticiasModule() {
                 titulo: nTitulo.value.trim(),
                 categoria: nCategoria.value,
                 contenido: nContenido.value.trim(),
-                imagen_url: rawUrl ? normalizarUrlImagen(rawUrl) : null
+                imagen_url: rawUrl ? normalizarUrlImagen(rawUrl) : null,
+                permanente: Boolean(nPermanente && nPermanente.checked)
             };
 
             const res = await NoticiasService.crearNoticia(payload);

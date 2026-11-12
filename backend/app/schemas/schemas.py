@@ -262,6 +262,7 @@ class NoticiaBase(BaseModel):
     contenido: str
     categoria: Optional[str] = "General"
     imagen_url: Optional[str] = None
+    permanente: Optional[bool] = False
 
 class NoticiaCreate(NoticiaBase):
     pass
