@@ -4,7 +4,7 @@
 
 import { requireAuth, logout } from "./guards.js";
 import { setUnauthorizedHandler } from "./services/api.js";
-import { initPortalSocioModule, fetchSocioData } from "./modules/portal-socio.module.js";
+import { initPortalSocioModule, fetchSocioData } from "./modules/portal-socio.module.js?v=3.5";
 
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Proteger acceso: solo clientes/socios

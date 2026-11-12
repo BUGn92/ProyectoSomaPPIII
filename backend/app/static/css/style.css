@@ -778,7 +778,8 @@ tr:hover td {
     background-color: rgba(245, 158, 11, 0.15);
     color: var(--warning);
 }
-.badge-primary {
+.badge-primary,
+.badge-info {
     background-color: rgba(99, 102, 241, 0.15);
     color: #818cf8;
 }
