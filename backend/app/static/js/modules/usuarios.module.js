@@ -54,16 +54,24 @@ export function renderUsuarios(users) {
             : `<span class="badge badge-inactive">Inactivo</span>`;
 
         let pagoBadge = `<span style="color: var(--text-secondary); font-size: 0.8rem;">—</span>`;
-        if (rolLower === "cliente") {
-            const estadoPago = (u.estado_pago || "").trim().toLowerCase();
-            const esAlDia = estadoPago === "al día" || estadoPago === "al dia";
-            const badgeClass = esAlDia ? "badge-success" : "badge-danger";
-            const badgeIcon = esAlDia ? "fa-circle-check" : "fa-circle-xmark";
-            const badgeTexto = esAlDia ? "Al día" : "Atrasado";
+        if (rolLower === "cliente" && u.estado_pago) {
+            const estadoPago = u.estado_pago;
+            let pagoClass = "badge-primary";
+            let pagoIcon = "fa-circle-check";
+            if (estadoPago === "Vencido") {
+                pagoClass = "badge-danger";
+                pagoIcon = "fa-circle-exclamation";
+            } else if (estadoPago === "Sin membresía") {
+                pagoClass = "badge-inactive";
+                pagoIcon = "fa-circle-minus";
+            } else if (estadoPago === "Al día") {
+                pagoClass = "badge-success";
+                pagoIcon = "fa-circle-check";
+            }
             const vencTxt = u.fecha_vencimiento_cuota
-                ? ` <small style="opacity:0.75;">(${escapeHtml(u.fecha_vencimiento_cuota)})</small>`
+                ? ` <small style="opacity:0.75;">(vence: ${escapeHtml(u.fecha_vencimiento_cuota)})</small>`
                 : "";
-            pagoBadge = `<span class="badge ${badgeClass}"><i class="fa-solid ${badgeIcon}"></i> ${badgeTexto}</span>${vencTxt}`;
+            pagoBadge = `<span class="badge ${pagoClass}"><i class="fa-solid ${pagoIcon}"></i> ${escapeHtml(estadoPago)}</span>${vencTxt}`;
         }
 
         const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
@@ -72,11 +80,6 @@ export function renderUsuarios(users) {
                 ? `<button type="button" class="btn-icon btn-icon-delete btn-delete" data-id="${u.id_usuario}" title="Dar de baja (borrado lógico)" aria-label="Dar de baja a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-slash"></i></button>`
                 : `<button type="button" class="btn-icon btn-icon-reactivate btn-reactivate" data-id="${u.id_usuario}" title="Reactivar usuario" aria-label="Reactivar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-user-check"></i></button>`)
             : `<span style="color: var(--text-secondary); font-size: 0.8rem;" title="Acción reservada para administradores">—</span>`;
-
-        const puedeEditar = esAdmin || rolLower !== "admin";
-        const editBtn = puedeEditar
-            ? `<button type="button" class="btn-icon btn-icon-edit btn-edit" data-id="${u.id_usuario}" title="Editar Usuario" aria-label="Editar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-pen-to-square"></i></button>`
-            : `<span style="color: var(--text-secondary); font-size: 0.8rem;" title="Los recepcionistas no pueden editar administradores">—</span>`;
 
         tr.innerHTML = `
             <td><strong>#${escapeHtml(u.id_usuario)}</strong></td>
@@ -87,7 +90,7 @@ export function renderUsuarios(users) {
             <td>${pagoBadge}</td>
             <td class="actions-col">
                 <div class="table-actions">
-                    ${editBtn}
+                    <button type="button" class="btn-icon btn-icon-edit btn-edit" data-id="${u.id_usuario}" title="Editar Usuario" aria-label="Editar a ${escapeHtml(u.nombre)}"><i class="fa-solid fa-pen-to-square"></i></button>
                     ${accionBtn}
                 </div>
             </td>
@@ -107,34 +110,8 @@ export function renderUsuarios(users) {
 }
 
 export function openUserModal(mode, id = null) {
-    const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
-
-    // Si es recepcionista e intenta editar a un admin, bloquear
-    if (mode === "edit" && id) {
-        const user = state.usuariosData.find(u => u.id_usuario === id);
-        if (user && (user.rol || "").toLowerCase() === "admin" && !esAdmin) {
-            showToast("Acceso denegado", "El personal de recepción no puede editar usuarios administradores.", "error");
-            return;
-        }
-    }
-
     state.editingUserId = id;
     if (formUsuario) formUsuario.reset();
-
-    // Gestionar opción Admin según rol en sesión
-    if (uRol) {
-        Array.from(uRol.options).forEach(opt => {
-            if (opt.value.toLowerCase() === "admin") {
-                opt.disabled = !esAdmin;
-                opt.hidden = !esAdmin;
-            }
-        });
-        // Si no es admin y el valor por defecto era Admin, cambiar al primer rol disponible
-        if (!esAdmin && uRol.value.toLowerCase() === "admin") {
-            const firstAvailable = Array.from(uRol.options).find(opt => !opt.disabled);
-            if (firstAvailable) uRol.value = firstAvailable.value;
-        }
-    }
     
     if (mode === "create") {
         document.getElementById("modal-usuario-title").textContent = "Nuevo Usuario";
@@ -217,12 +194,6 @@ export function initUsuariosModule() {
     if (formUsuario) {
         formUsuario.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const esAdmin = (state.currentUser?.rol || "").trim().toLowerCase() === "admin";
-            if (!esAdmin && uRol.value.toLowerCase() === "admin") {
-                showToast("Operación no permitida", "El personal de recepción no puede crear ni asignar usuarios administradores.", "warning");
-                return;
-            }
-
             const payload = {
                 nombre: uNombre.value.trim(),
                 usuario_login: uLogin.value.trim(),

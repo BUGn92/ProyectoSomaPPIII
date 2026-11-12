@@ -194,7 +194,7 @@ export async function cargarYRenderizarSolicitudesFoto() {
 
 function renderEstadoPago(fechaVencimiento) {
     if (!fechaVencimiento) {
-        return `<span class="badge badge-danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Atrasado</span>`;
+        return `<span class="badge badge-inactive">Sin membresía</span>`;
     }
 
     const [anio, mes, dia] = fechaVencimiento.split("-").map(Number);
@@ -205,10 +205,16 @@ function renderEstadoPago(fechaVencimiento) {
     const fechaVisible = `${dia.toString().padStart(2, "0")}/${mes.toString().padStart(2, "0")}/${anio}`;
 
     if (diasRestantes < 0) {
-        return `<span class="badge badge-danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Atrasado</span> <small style="opacity:0.75;">(${fechaVisible})</small>`;
+        return `<span class="badge badge-danger"><i class="fa-solid fa-circle" aria-hidden="true"></i> Vencido · ${fechaVisible}</span>`;
+    }
+    if (diasRestantes > 7) {
+        return `<span class="badge badge-success"><i class="fa-solid fa-circle" aria-hidden="true"></i> Al día · ${diasRestantes} días · ${fechaVisible}</span>`;
     }
 
-    return `<span class="badge badge-success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Al día</span> <small style="opacity:0.75;">(${fechaVisible})</small>`;
+    const estado = diasRestantes === 0
+        ? "Vence hoy"
+        : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
+    return `<span class="badge badge-warning"><i class="fa-solid fa-circle" aria-hidden="true"></i> ${estado} · ${fechaVisible}</span>`;
 }
 
 export function renderClientes(clients) {
