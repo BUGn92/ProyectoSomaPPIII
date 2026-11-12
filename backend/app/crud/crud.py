@@ -1254,6 +1254,11 @@ def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuar
 
 # --- Módulo de Asistencias y Check-in Digital ---
 
+def ensure_asistencia_table(db: Session):
+    """Garantiza que la tabla Asistencia exista en la base de datos activa."""
+    models.Asistencia.__table__.create(bind=db.bind, checkfirst=True)
+
+
 def registrar_asistencia_checkin(db: Session, dni: str) -> dict:
     """
     Registra el ingreso (check-in) de un socio en el gimnasio.
@@ -1261,6 +1266,7 @@ def registrar_asistencia_checkin(db: Session, dni: str) -> dict:
     Evalúa la vigencia de la cuota y del apto médico.
     Retorna un diccionario estructurado listo para CheckinResponse.
     """
+    ensure_asistencia_table(db)
     cliente = db.query(models.Cliente).filter(models.Cliente.dni == dni).first()
     if not cliente:
         raise ValueError("El DNI ingresado no corresponde a ningún socio registrado.")
@@ -1334,6 +1340,7 @@ def registrar_asistencia_checkin(db: Session, dni: str) -> dict:
 
 def get_asistencias_hoy(db: Session, limit: int = 100) -> List[dict]:
     """Retorna las asistencias del día actual con datos del socio."""
+    ensure_asistencia_table(db)
     hoy_inicio = datetime.combine(date.today(), datetime.min.time())
     asistencias = (
         db.query(models.Asistencia, models.Cliente)
@@ -1359,6 +1366,7 @@ def get_asistencias_hoy(db: Session, limit: int = 100) -> List[dict]:
 
 def get_asistencias_cliente(db: Session, dni: str, limit: int = 50) -> List[models.Asistencia]:
     """Retorna las asistencias históricas de un socio."""
+    ensure_asistencia_table(db)
     return (
         db.query(models.Asistencia)
         .filter(models.Asistencia.dni_cliente == dni)
@@ -1373,6 +1381,7 @@ def get_clientes_inactivos(db: Session, dias_umbral: int = 15) -> List[dict]:
     Identifica socios activos cuya última asistencia fue hace más de `dias_umbral` días,
     o que habiéndose dado de alta hace más de `dias_umbral` días nunca registraron asistencia.
     """
+    ensure_asistencia_table(db)
     hoy = date.today()
     ahora = datetime.now()
     clientes_activos = db.query(models.Cliente).filter(models.Cliente.activo == True).all()
@@ -1419,6 +1428,7 @@ def get_clientes_inactivos(db: Session, dias_umbral: int = 15) -> List[dict]:
 
 def get_estadisticas_asistencias(db: Session) -> dict:
     """Calcula métricas rápidas de concurrencia y alerta de inactividad."""
+    ensure_asistencia_table(db)
     ahora = datetime.now()
     hoy_inicio = datetime.combine(date.today(), datetime.min.time())
     inicio_semana = ahora - timedelta(days=7)
