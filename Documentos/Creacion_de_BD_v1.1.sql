@@ -187,6 +187,7 @@ CREATE TABLE Noticia (
     contenido TEXT NOT NULL,
     categoria VARCHAR(50) DEFAULT 'General',
     imagen_url VARCHAR(255) NULL,
+    permanente BOOLEAN NOT NULL DEFAULT FALSE,
     fecha_publicacion DATE NOT NULL,
     id_usuario_autor INT NOT NULL,
     FOREIGN KEY (id_usuario_autor) REFERENCES Usuario(id_usuario)

@@ -262,6 +262,7 @@ class NoticiaBase(BaseModel):
     contenido: str
     categoria: Optional[str] = "General"
     imagen_url: Optional[str] = None
+    permanente: Optional[bool] = False
 
 class NoticiaCreate(NoticiaBase):
     pass
@@ -483,3 +484,70 @@ class ProgresoEjercicioResponse(BaseModel):
     pr_vigente: float = 0.0
     pr_vigente_mes: Optional[str] = None
     puntos: List[PuntoProgresoRutina]
+
+
+# --- Asistencias y Check-in Digital ---
+class CheckinRequest(BaseModel):
+    dni: str
+
+    @field_validator("dni")
+    @classmethod
+    def validar_dni(cls, v: str) -> str:
+        v_clean = v.strip()
+        if not re.match(r"^\d{7,8}$", v_clean):
+            raise ValueError("El DNI debe contener 7 u 8 dígitos numéricos.")
+        return v_clean
+
+class AsistenciaResponse(BaseModel):
+    id_asistencia: int
+    dni_cliente: str
+    fecha_hora: datetime
+    estado_cuota: Optional[str] = None
+    apto_medico_vigente: bool
+
+    class Config:
+        from_attributes = True
+
+class AsistenciaDetalladaResponse(BaseModel):
+    id_asistencia: int
+    dni_cliente: str
+    nombre_completo: str
+    foto_url: Optional[str] = None
+    fecha_hora: datetime
+    estado_cuota: Optional[str] = None
+    apto_medico_vigente: bool
+
+    class Config:
+        from_attributes = True
+
+class CheckinResponse(BaseModel):
+    id_asistencia: int
+    dni: str
+    nombre_completo: str
+    foto_url: Optional[str] = None
+    fecha_hora: datetime
+    estado_cuota: str
+    fecha_vencimiento_cuota: Optional[date] = None
+    apto_medico_vigente: bool
+    fecha_vencimiento_apto: Optional[date] = None
+    mensaje_bienvenida: str
+    alerta_cuota: bool
+    alerta_apto: bool
+
+class ClienteInactivoResponse(BaseModel):
+    dni: str
+    nombre_completo: str
+    telefono: Optional[str] = None
+    email: Optional[str] = None
+    foto_url: Optional[str] = None
+    fecha_ultima_asistencia: Optional[datetime] = None
+    dias_inactivo: int
+    estado_cuota: str
+    fecha_vencimiento_cuota: Optional[date] = None
+
+class EstadisticasAsistenciasResponse(BaseModel):
+    asistencias_hoy: int
+    asistencias_semana: int
+    asistencias_mes: int
+    socios_inactivos_alerta: int
+

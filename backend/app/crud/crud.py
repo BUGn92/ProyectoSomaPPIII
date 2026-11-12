@@ -4,7 +4,7 @@ from datetime import date, timedelta, datetime
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from dateutil.relativedelta import relativedelta
 from app.models import models
 from app.schemas import schemas
@@ -128,9 +128,9 @@ def get_users_con_estado_pago(db: Session, skip: int = 0, limit: int = 100, incl
         if u.rol.lower() == "cliente":
             membresia = get_membresia_activa_cliente(db, u.usuario_login)
             if membresia is None:
-                estado_pago = "Sin membresía"
+                estado_pago = "Atrasado"
             elif membresia.fecha_fin < hoy:
-                estado_pago = "Vencido"
+                estado_pago = "Atrasado"
                 fecha_venc = membresia.fecha_fin
             else:
                 estado_pago = "Al día"
@@ -612,22 +612,38 @@ def delete_ejercicio(db: Session, id_ejercicio: int):
     return db_ejercicio
 
 # --- CRUD de Noticias / Muro de Novedades ---
+def ensure_noticia_permanente_column(db: Session):
+    """Garantiza que la columna `permanente` exista en la tabla `Noticia`."""
+    inspector = inspect(db.bind)
+    if not inspector.has_table("Noticia"):
+        return
+    cols = {col["name"] for col in inspector.get_columns("Noticia")}
+    if "permanente" not in cols:
+        db.execute(text("ALTER TABLE Noticia ADD COLUMN permanente BOOLEAN NOT NULL DEFAULT FALSE"))
+        db.commit()
+
+
 def get_noticias(db: Session, limit: int = 50):
+    ensure_noticia_permanente_column(db)
     limite_vencimiento = date.today() - timedelta(days=60)
     return (
         db.query(models.Noticia)
-        .filter(models.Noticia.fecha_publicacion >= limite_vencimiento)
+        .filter(
+            (models.Noticia.permanente == True) | (models.Noticia.fecha_publicacion >= limite_vencimiento)
+        )
         .order_by(models.Noticia.fecha_publicacion.desc(), models.Noticia.id_noticia.desc())
         .limit(limit)
         .all()
     )
 
 def create_noticia(db: Session, noticia: schemas.NoticiaCreate, id_usuario_autor: int):
+    ensure_noticia_permanente_column(db)
     db_noticia = models.Noticia(
         titulo=noticia.titulo,
         contenido=noticia.contenido,
         categoria=noticia.categoria or "General",
         imagen_url=noticia.imagen_url,
+        permanente=bool(noticia.permanente),
         fecha_publicacion=date.today(),
         id_usuario_autor=id_usuario_autor
     )
@@ -637,6 +653,7 @@ def create_noticia(db: Session, noticia: schemas.NoticiaCreate, id_usuario_autor
     return db_noticia
 
 def delete_noticia(db: Session, id_noticia: int):
+    ensure_noticia_permanente_column(db)
     db_noticia = db.query(models.Noticia).filter(models.Noticia.id_noticia == id_noticia).first()
     if not db_noticia:
         return None
@@ -645,10 +662,14 @@ def delete_noticia(db: Session, id_noticia: int):
     return db_noticia
 
 def limpiar_noticias_vencidas(db: Session, dias: int = 60) -> int:
+    ensure_noticia_permanente_column(db)
     limite_vencimiento = date.today() - timedelta(days=dias)
     registros_eliminados = (
         db.query(models.Noticia)
-        .filter(models.Noticia.fecha_publicacion < limite_vencimiento)
+        .filter(
+            models.Noticia.fecha_publicacion < limite_vencimiento,
+            models.Noticia.permanente == False
+        )
         .delete(synchronize_session=False)
     )
     db.commit()
@@ -1250,3 +1271,199 @@ def asignar_rutina_iniciacion_automatica(db: Session, dni_cliente: str, id_usuar
 
     db.flush()
     return db_rutina
+
+
+# --- Módulo de Asistencias y Check-in Digital ---
+
+def ensure_asistencia_table(db: Session):
+    """Garantiza que la tabla Asistencia exista en la base de datos activa."""
+    models.Asistencia.__table__.create(bind=db.bind, checkfirst=True)
+
+
+def registrar_asistencia_checkin(db: Session, dni: str) -> dict:
+    """
+    Registra el ingreso (check-in) de un socio en el gimnasio.
+    Valida la existencia y estado activo del socio.
+    Evalúa la vigencia de la cuota y del apto médico.
+    Retorna un diccionario estructurado listo para CheckinResponse.
+    """
+    ensure_asistencia_table(db)
+    cliente = db.query(models.Cliente).filter(models.Cliente.dni == dni).first()
+    if not cliente:
+        raise ValueError("El DNI ingresado no corresponde a ningún socio registrado.")
+    if not cliente.activo:
+        raise ValueError("El socio se encuentra inactivo (dado de baja). Acérquese a recepción para su re-alta.")
+
+    hoy = date.today()
+    ahora = datetime.now()
+
+    # 1. Evaluar estado de cuota
+    membresia = get_membresia_activa_cliente(db, dni)
+    fecha_vencimiento_cuota = None
+    if membresia is None:
+        estado_cuota = "Atrasado"
+        alerta_cuota = True
+    elif membresia.fecha_fin < hoy:
+        estado_cuota = "Atrasado"
+        fecha_vencimiento_cuota = membresia.fecha_fin
+        alerta_cuota = True
+    else:
+        estado_cuota = "Al día"
+        fecha_vencimiento_cuota = membresia.fecha_fin
+        alerta_cuota = False
+
+    # 2. Evaluar apto médico
+    apto_vigente = False
+    if cliente.apto_medico_vigente:
+        if cliente.fecha_vencimiento_apto and cliente.fecha_vencimiento_apto < hoy:
+            apto_vigente = False
+        else:
+            apto_vigente = True
+    alerta_apto = not apto_vigente
+
+    # 3. Registrar Asistencia
+    nueva_asistencia = models.Asistencia(
+        dni_cliente=dni,
+        fecha_hora=ahora,
+        estado_cuota=estado_cuota,
+        apto_medico_vigente=apto_vigente
+    )
+    db.add(nueva_asistencia)
+    db.commit()
+    db.refresh(nueva_asistencia)
+
+    # 4. Mensaje amigable personalizado
+    nombre = cliente.nombre
+    if not alerta_cuota and not alerta_apto:
+        mensaje = f"¡Bienvenido/a a SOMA, {nombre}! Que tengas una excelente sesión de entrenamiento."
+    elif alerta_cuota and alerta_apto:
+        mensaje = f"¡Hola {nombre}! Recuerda regularizar tu cuota y presentar tu apto médico en recepción."
+    elif alerta_cuota:
+        mensaje = f"¡Hola {nombre}! Tu cuota se encuentra vencida. Por favor regularizala en recepción."
+    else:
+        mensaje = f"¡Hola {nombre}! Recuerda presentar la renovación de tu apto médico en recepción."
+
+    return {
+        "id_asistencia": nueva_asistencia.id_asistencia,
+        "dni": cliente.dni,
+        "nombre_completo": f"{cliente.nombre} {cliente.apellido}",
+        "foto_url": cliente.foto_url,
+        "fecha_hora": nueva_asistencia.fecha_hora,
+        "estado_cuota": estado_cuota,
+        "fecha_vencimiento_cuota": fecha_vencimiento_cuota,
+        "apto_medico_vigente": apto_vigente,
+        "fecha_vencimiento_apto": cliente.fecha_vencimiento_apto,
+        "mensaje_bienvenida": mensaje,
+        "alerta_cuota": alerta_cuota,
+        "alerta_apto": alerta_apto
+    }
+
+
+def get_asistencias_hoy(db: Session, limit: int = 100) -> List[dict]:
+    """Retorna las asistencias del día actual con datos del socio."""
+    ensure_asistencia_table(db)
+    hoy_inicio = datetime.combine(date.today(), datetime.min.time())
+    asistencias = (
+        db.query(models.Asistencia, models.Cliente)
+        .join(models.Cliente, models.Asistencia.dni_cliente == models.Cliente.dni)
+        .filter(models.Asistencia.fecha_hora >= hoy_inicio)
+        .order_by(models.Asistencia.fecha_hora.desc())
+        .limit(limit)
+        .all()
+    )
+    resultado = []
+    for asis, cli in asistencias:
+        resultado.append({
+            "id_asistencia": asis.id_asistencia,
+            "dni_cliente": asis.dni_cliente,
+            "nombre_completo": f"{cli.nombre} {cli.apellido}",
+            "foto_url": cli.foto_url,
+            "fecha_hora": asis.fecha_hora,
+            "estado_cuota": asis.estado_cuota,
+            "apto_medico_vigente": asis.apto_medico_vigente
+        })
+    return resultado
+
+
+def get_asistencias_cliente(db: Session, dni: str, limit: int = 50) -> List[models.Asistencia]:
+    """Retorna las asistencias históricas de un socio."""
+    ensure_asistencia_table(db)
+    return (
+        db.query(models.Asistencia)
+        .filter(models.Asistencia.dni_cliente == dni)
+        .order_by(models.Asistencia.fecha_hora.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def get_clientes_inactivos(db: Session, dias_umbral: int = 15) -> List[dict]:
+    """
+    Identifica socios activos cuya última asistencia fue hace más de `dias_umbral` días,
+    o que habiéndose dado de alta hace más de `dias_umbral` días nunca registraron asistencia.
+    """
+    ensure_asistencia_table(db)
+    hoy = date.today()
+    ahora = datetime.now()
+    clientes_activos = db.query(models.Cliente).filter(models.Cliente.activo == True).all()
+
+    inactivos = []
+    for cli in clientes_activos:
+        ultima_asistencia = (
+            db.query(models.Asistencia)
+            .filter(models.Asistencia.dni_cliente == cli.dni)
+            .order_by(models.Asistencia.fecha_hora.desc())
+            .first()
+        )
+        if ultima_asistencia:
+            dias_sin_ir = (ahora - ultima_asistencia.fecha_hora).days
+            fecha_ultima = ultima_asistencia.fecha_hora
+        else:
+            dias_sin_ir = (hoy - cli.fecha_alta).days
+            fecha_ultima = None
+
+        if dias_sin_ir >= dias_umbral:
+            membresia = get_membresia_activa_cliente(db, cli.dni)
+            if membresia is None or membresia.fecha_fin < hoy:
+                estado_cuota = "Atrasado"
+                venc = membresia.fecha_fin if membresia else None
+            else:
+                estado_cuota = "Al día"
+                venc = membresia.fecha_fin
+
+            inactivos.append({
+                "dni": cli.dni,
+                "nombre_completo": f"{cli.nombre} {cli.apellido}",
+                "telefono": cli.telefono,
+                "email": cli.email,
+                "foto_url": cli.foto_url,
+                "fecha_ultima_asistencia": fecha_ultima,
+                "dias_inactivo": dias_sin_ir,
+                "estado_cuota": estado_cuota,
+                "fecha_vencimiento_cuota": venc
+            })
+
+    inactivos.sort(key=lambda x: x["dias_inactivo"], reverse=True)
+    return inactivos
+
+
+def get_estadisticas_asistencias(db: Session) -> dict:
+    """Calcula métricas rápidas de concurrencia y alerta de inactividad."""
+    ensure_asistencia_table(db)
+    ahora = datetime.now()
+    hoy_inicio = datetime.combine(date.today(), datetime.min.time())
+    inicio_semana = ahora - timedelta(days=7)
+    inicio_mes = ahora - timedelta(days=30)
+
+    asist_hoy = db.query(models.Asistencia).filter(models.Asistencia.fecha_hora >= hoy_inicio).count()
+    asist_semana = db.query(models.Asistencia).filter(models.Asistencia.fecha_hora >= inicio_semana).count()
+    asist_mes = db.query(models.Asistencia).filter(models.Asistencia.fecha_hora >= inicio_mes).count()
+    inactivos_count = len(get_clientes_inactivos(db, dias_umbral=15))
+
+    return {
+        "asistencias_hoy": asist_hoy,
+        "asistencias_semana": asist_semana,
+        "asistencias_mes": asist_mes,
+        "socios_inactivos_alerta": inactivos_count
+    }
+

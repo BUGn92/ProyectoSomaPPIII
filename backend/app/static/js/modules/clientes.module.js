@@ -194,7 +194,7 @@ export async function cargarYRenderizarSolicitudesFoto() {
 
 function renderEstadoPago(fechaVencimiento) {
     if (!fechaVencimiento) {
-        return `<span class="badge badge-inactive">Sin membresía</span>`;
+        return `<span class="badge badge-danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Atrasado</span>`;
     }
 
     const [anio, mes, dia] = fechaVencimiento.split("-").map(Number);
@@ -205,16 +205,10 @@ function renderEstadoPago(fechaVencimiento) {
     const fechaVisible = `${dia.toString().padStart(2, "0")}/${mes.toString().padStart(2, "0")}/${anio}`;
 
     if (diasRestantes < 0) {
-        return `<span class="badge badge-danger"><i class="fa-solid fa-circle" aria-hidden="true"></i> Vencido · ${fechaVisible}</span>`;
-    }
-    if (diasRestantes > 7) {
-        return `<span class="badge badge-success"><i class="fa-solid fa-circle" aria-hidden="true"></i> Al día · ${diasRestantes} días · ${fechaVisible}</span>`;
+        return `<span class="badge badge-danger"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Atrasado</span> <small style="opacity:0.75;">(${fechaVisible})</small>`;
     }
 
-    const estado = diasRestantes === 0
-        ? "Vence hoy"
-        : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return `<span class="badge badge-warning"><i class="fa-solid fa-circle" aria-hidden="true"></i> ${estado} · ${fechaVisible}</span>`;
+    return `<span class="badge badge-success"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Al día</span> <small style="opacity:0.75;">(${fechaVisible})</small>`;
 }
 
 export function renderClientes(clients) {
@@ -222,6 +216,7 @@ export function renderClientes(clients) {
     tbodyClientes.innerHTML = "";
     const role = (state.currentUser?.rol || "").trim().toLowerCase();
     const canAdmin = role === "admin";
+    const isReceptionist = role === "recepcionista" || role === "secretaria";
 
     if (!clients || clients.length === 0) {
         tbodyClientes.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No se encontraron socios registrados</td></tr>`;
@@ -239,6 +234,9 @@ export function renderClientes(clients) {
             ? `<span class="badge badge-success">Activo</span>`
             : `<span class="badge badge-inactive">Inactivo</span>`;
         const pagoBadge = renderEstadoPago(c.fecha_vencimiento_cuota);
+        const routineBtnHtml = !isReceptionist
+            ? `<button class="btn-icon btn-icon-routine" data-dni="${escapeHtml(c.dni)}" title="Asignar / Modificar Rutina de Entrenamiento"><i class="fa-solid fa-dumbbell"></i></button>`
+            : "";
         let actionBtnHtml = "";
         if (canAdmin) {
             actionBtnHtml = c.activo
@@ -265,7 +263,7 @@ export function renderClientes(clients) {
             <td>${escapeHtml(c.fecha_alta)}</td>
             <td class="actions-col">
                 <div class="table-actions">
-                    <button class="btn-icon btn-icon-routine" data-dni="${escapeHtml(c.dni)}" title="Asignar / Modificar Rutina de Entrenamiento"><i class="fa-solid fa-dumbbell"></i></button>
+                    ${routineBtnHtml}
                     <button class="btn-icon btn-icon-edit" data-dni="${escapeHtml(c.dni)}" title="Ver / Editar Ficha General"><i class="fa-solid fa-pen-to-square"></i></button>
                     ${actionBtnHtml}
                 </div>
@@ -290,9 +288,14 @@ export function renderClientes(clients) {
 
 export async function openClientModal(mode, dni = null, defaultTab = "tab-general") {
     state.editingDni = dni;
-    const client = mode === "edit"
-        ? state.clientesData.find(c => c.dni === dni)
-        : null;
+    const roleLower = (state.currentUser?.rol || "").trim().toLowerCase();
+    const isTrainer = roleLower === "entrenador";
+    const isReceptionist = roleLower === "recepcionista" || roleLower === "secretaria";
+
+    if (isReceptionist && ["tab-rutina", "tab-evolucion-fisica", "tab-evolucion-deportiva"].includes(defaultTab)) {
+        defaultTab = "tab-general";
+    }
+
     if (formCliente) formCliente.reset();
     
     clientModalTabs.forEach(t => t.classList.remove("active"));
@@ -304,12 +307,9 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
     if (activeTabBtn) activeTabBtn.classList.add("active");
     if (activePanel) activePanel.classList.add("active");
 
-    const isTrainer = (state.currentUser?.rol || "").trim().toLowerCase() === "entrenador";
-    const isReceptionist = (state.currentUser?.rol || "").trim().toLowerCase() === "recepcionista";
     const btnGuardarCliente = document.getElementById("btn-guardar-cliente");
     const readonlyNotice = document.getElementById("readonly-trainer-notice");
     const formEvFisica = document.getElementById("form-ev-fisica");
-    const formEvDeportiva = document.getElementById("form-ev-deportiva");
 
     if (mode === "create") {
         document.getElementById("modal-cliente-title").textContent = "Registrar Nuevo Socio";
@@ -361,12 +361,11 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
         cDni.setAttribute("disabled", "true");
         cDni.disabled = true;
         
-        tabLinkRutina.style.display = "block";
-        tabLinkEvFisica.style.display = "block";
-        tabLinkEvDeportiva.style.display = "block";
+        tabLinkRutina.style.display = isReceptionist ? "none" : "block";
+        tabLinkEvFisica.style.display = isReceptionist ? "none" : "block";
+        tabLinkEvDeportiva.style.display = isReceptionist ? "none" : "block";
         if (tabLinkPagos) tabLinkPagos.style.display = "block";
         if (formEvFisica) formEvFisica.classList.toggle("hidden", isReceptionist);
-        if (formEvDeportiva) formEvDeportiva.classList.toggle("hidden", isReceptionist);
 
         if (groupPagoInicialTitle) groupPagoInicialTitle.style.display = "none";
         if (groupPagoMonto) groupPagoMonto.style.display = "none";
@@ -429,13 +428,14 @@ export async function openClientModal(mode, dni = null, defaultTab = "tab-genera
             }
         }
 
-        if (!state.cachedEjercicios || state.cachedEjercicios.length === 0) {
-            await fetchEjerciciosAux();
+        if (!isReceptionist) {
+            if (!state.cachedEjercicios || state.cachedEjercicios.length === 0) {
+                await fetchEjerciciosAux();
+            }
+            fetchClientRutina(dni);
+            fetchClientEvFisica(dni);
+            fetchClientEvDeportiva(dni);
         }
-
-        fetchClientRutina(dni);
-        fetchClientEvFisica(dni);
-        fetchClientEvDeportiva(dni);
         fetchClientPagos(dni);
         fetchClientMembresia(dni);
     }
