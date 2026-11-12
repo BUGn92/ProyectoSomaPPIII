@@ -40,6 +40,7 @@ make run
 
 Otros comandos disponibles en el `Makefile`:
 * `make help`: Muestra el listado de comandos disponibles.
+* `make seed`: Regenera `Documentos/carga_de_datos_v1.1.sql` con 42 socios y 12 meses de historial relativo a la fecha actual (pagos, cambios de rutina, progresión de cargas, evolución física y asistencias) y recarga MySQL.
 * `make test`: Ejecuta toda la suite de pruebas automatizadas (`pytest`).
 * `make clean`: Elimina archivos temporales (`__pycache__`, `.pytest_cache`).
 
