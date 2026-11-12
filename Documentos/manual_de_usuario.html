@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>manual_de_usuario</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1e293b;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 20pt;
+    color: #0f172a;
+    border-bottom: 2px solid #1e40af;
+    padding-bottom: 6px;
+    margin-top: 28px;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 14.5pt;
+    color: #1e3a8a;
+    margin-top: 22px;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #1e293b;
+    margin-top: 16px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.5pt;
+    color: #334155;
+    margin-top: 12px;
+    page-break-after: avoid;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 9.5pt;
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td {
+    background-color: #f8fafc;
+  }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    background-color: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 9pt;
+    color: #0f172a;
+  }
+  pre {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+    font-size: 9pt;
+  }
+  .mermaid-container {
+    text-align: center;
+    margin: 14px 0;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .mermaid svg {
+    max-width: 100% !important;
+    max-height: 195mm !important;
+    width: auto !important;
+    height: auto !important;
+  }
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: 155mm;
+    width: auto;
+    height: auto;
+    margin: 14px auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  blockquote {
+    margin: 12px 0;
+    padding: 10px 14px;
+    background-color: #f8fafc;
+    border-left: 4px solid #2563eb;
+    border-radius: 4px;
+    color: #334155;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #cbd5e1;
+    margin: 24px 0;
+  }
+  a {
+    color: #1d4ed8;
+    text-decoration: none;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+<div id="content">Renderizando documento y diagramas...</div>
+<script>
+  const mdSource = "# Manual de Usuario \u2013 Sistema SOMA (Gesti\u00f3n Integral de Gimnasios)\n\n**Carrera:** Tecnicatura Superior en Desarrollo de Software  \n**Materia:** Pr\u00e1cticas Profesionalizantes III  \n**Profesores:** Gustavo G\u00f3mez; Silvia Rocchi  \n**Integrantes:** Bugnoni Agust\u00edn; Z\u00e1rate Lorenzo  \n**Versi\u00f3n:** 1.2 (Consolidada)  \n**Perfil de Referencia:** Socio / Cliente (`DNI 37016902` \u2013 Agust\u00edn Bugnoni) y Recepci\u00f3n  \n\n---\n\n## Tabla de Contenidos\n\n1. [Introducci\u00f3n y Alcance del Manual](#1-introducci\u00f3n-y-alcance-del-manual)\n2. [Alta Inicial del Socio en Recepci\u00f3n (Rol Recepcionista)](#2-alta-inicial-del-socio-en-recepci\u00f3n-rol-recepcionista)\n   - [2.1 Registro de Datos Personales y Aptitud F\u00edsica](#21-registro-de-datos-personales-y-aptitud-f\u00edsica)\n   - [2.2 Generaci\u00f3n Autom\u00e1tica de Credenciales del Socio](#22-generaci\u00f3n-autom\u00e1tica-de-credenciales-del-socio)\n3. [Acceso al Sistema y Seguridad de la Cuenta](#3-acceso-al-sistema-y-seguridad-de-la-cuenta)\n   - [3.1 Inicio de Sesi\u00f3n (Login)](#31-inicio-de-sesi\u00f3n-login)\n   - [3.2 Cambio Obligatorio de Contrase\u00f1a en el Primer Ingreso](#32-cambio-obligatorio-de-contrase\u00f1a-en-el-primer-ingreso)\n   - [3.3 Recuperaci\u00f3n de Contrase\u00f1a mediante C\u00f3digo OTP](#33-recuperaci\u00f3n-de-contrase\u00f1a-mediante-c\u00f3digo-otp)\n4. [Registro de Asistencia en Terminal de Entrada (`/checkin`)](#4-registro-de-asistencia-en-terminal-de-entrada-checkin)\n5. [Portal de Autogesti\u00f3n del Socio (`/cliente.html`)](#5-portal-de-autogesti\u00f3n-del-socio-clientehtml)\n   - [5.1 Cabecera Principal y Estado de Cuota](#51-cabecera-principal-y-estado-de-cuota)\n   - [5.2 Actualizaci\u00f3n y Aprobaci\u00f3n de Foto de Perfil](#52-actualizaci\u00f3n-y-aprobaci\u00f3n-de-foto-de-perfil)\n   - [5.3 Pesta\u00f1a \u00abMi Rutina\u00bb (Planilla Semanal por D\u00edas)](#53-pesta\u00f1a-mi-rutina-planilla-semanal-por-d\u00edas)\n   - [5.4 Pesta\u00f1a \u00abMi Progreso\u00bb (Evoluci\u00f3n de Cargas y R\u00e9cord Personal PR 3M)](#54-pesta\u00f1a-mi-progreso-evoluci\u00f3n-de-cargas-y-r\u00e9cord-personal-pr-3m)\n   - [5.5 Secci\u00f3n \u00abMediciones F\u00edsicas\u00bb (Peso Corporal y % de Grasa)](#55-secci\u00f3n-mediciones-f\u00edsicas-peso-corporal-y--de-grasa)\n   - [5.6 Pesta\u00f1a \u00abNovedades del Gym\u00bb (Comunicados y Avisos Permanentes)](#56-pesta\u00f1a-novedades-del-gym-comunicados-y-avisos-permanentes)\n   - [5.7 Pesta\u00f1a \u00abMis Pagos\u00bb (Estado de Membres\u00eda e Historial de Cuotas)](#57-pesta\u00f1a-mis-pagos-estado-de-membres\u00eda-e-historial-de-cuotas)\n6. [Preguntas Frecuentes para el Socio](#6-preguntas-frecuentes-para-el-socio)\n\n---\n\n## 1. Introducci\u00f3n y Alcance del Manual\n\nEl presente **Manual de Usuario** describe de forma guiada y visual el uso del sistema web **SOMA GYM**, centr\u00e1ndose principalmente en la experiencia del **Socio (Cliente)** a trav\u00e9s de la terminal de ingreso al gimnasio (**Check-in Digital**) y del **Portal de Autogesti\u00f3n del Socio**.\n\nAsimismo, en la **Secci\u00f3n 2** se detalla brevemente c\u00f3mo el personal de **Recepci\u00f3n** realiza el alta inicial del socio en el sistema, dado que dicho procedimiento origina la cuenta de usuario con la cual el cliente ingresa a la plataforma. Para ejemplificar las pantallas reales del sistema se utilizan los datos del socio **Agust\u00edn Bugnoni (`DNI 37016902`)**.\n\n---\n\n## 2. Alta Inicial del Socio en Recepci\u00f3n (Rol Recepcionista)\n\nEl socio no se registra de forma an\u00f3nima desde Internet; su inscripci\u00f3n se realiza presencialmente en el mostrador del gimnasio por un usuario con rol **Recepcionista** (por ejemplo, `alopez`) o **Administrador** (`cadmin`).\n\n### 2.1 Registro de Datos Personales y Aptitud F\u00edsica\n\n1. El recepcionista inicia sesi\u00f3n en el panel administrativo y accede en el men\u00fa lateral a la secci\u00f3n **Socios y Clientes**.\n2. Presiona el bot\u00f3n **\u00ab+ Nuevo Socio\u00bb** para desplegar la ventana modal **\u00abRegistrar Nuevo Socio\u00bb**.\n3. Completa el formulario de inscripci\u00f3n con los datos del cliente:\n   - **Foto de Perfil Oficial (Opcional):** Permite ingresar un enlace compartido de Google Drive (con bot\u00f3n de previsualizaci\u00f3n) o seleccionar un archivo local desde el equipo.\n   - **Datos Personales:**\n     - **DNI \\* (7 u 8 d\u00edgitos num\u00e9ricos):** Por ejemplo, `37016902`. El sistema valida en tiempo real que no contenga letras, puntos ni espacios y que no exista otro socio activo con el mismo documento.\n     - **Nombre \\* y Apellido \\*:** Datos identificatorios del socio.\n     - **Edad, Email y Tel\u00e9fono:** El correo electr\u00f3nico es indispensable para que el socio pueda recuperar su contrase\u00f1a por c\u00f3digo OTP en caso de olvido.\n   - **Direcci\u00f3n:** Calle, n\u00famero y ciudad de residencia.\n   - **Estado y Aptitud F\u00edsica:** Casillas de verificaci\u00f3n de **\u00abSocio Activo\u00bb** y **\u00abApto M\u00e9dico Entregado\u00bb**, junto con la fecha de **Vencimiento del Apto M\u00e9dico**.\n4. Finalmente, se asocia su plan de membres\u00eda y su pago inicial (especificando la cantidad de meses abonados y el m\u00e9todo de pago: *Efectivo*, *Transferencia*, *Tarjeta de D\u00e9bito* o *Tarjeta de Cr\u00e9dito*).\n\n![Formulario de Alta de Nuevo Socio en Recepci\u00f3n](img_manual/03_recepcion_alta_cliente.png)\n\n### 2.2 Generaci\u00f3n Autom\u00e1tica de Credenciales del Socio\n\nEn el instante en que Recepci\u00f3n confirma el alta del cliente:\n- El sistema crea autom\u00e1ticamente la cuenta de acceso del socio con el rol **Cliente**.\n- **Usuario de acceso (`usuario_login`):** Es el n\u00famero de **DNI** del socio (ej. `37016902`).\n- **Contrase\u00f1a temporal inicial:** Por defecto es **`clave1234`**, quedando marcada la cuenta (`debe_cambiar_password = True`) para solicitar obligatoriamente el cambio de clave en su primer inicio de sesi\u00f3n.\n\n---\n\n## 3. Acceso al Sistema y Seguridad de la Cuenta\n\n### 3.1 Inicio de Sesi\u00f3n (Login)\n\nPara ingresar a su portal personal desde cualquier tel\u00e9fono m\u00f3vil, tablet o computadora:\n\n1. Abrir el navegador web y dirigirse a la pantalla principal de acceso de **SOMA GYM**.\n2. En el campo **Usuario o DNI**, ingresar su n\u00famero de documento sin puntos ni espacios: `37016902`.\n3. En el campo **Contrase\u00f1a**, ingresar su clave personal (o la contrase\u00f1a temporal **`clave1234`** si es la primera vez que ingresa al sistema).\n4. Hacer clic en el bot\u00f3n **\u00abIngresar\u00bb**. El sistema identificar\u00e1 autom\u00e1ticamente el rol **Cliente** y redirigir\u00e1 al socio hacia el **Portal Socio (`/cliente.html`)**.\n\n![Pantalla de Inicio de Sesi\u00f3n de SOMA GYM](img_manual/01_login.png)\n\n### 3.2 Cambio Obligatorio de Contrase\u00f1a en el Primer Ingreso\n\nPor razones de privacidad y seguridad, cuando el socio ingresa por primera vez utilizando la contrase\u00f1a inicial por defecto (**`clave1234`**), el sistema despliega de inmediato una ventana obligatoria de **Actualizaci\u00f3n de Contrase\u00f1a**:\n\n1. Ingresar una nueva contrase\u00f1a personal de al menos **6 caracteres** (distinta de `clave1234`).\n2. Repetir la contrase\u00f1a en el campo de confirmaci\u00f3n.\n3. Presionar **\u00abActualizar Contrase\u00f1a\u00bb** para desbloquear el acceso completo al portal.\n\n### 3.3 Recuperaci\u00f3n de Contrase\u00f1a mediante C\u00f3digo OTP\n\nSi el socio olvida su contrase\u00f1a, puede restablecerla sin necesidad de acudir a recepci\u00f3n siguiendo estos pasos:\n\n1. En la pantalla de inicio de sesi\u00f3n, hacer clic sobre el enlace **\u00ab\u00bfOlvidaste tu contrase\u00f1a?\u00bb**.\n2. Se abrir\u00e1 el asistente **Recuperar Contrase\u00f1a**: ingresar el **DNI** (`37016902`), usuario o **correo electr\u00f3nico** registrado en el gimnasio y presionar **\u00abEnviar C\u00f3digo\u00bb**.\n3. El sistema enviar\u00e1 a su casilla de correo electr\u00f3nico un **c\u00f3digo num\u00e9rico de 6 d\u00edgitos (OTP)** con una validez de **15 minutos**.\n4. Ingresar el c\u00f3digo recibido de 6 d\u00edgitos junto con la nueva contrase\u00f1a deseada y confirmar la operaci\u00f3n.\n\n![Ventana de Recuperaci\u00f3n de Contrase\u00f1a por C\u00f3digo OTP](img_manual/02_recuperar_clave.png)\n\n---\n\n## 4. Registro de Asistencia en Terminal de Entrada (`/checkin`)\n\nAl llegar a las instalaciones del gimnasio, el socio debe registrar su presente en la terminal t\u00e1ctil (**Check-in Digital** ubicada en la entrada de la sala de entrenamiento):\n\n1. En la pantalla **Check-in Digital**, ingresar el n\u00famero de **DNI** (`37016902`) utilizando el teclado num\u00e9rico en pantalla (o el teclado f\u00edsico) y presionar el bot\u00f3n verde **\u00abRegistrar Ingreso\u00bb**.\n2. El sistema valida la ficha del socio al instante y despliega una **Tarjeta de Bienvenida** con la siguiente informaci\u00f3n:\n   - **Fotograf\u00eda de perfil, Nombre Completo y DNI:** *Agustin Bugnoni \u2013 DNI: 37016902*.\n   - **Estado de la Cuota:** Etiqueta semaf\u00f3rica indicando **\u00abCuota: Al d\u00eda\u00bb** (verde), **\u00abPor vencer\u00bb** (amarillo) o **\u00abVencida\u00bb** (rojo), junto con la fecha exacta de vencimiento (ej. `25/11/2026`).\n   - **Estado del Apto M\u00e9dico:** Confirmaci\u00f3n de vigencia y fecha de vencimiento del certificado m\u00e9dico (ej. `Apto M\u00e9dico: Vigente (13/07/2027)`).\n\n![Pantalla de Check-In Digital y Tarjeta de Bienvenida del Socio](img_manual/04_checkin_socio.png)\n\n---\n\n## 5. Portal de Autogesti\u00f3n del Socio (`/cliente.html`)\n\nUna vez que el socio inicia sesi\u00f3n con su cuenta (`37016902`), accede al **Portal Socio**, organizado en una cabecera informativa y cuatro pesta\u00f1as de navegaci\u00f3n: **Mi Rutina**, **Novedades del Gym**, **Mi Progreso** y **Mis Pagos**.\n\n### 5.1 Cabecera Principal y Estado de Cuota\n\nEn la barra superior del portal del socio se visualizan de forma permanente:\n- **Identificaci\u00f3n y Avatar:** Saludo personalizado (*Hola, Agustin Bugnoni*) junto a su fotograf\u00eda de perfil con acceso directo al bot\u00f3n de c\u00e1mara para actualizarla.\n- **Indicador de Apto M\u00e9dico:** Etiqueta que informa si el certificado m\u00e9dico se encuentra vigente y su fecha de expiraci\u00f3n (`Apto Vigente (Vence: 2027-07-13)`).\n- **Indicador R\u00e1pido de Cuota:** Etiqueta semaf\u00f3rica que muestra en todo momento si la cuota est\u00e1 **Al d\u00eda**, **Por vencer** o **Cuota Vencida** junto con su fecha de vencimiento (`2026-11-25`).\n- **Bot\u00f3n de Cerrar Sesi\u00f3n:** Ubicado en el extremo derecho para salir de la cuenta de forma segura.\n\n---\n\n### 5.2 Actualizaci\u00f3n y Aprobaci\u00f3n de Foto de Perfil\n\nEl socio puede solicitar el cambio de su fotograf\u00eda de perfil directamente desde su celular o computadora:\n\n1. Hacer clic sobre el \u00edcono de la **c\u00e1mara fotogr\u00e1fica** situado sobre su imagen de perfil en la barra superior.\n2. Se abrir\u00e1 la ventana **\u00abFoto de Perfil\u00bb**, donde el socio puede elegir entre dos modalidades de carga:\n   - **Enlace de Google Drive (Recomendado):** Pegar el enlace p\u00fablico de una imagen subida a Google Drive y presionar **\u00abPrevisualizar\u00bb**.\n   - **Archivo local:** Presionar el bot\u00f3n **\u00abArchivo local\u00bb** para subir una foto desde la galer\u00eda del tel\u00e9fono o la computadora (formatos `JPG`, `PNG` o `WEBP`, hasta 5 MB).\n3. Hacer clic en el bot\u00f3n verde **\u00abEnviar Solicitud\u00bb**.\n4. La imagen quedar\u00e1 en estado **Pendiente de aprobaci\u00f3n** hasta que el personal de recepci\u00f3n o entrenamiento la valide desde el panel administrativo, momento en el cual se actualizar\u00e1 autom\u00e1ticamente en el portal y en el Check-in Digital.\n\n![Modal de Solicitud de Cambio de Foto de Perfil](img_manual/06_cambio_foto_perfil.png)\n\n---\n\n### 5.3 Pesta\u00f1a \u00abMi Rutina\u00bb (Planilla Semanal por D\u00edas)\n\nLa primera pesta\u00f1a del portal, **\u00abMi Rutina\u00bb**, muestra la planilla de entrenamiento vigente asignada por el profesor del gimnasio:\n\n- **Encabezado del Plan de Entrenamiento:** Indica el t\u00edtulo de la rutina actual (ej. *Fuerza e Hipertrofia Avanzada*) acompa\u00f1ado de etiquetas con la **Fecha de inicio** (`2026-11-05`), **Duraci\u00f3n** (`4 semanas`), **Frecuencia semanal** (`3 d\u00edas`), **Total de ejercicios** (`12 ejercicios`) y el **Entrenador a cargo** (*Marcos Fuerte*).\n- **Indicaciones del Entrenador:** Recuadro destacado donde el profesor deja observaciones t\u00e9cnicas sobre el mesociclo actual (ej. *Control de sobrecarga progresiva*).\n- **Tablas Desglosadas por D\u00eda de Entrenamiento:** La rutina se organiza en bloques por jornada (ej. *D\u00eda 1 \u2013 Fuerza Tren Superior*, *D\u00eda 2 \u2013 Fuerza Tren Inferior*, *D\u00eda 3*). Para cada ejercicio programado se detalla:\n  - **# (Orden)** dentro de la sesi\u00f3n.\n  - **Ejercicio y Grupo Muscular** (ej. *Press de Banca Plano \u2013 PECHO*, *Sentadilla Libre con Barra \u2013 PIERNAS*).\n  - **Series y Repeticiones** objetivo (ej. `5` series de `6` repeticiones).\n  - **Carga planificada** en kilogramos (ej. `63.40 kg`, `77.10 kg`).\n  - **Descanso** indicado entre series (ej. `90 seg`).\n\n![Pesta\u00f1a Mi Rutina \u2013 Planilla de Entrenamiento por D\u00edas](img_manual/05_portal_cabecera_y_rutina.png)\n\n---\n\n### 5.4 Pesta\u00f1a \u00abMi Progreso\u00bb (Evoluci\u00f3n de Cargas y R\u00e9cord Personal PR 3M)\n\nAl acceder a la pesta\u00f1a **\u00abMi Progreso\u00bb** (*Historial de Evoluci\u00f3n*), el socio puede analizar gr\u00e1ficamente la evoluci\u00f3n de sus cargas a lo largo de todas sus rutinas hist\u00f3ricas:\n\n1. **Selector de Ejercicio y A\u00f1o Calendario:** En el bloque **\u00abProgreso de Ejercicios en Rutinas Hist\u00f3ricas\u00bb**, el socio selecciona cualquier ejercicio de su plan (por ejemplo, *Curl con barra (B\u00edceps)*) y el a\u00f1o que desea consultar (`< 2026 >`).\n2. **Tarjetas de Indicadores Clave (KPIs Deportivos):**\n   - **PR VIGENTE (3 MESES):** Destaca en color dorado el **R\u00e9cord Personal (peso m\u00e1ximo alcanzado en los \u00faltimos 3 meses)** junto con el mes en que se logr\u00f3 (ej. `43.2 kg \u2013 R\u00e9cord en Sep 2026`).\n   - **CARGA ACTUAL:** Muestra el peso asignado en el \u00faltimo mes cargado (ej. `40.7 kg`).\n   - **PROGRESO DEL A\u00d1O:** Calcula autom\u00e1ticamente la diferencia neta anual de fuerza ganada en ese ejercicio (ej. `+26.8 kg`).\n   - **MESES REGISTRADOS:** Cantidad de meses con registros sobre el a\u00f1o seleccionado (ej. `11 / 12 meses`).\n3. **Gr\u00e1fico Lineal Interactivo:** Representa mes a mes (`Ene 2026` a `Nov 2026`) la curva de evoluci\u00f3n de la carga en kilogramos para el ejercicio seleccionado.\n\n![Pesta\u00f1a Mi Progreso \u2013 Evoluci\u00f3n Mensual de Cargas y PR Vigente (3 Meses)](img_manual/07_mi_progreso_pr.png)\n\n---\n\n### 5.5 Secci\u00f3n \u00abMediciones F\u00edsicas\u00bb (Peso Corporal y % de Grasa)\n\nEn la parte inferior de la pesta\u00f1a **\u00abMi Progreso\u00bb** se ubica la tabla **\u00abMediciones F\u00edsicas\u00bb**, donde el socio consulta todos los controles antropom\u00e9tricos registrados junto a su entrenador:\n\n- **Fecha del Control:** Ordenada desde la medici\u00f3n m\u00e1s reciente hacia las anteriores (ej. `2026-11-05`, `2026-10-05`, etc.).\n- **Peso (kg):** Registro exacto del peso corporal en kilogramos (ej. `65.50 kg`).\n- **% Grasa:** Porcentaje de grasa corporal medido en cada evaluaci\u00f3n (ej. `19.70 %`), permitiendo verificar la evoluci\u00f3n mes a mes.\n- **Observaciones:** Comentarios profesionales del entrenador sobre el control mensual (ej. *Control antropom\u00e9trico mes 12/12 \u2013 Evoluci\u00f3n favorable*).\n\n![Secci\u00f3n Mediciones F\u00edsicas \u2013 Historial de Peso y Porcentaje de Grasa Corporal](img_manual/08_mi_evolucion_fisica.png)\n\n---\n\n### 5.6 Pesta\u00f1a \u00abNovedades del Gym\u00bb (Comunicados y Avisos Permanentes)\n\nAl seleccionar la pesta\u00f1a **\u00abNovedades del Gym\u00bb** (*Comunicados y Novedades*), el socio accede al muro informativo oficial del gimnasio:\n\n- **Etiquetas por Categor\u00eda:** Cada comunicado identifica su tem\u00e1tica mediante una etiqueta de color (por ejemplo, `EVENTOS`, `EQUIPAMIENTO`, `HORARIOS`, `INSTITUCIONAL`).\n- **Avisos Fijados (`PERMANENTE`):** Los comunicados esenciales del gimnasio (como *Horarios de Atenci\u00f3n y Feriados 2026* o el *Reglamento de Convivencia y Uso de Instalaciones SOMA*) poseen la insignia dorada **`PERMANENTE`** y permanecen visibles sin expirar.\n- **Autor y Fecha de Publicaci\u00f3n:** Al pie de cada tarjeta se informa qu\u00e9 miembro del staff public\u00f3 la noticia y en qu\u00e9 fecha.\n\n![Pesta\u00f1a Novedades del Gym \u2013 Comunicados Oficiales y Avisos Permanentes](img_manual/09_muro_noticias.png)\n\n---\n\n### 5.7 Pesta\u00f1a \u00abMis Pagos\u00bb (Estado de Membres\u00eda e Historial de Cuotas)\n\nAl hacer clic en la cuarta pesta\u00f1a, **\u00abMis Pagos\u00bb** (*Mis Pagos y Estado de Membres\u00eda*), el socio puede consultar de forma transparente su situaci\u00f3n administrativa y todos los pagos que ha realizado en el gimnasio:\n\n1. **Bloque \u00abEstado Actual de Cuota\u00bb:**\n   - **Estado:** Muestra mediante un indicador visual claro si la membres\u00eda se encuentra **Al d\u00eda** (en color verde), **Por vencer** (en color amarillo cuando restan pocos d\u00edas de vigencia) o **Vencida** (en color rojo, como se observa en el ejemplo cuando la fecha actual supera la cobertura activa).\n   - **Vencimiento de Cuota:** Informa la fecha exacta hasta la cual se extiende la cobertura abonada (ej. `2026-11-25`). Si el socio abona varios meses por adelantado en recepci\u00f3n, esta fecha acumula autom\u00e1ticamente todos los per\u00edodos pagados.\n2. **Tabla \u00abHistorial de Cuotas Pagadas\u00bb:**\n   - Lista cronol\u00f3gicamente todos los pagos efectuados por el socio desde su inscripci\u00f3n, detallando en cada fila:\n     - **Fecha de Pago:** D\u00eda en que se registr\u00f3 el cobro en recepci\u00f3n (ej. `2026-10-25`, `2026-09-25`).\n     - **Concepto:** Descripci\u00f3n del abono (ej. *Cuota mensual #12/12*, *Cuota mensual #11/12*).\n     - **Meses Abonados:** Cantidad de meses incluidos en esa transacci\u00f3n (`1`, `3`, etc.).\n     - **Vencimiento Cuota:** Fecha de vencimiento resultante tras aplicar ese pago.\n     - **M\u00e9todo de Pago:** Medio utilizado (*Transferencia*, *Efectivo*, *Tarjeta de D\u00e9bito*, *Tarjeta de Cr\u00e9dito*).\n     - **Monto:** Importe abonado en pesos (ej. `$15.000,00`).\n\n![Pesta\u00f1a Mis Pagos \u2013 Estado Actual de Cuota e Historial de Cuotas Pagadas](img_manual/10_mis_pagos.png)\n\n---\n\n## 6. Preguntas Frecuentes para el Socio\n\n| Consulta Frecuente | Soluci\u00f3n Paso a Paso |\n| :--- | :--- |\n| **\u00bfCu\u00e1l es mi usuario y contrase\u00f1a la primera vez que entro?** | Tu usuario es tu n\u00famero de **DNI** sin puntos (ej. `37016902`) y tu contrase\u00f1a temporal por defecto es **`clave1234`**. Al ingresar por primera vez, el sistema te pedir\u00e1 obligatoriamente elegir una contrase\u00f1a personal nueva. |\n| **Olvid\u00e9 mi contrase\u00f1a y no tengo acceso a mi correo electr\u00f3nico.** | Pod\u00e9s acercarte al mostrador de **Recepci\u00f3n** para actualizar tu correo electr\u00f3nico y recuperar el acceso, o solicitar al administrador que restablezca tu clave temporal. |\n| **Pagu\u00e9 dos o m\u00e1s meses juntos por adelantado, \u00bfd\u00f3nde veo mi vencimiento y mis comprobantes?** | En la pesta\u00f1a **\u00abMis Pagos\u00bb** (y en la barra superior del portal). El sistema acumula autom\u00e1ticamente los meses abonados sobre tu fecha de vencimiento vigente y registra el detalle en la tabla **Historial de Cuotas Pagadas**. |\n| **Sub\u00ed una nueva foto de perfil pero sigo viendo la anterior.** | Por pol\u00edticas del gimnasio, toda nueva fotograf\u00eda queda en estado *Pendiente de revisi\u00f3n* hasta que un recepcionista o entrenador la apruebe en el panel de control. |\n| **Cambiaron mi rutina este mes, \u00bfse pierden mis pesos de los meses anteriores?** | No. Todas las rutinas anteriores quedan almacenadas en tu historial deportivo y sus pesos se utilizan autom\u00e1ticamente en la pesta\u00f1a **\u00abMi Progreso\u00bb** para armar tus gr\u00e1ficos anuales y calcular tu **PR Vigente (3 Meses)**. |\n";
+
+  const renderer = new marked.Renderer();
+  const defaultCodeRenderer = renderer.code.bind(renderer);
+
+  renderer.code = function(code, infostring, escaped) {
+    let text = code;
+    let lang = infostring;
+    if (typeof code === 'object' && code !== null) {
+      text = code.text || '';
+      lang = code.lang || '';
+    }
+    if ((lang || '').trim().toLowerCase() === 'mermaid') {
+      const escapedMermaid = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return '<div class="mermaid-container"><pre class="mermaid">' + escapedMermaid + '</pre></div>';
+    }
+    return defaultCodeRenderer(code, infostring, escaped);
+  };
+
+  marked.setOptions({ renderer: renderer, gfm: true, breaks: false });
+  document.getElementById('content').innerHTML = marked.parse(mdSource);
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'loose',
+    themeVariables: {
+      primaryColor: '#eff6ff',
+      primaryTextColor: '#0f172a',
+      primaryBorderColor: '#2563eb',
+      lineColor: '#334155',
+      secondaryColor: '#f8fafc',
+      tertiaryColor: '#f1f5f9',
+      fontFamily: 'Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif',
+      fontSize: '13.5px'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      nodeSpacing: 28,
+      rankSpacing: 46,
+      padding: 12
+    },
+    class: {
+      useMaxWidth: true
+    },
+    er: {
+      useMaxWidth: true,
+      layoutDirection: 'TB',
+      minEntityWidth: 90,
+      minEntityHeight: 60,
+      entityPadding: 10,
+      fontSize: 13
+    },
+    sequence: {
+      useMaxWidth: true,
+      actorMargin: 16,
+      width: 110,
+      height: 44,
+      boxMargin: 6,
+      messageMargin: 22,
+      mirrorActors: false
+    }
+  });
+
+  mermaid.run({ querySelector: '.mermaid' }).then(() => {
+    document.body.setAttribute('data-mermaid-ready', 'true');
+  }).catch((err) => {
+    console.error('Mermaid error:', err);
+    document.body.setAttribute('data-mermaid-error', String(err));
+  });
+</script>
+</body>
+</html>

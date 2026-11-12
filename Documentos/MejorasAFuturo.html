@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>MejorasAFuturo</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1e293b;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #ffffff;
+  }
+  h1 {
+    font-size: 20pt;
+    color: #0f172a;
+    border-bottom: 2px solid #1e40af;
+    padding-bottom: 6px;
+    margin-top: 28px;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 14.5pt;
+    color: #1e3a8a;
+    margin-top: 22px;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #1e293b;
+    margin-top: 16px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.5pt;
+    color: #334155;
+    margin-top: 12px;
+    page-break-after: avoid;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 9.5pt;
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td {
+    background-color: #f8fafc;
+  }
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    background-color: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 9pt;
+    color: #0f172a;
+  }
+  pre {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+    font-size: 9pt;
+  }
+  .mermaid-container {
+    text-align: center;
+    margin: 14px 0;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .mermaid svg {
+    max-width: 100% !important;
+    max-height: 195mm !important;
+    width: auto !important;
+    height: auto !important;
+  }
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: 155mm;
+    width: auto;
+    height: auto;
+    margin: 14px auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  blockquote {
+    margin: 12px 0;
+    padding: 10px 14px;
+    background-color: #f8fafc;
+    border-left: 4px solid #2563eb;
+    border-radius: 4px;
+    color: #334155;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #cbd5e1;
+    margin: 24px 0;
+  }
+  a {
+    color: #1d4ed8;
+    text-decoration: none;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+<div id="content">Renderizando documento y diagramas...</div>
+<script>
+  const mdSource = "# Mejoras a Futuro y Hoja de Ruta Evolutiva (Roadmap v2.0) - SOMA Gym\n\nEste documento detalla las funcionalidades proyectadas para la **Fase 2 (Versi\u00f3n 2.0)** del sistema de gesti\u00f3n del **Gimnasio SOMA**, surgidas a partir del relevamiento inicial con la gerencia (Ricardo) y de las decisiones arquitect\u00f3nicas tomadas durante el desarrollo de la **Versi\u00f3n 1.1**.\n\nCabe destacar que el modelo de datos relacional definitivo ([Creacion_de_BD_v1.1.sql](file:///home/agustin/Practicas%20profesionalizantes%20III/2_%20Zarate,%20Bugnoni%20Agustin-20260824T221128Z-1-001/Soma/Documentos/Creacion_de_BD_v1.1.sql)) **ya incluye las tablas preparadas** para dar soporte inmediato a varios de estos m\u00f3dulos sin requerir reestructuraciones profundas de base de datos.\n\n---\n\n## 1. M\u00f3dulo Financiero: Registro de Egresos y Estado de Resultados (`CU-10` / `RF-F3`)\n\n### Contexto y Objetivo\nActualmente, el sistema registra la totalidad de los **ingresos** provenientes del cobro de cuotas de socios en la tabla `Pago`, permitiendo discriminar por medio de pago (Efectivo, Transferencia, Mercado Pago, D\u00e9bito, Tarjeta de Cr\u00e9dito) y cantidad de meses abonados. Para completar el c\u00e1lculo de rentabilidad neta solicitado por la gerencia, se proyecta incorporar la gesti\u00f3n de **costos fijos y variables**.\n\n### Propuesta de Implementaci\u00f3n\n1. **Base de Datos**:\n   - Incorporar la entidad `Gasto` (`id_gasto`, `fecha_gasto`, `categoria`, `monto`, `descripcion`, `id_usuario_registro`) con categor\u00edas predefinidas: *Alquiler, Sueldos Profesores/Staff, Servicios (Luz/Agua/Internet), Mantenimiento de Maquinaria, Insumos y Limpieza*.\n2. **Backend (FastAPI)**:\n   - Endpoints `GET /api/finanzas/gastos`, `POST /api/finanzas/gastos` y `GET /api/finanzas/estado-resultados?anio=YYYY&mes=MM` reservados exclusivamente al rol **Admin**.\n3. **Frontend (Panel Administrador)**:\n   - Nueva pesta\u00f1a **\"Balance y Rentabilidad\"** con tarjetas de resumen mensual (*Ingresos Brutos*, *Costos Totales*, *Resultado Neto / Punto de Equilibrio*) y gr\u00e1fico comparativo de barras mensuales Ingresos vs. Egresos.\n\n---\n\n## 2. ABM Din\u00e1mico de Planes de Membres\u00eda y Convenios (`CU-08` / `RF-F1`)\n\n### Contexto y Objetivo\nLa tabla `Membresia` ya se encuentra creada y sembrada en la base de datos con los planes *Mensual, Trimestral Premium, Anual VIP y Pase Diario*. En la versi\u00f3n actual, el cobro de cuotas se realiza imputando la cantidad de meses y el monto sobre el plan base, permitiendo ajustes manuales de importe en recepci\u00f3n.\n\n### Propuesta de Implementaci\u00f3n\n1. **Gesti\u00f3n de Planes desde el Panel Admin**:\n   - Interfaz ABM para crear, editar precios y activar/desactivar categor\u00edas tarifarias especiales: *Plan Parejas / Grupo Familiar, Jubilados, Promoci\u00f3n Franja Horaria (Off-Peak) y Convenios Corporativos*.\n2. **Selector de Plan en el Modal de Pagos**:\n   - Al registrar el alta de un socio o una nueva cuota, el selector de membres\u00eda autocompletar\u00e1 autom\u00e1ticamente el precio vigente y la duraci\u00f3n en d\u00edas/meses seg\u00fan el plan elegido, manteniendo la posibilidad de aplicar un descuento o recargo manual autorizado.\n\n---\n\n## 3. Agenda de Turnos Nutricionales y Portal de Nutricionista (`CU-04`, `CU-05` / `RF-T1`)\n\n### Contexto y Objetivo\nEl seguimiento antropom\u00e9trico (peso en kg, porcentaje de grasa corporal y observaciones cl\u00ednicas) ya se encuentra operativo dentro de la pesta\u00f1a **Evoluci\u00f3n F\u00edsica**. Sin embargo, la gesti\u00f3n de citas en agenda con el profesional de nutrici\u00f3n qued\u00f3 proyectada para la Fase 2.\n\n### Estado en Base de Datos Actual\nLa tabla `Turno_Nutricional` **ya existe** en [Creacion_de_BD_v1.1.sql](file:///home/agustin/Practicas%20profesionalizantes%20III/2_%20Zarate,%20Bugnoni%20Agustin-20260824T221128Z-1-001/Soma/Documentos/Creacion_de_BD_v1.1.sql):\n- Campos: `id_turno`, `dni_cliente`, `id_usuario_nutricionista`, `fecha_turno`, `hora_turno`, `estado` (*Pendiente, Completado, Cancelado, Ausente*) y `observaciones`.\n\n### Propuesta de Implementaci\u00f3n\n1. **Rol `Nutricionista`**:\n   - Habilitar la vista espec\u00edfica para profesionales de nutrici\u00f3n, con acceso a la ficha de **Evoluci\u00f3n F\u00edsica** y a su agenda de turnos, restringiendo el acceso a la edici\u00f3n de rutinas de musculaci\u00f3n y finanzas.\n2. **Calendario de Reserva de Turnos**:\n   - Vista de grilla semanal en Recepci\u00f3n y en el Portal del Socio para reservar bloques de atenci\u00f3n disponibles, validando que no existan solapamientos de horario para el mismo profesional.\n\n---\n\n## 4. Calendario y Reserva de Clases Grupales con Control de Cupo (`CU-09` / `RF-T2`, `RF-T3`)\n\n### Contexto y Objetivo\nPermitir la planificaci\u00f3n de actividades grupales (*Funcional, Calistenia, Zumba, Spinning*) asignando un profesor responsable, d\u00edas y horarios de dictado, y controlando el cupo m\u00e1ximo del sal\u00f3n.\n\n### Estado en Base de Datos Actual\nLas tres tablas relacionales necesarias **ya est\u00e1n definidas** en [Creacion_de_BD_v1.1.sql](file:///home/agustin/Practicas%20profesionalizantes%20III/2_%20Zarate,%20Bugnoni%20Agustin-20260824T221128Z-1-001/Soma/Documentos/Creacion_de_BD_v1.1.sql):\n- `Clase` (`id_clase`, `nombre_clase`, `id_usuario_profesor`, `cupo_maximo`, `activo`).\n- `Horario_Clase` (`id_horario`, `id_clase`, `dia_semana`, `hora_inicio`, `hora_fin`).\n- `Inscripcion_Clase` (`id_inscripcion`, `dni_cliente`, `id_horario`, `fecha`, `asistio`).\n\n### Propuesta de Implementaci\u00f3n\n1. **Validaci\u00f3n de Cupos en Backend**:\n   - Al inscribir a un socio en una fecha y horario determinado, contabilizar las inscripciones activas (`COUNT(*)`) y bloquear nuevas reservas cuando se alcance `Clase.cupo_maximo`, adem\u00e1s de verificar que el socio tenga la cuota y el apto m\u00e9dico al d\u00eda.\n2. **Inscripci\u00f3n desde el Portal Socio y Recepci\u00f3n**:\n   - Cartelera semanal de clases con indicador visual de lugares disponibles (ej. `14/20 cupos ocupados`) y bot\u00f3n de inscripci\u00f3n/cancelaci\u00f3n r\u00e1pida.\n\n---\n\n## 5. Impresi\u00f3n de Rutinas en Formato Ficha F\u00edsica (`RNF-OH1` - Convivencia Anal\u00f3gica)\n\n### Contexto y Objetivo\nPara acompa\u00f1ar la transici\u00f3n gradual de los socios acostumbrados a las fichas de cartulina tradicionales en el sal\u00f3n de musculaci\u00f3n, se prev\u00e9 incorporar una funci\u00f3n de impresi\u00f3n directa desde la vista de planilla de rutina.\n\n### Propuesta de Implementaci\u00f3n\n- Agregar el bot\u00f3n **\"Imprimir Ficha\"** en el detalle de rutina del Portal Entrenador y Portal Socio, aplicando una hoja de estilos `@media print` que oculte la barra lateral y cabeceras del sistema, formateando los d\u00edas, ejercicios, series, repeticiones, cargas sugeridas y casilleros de control en una p\u00e1gina A4/A5 limpia de alto contraste.\n\n---\n\n## 6. Herramienta de Depuraci\u00f3n Administrativa (Hard Delete Controlado)\n\n### Contexto y Objetivo\nEl sistema utiliza **Borrado L\u00f3gico (`activo = False`)** por dise\u00f1o para preservar la integridad contable de la caja y permitir la re-alta inmediata de ex-socios sin p\u00e9rdida de historial. Como mejora administrativa documentada en [posibles_implementaciones.md](file:///home/agustin/Practicas%20profesionalizantes%20III/2_%20Zarate,%20Bugnoni%20Agustin-20260824T221128Z-1-001/Soma/Documentos/posibles_implementaciones.md), se contempla habilitar una opci\u00f3n de **Eliminaci\u00f3n Definitiva (Hard Delete)** exclusiva para el rol **Admin** con doble confirmaci\u00f3n, pensada \u00fanicamente para purgar registros cargados por error humano en el mismo d\u00eda sin impacto contable.\n";
+
+  const renderer = new marked.Renderer();
+  const defaultCodeRenderer = renderer.code.bind(renderer);
+
+  renderer.code = function(code, infostring, escaped) {
+    let text = code;
+    let lang = infostring;
+    if (typeof code === 'object' && code !== null) {
+      text = code.text || '';
+      lang = code.lang || '';
+    }
+    if ((lang || '').trim().toLowerCase() === 'mermaid') {
+      const escapedMermaid = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return '<div class="mermaid-container"><pre class="mermaid">' + escapedMermaid + '</pre></div>';
+    }
+    return defaultCodeRenderer(code, infostring, escaped);
+  };
+
+  marked.setOptions({ renderer: renderer, gfm: true, breaks: false });
+  document.getElementById('content').innerHTML = marked.parse(mdSource);
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'loose',
+    themeVariables: {
+      primaryColor: '#eff6ff',
+      primaryTextColor: '#0f172a',
+      primaryBorderColor: '#2563eb',
+      lineColor: '#334155',
+      secondaryColor: '#f8fafc',
+      tertiaryColor: '#f1f5f9',
+      fontFamily: 'Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif',
+      fontSize: '13.5px'
+    },
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      nodeSpacing: 28,
+      rankSpacing: 46,
+      padding: 12
+    },
+    class: {
+      useMaxWidth: true
+    },
+    er: {
+      useMaxWidth: true,
+      layoutDirection: 'TB',
+      minEntityWidth: 90,
+      minEntityHeight: 60,
+      entityPadding: 10,
+      fontSize: 13
+    },
+    sequence: {
+      useMaxWidth: true,
+      actorMargin: 16,
+      width: 110,
+      height: 44,
+      boxMargin: 6,
+      messageMargin: 22,
+      mirrorActors: false
+    }
+  });
+
+  mermaid.run({ querySelector: '.mermaid' }).then(() => {
+    document.body.setAttribute('data-mermaid-ready', 'true');
+  }).catch((err) => {
+    console.error('Mermaid error:', err);
+    document.body.setAttribute('data-mermaid-error', String(err));
+  });
+</script>
+</body>
+</html>
